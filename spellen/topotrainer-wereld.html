@@ -160,6 +160,14 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline
 .legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:.85rem;color:var(--muted)}
 .legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:-1px}
 @media(max-width:560px){.prow{grid-template-columns:1fr}.plevels{justify-content:space-between}.lvl{width:auto;flex:1}}
+
+.hdr-btns{display:flex;gap:8px;flex-wrap:wrap}
+.advice{display:flex;flex-direction:column;gap:10px}
+.advice p{margin:0}
+.advice .why{color:var(--muted);font-size:.92rem}
+.advice .hard{display:flex;flex-wrap:wrap;gap:5px}
+.advice .hard span{font-size:.82rem;padding:2px 8px;border-radius:6px;border:1px solid var(--bad);color:var(--ink);background:var(--bad-soft)}
+.advice .btns{display:flex;flex-direction:column;gap:8px}
 </style>
 </head>
 <body>
@@ -172,10 +180,13 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline
       <h1>Topotrainer <span>Wereld</span></h1>
       <p class="sub">Wereld · Cito-lijst · 38 plekken</p>
     </div>
+    <div class="hdr-btns">
+    <button class="pp-btn" id="adviceBtn">Advies voor vandaag</button>
     <button class="pp-btn" id="ppBtn" aria-label="Naar mijn paspoort">
       <svg viewBox="0 0 26 26" aria-hidden="true"><rect x="4" y="2" width="18" height="22" rx="2.5" fill="var(--accent)"/><circle cx="13" cy="11" r="4.2" fill="none" stroke="var(--paper)" stroke-width="1.4"/><path d="M8.8 11h8.4M13 6.8c-1.6 2.4-1.6 6 0 8.4M13 6.8c1.6 2.4 1.6 6 0 8.4" stroke="var(--paper)" stroke-width="1" fill="none"/><rect x="8" y="18.5" width="10" height="1.5" rx=".75" fill="var(--paper)"/></svg>
       <span id="ppCount">0 van 7 stempels</span>
     </button>
+    </div>
   </header>
 
   <div class="toolbar">
@@ -404,7 +415,7 @@ function syncModes(){document.querySelectorAll('#modes button').forEach(b=>b.set
 const pool=()=>ITEMS.filter(i=>store.cats.includes(i.cat));
 const kindOf=i=>CATS.find(c=>c.id===i.cat).kind;
 
-function start(){
+function start(focus){
   clearHL(); $('qbar').className='qbar'; $('below').innerHTML='';
   if(mode==='bekijk'){
     round=null; drawLabels(pool());
@@ -413,18 +424,52 @@ function start(){
     return;
   }
   drawLabels([]);
-  round={q:pickRound(pool()),idx:0,res:[],retry:new Set(),locked:false};
+  const q=Array.isArray(focus)?d3.shuffle(focus.slice(0,10)):pickRound(pool());
+  round={q,idx:0,res:[],retry:new Set(),locked:false};
   ask();
 }
 /* Which places to ask in a round.
    Priority: places she got wrong, places never asked, places right only once.
    Places she already knows (2x in a row right) only come back for a short review,
    oldest first, and fill a whole round only when everything is known. */
+/* ---------- difficulty and daily advice ---------- */
+const today=()=>new Date().toLocaleDateString('sv');
+const startOfToday=()=>{const d=new Date();d.setHours(0,0,0,0);return +d};
+// how hard a place is, over all practice modes: mistakes count, right answers make up for them slowly
+function diffScore(i){
+  let ok=0,bad=0; LEVELS.forEach(L=>{const s=sget(i.id,L.m); if(s){ok+=s.ok;bad+=s.bad}});
+  if(!bad) return 0;
+  const cur=sget(i.id); return bad*2-ok*0.5+(cur&&cur.bad&&cur.streak===0?2:0);
+}
+const hardList=p=>p.filter(i=>diffScore(i)>0).sort((a,b)=>diffScore(b)-diffScore(a));
+// advise the first level whose stamps are not complete for the chosen groups
+function advisedLevel(p){return LEVELS.find(L=>!p.every(i=>known(i.id,L.m)))||LEVELS[2]}
+function showAdvice(welcome){
+  round=null; clearHL(); drawLabels([]); resetZoom(); $('qbar').className='qbar';
+  const p=pool(), L=advisedLevel(p), k=p.filter(i=>known(i.id,L.m)).length, hard=hardList(p).slice(0,10);
+  const allGold=p.every(i=>known(i.id,'typ'));
+  hard.forEach(i=>highlight(i));
+  $('qtext').innerHTML=`<span class="kind">${welcome?'Welkom terug!':'Advies voor vandaag'}</span><b>Oefen met ${L.n}</b>`;
+  $('prog').innerHTML='';
+  const why = allGold ? 'Je hebt alles 100% geleerd. Herhaal met Typen, zodat je het blijft kennen.'
+    : L.m==='wijs' ? `Op de kaart aanwijzen ken je ${k} van de ${p.length} plekken. Eerst de kaart goed in je hoofd, dan pas de namen.`
+    : L.m==='kies' ? `Aanwijzen heb je af. Bij Kiezen ken je ${k} van de ${p.length} plekken.`
+    : `Aanwijzen en Kiezen heb je af. Nu de namen zelf typen: ${k} van de ${p.length} ken je al.`;
+  $('below').innerHTML=`<div class="advice"><p class="why">${why}</p>
+    ${hard.length?`<p>Deze plekken vond je moeilijk. Ze staan op de kaart gemarkeerd:</p><div class="hard">${hard.map(i=>`<span>${i.n}</span>`).join('')}</div>`:''}
+    <div class="btns">${hard.length?`<button class="btn" id="advHard">Oefen de moeilijke plekken (${L.n})</button>`:''}
+    <button class="btn ${hard.length?'ghost':''}" id="advGo">Gewone ronde met ${L.n}</button>
+    <button class="btn ghost" id="advClose">Zelf kiezen</button></div></div>`;
+  const go=focus=>{mode=L.m;store.mode=mode;save();syncModes();start(focus)};
+  if(hard.length) $('advHard').onclick=()=>go(hard);
+  $('advGo').onclick=()=>go();
+  $('advClose').onclick=()=>start();
+}
 function weightOf(i){
   const s=sget(i.id);
   if(!s||(!s.ok&&!s.bad)) return 3;                 // nog nooit gevraagd
-  if(s.streak===0) return 4+Math.min(s.bad,3);      // laatst fout
-  return 2;                                         // 1x goed, nog niet gekend
+  if(s.streak===0) return 4+Math.min(s.bad,3)+Math.min(diffScore(i),3); // laatst fout
+  return 2+Math.min(diffScore(i),3);                // 1x goed, nog niet gekend
 }
 function weightedPick(list,n,w){
   const rest=[...list], out=[];
@@ -436,7 +481,10 @@ function weightedPick(list,n,w){
   return out;
 }
 function oldestKnown(list,n){
-  const sorted=[...list].sort((a,b)=>(sget(a.id)?.last||0)-(sget(b.id)?.last||0));
+  // review: places not asked today first, the hardest of those first, then the longest ago
+  const t0=startOfToday();
+  const sorted=[...list].sort((a,b)=>{const la=sget(a.id)?.last||0, lb=sget(b.id)?.last||0, ta=la>=t0, tb=lb>=t0;
+    return (ta-tb)||(diffScore(b)-diffScore(a))||(la-lb)});
   return weightedPick(sorted.slice(0,Math.max(n*3,4)),n,()=>1);
 }
 function pickRound(p){
@@ -519,7 +567,7 @@ function finish(){
   $('prog').innerHTML='';
   const wrong=r.q.filter((q,j)=>r.res[j]===false).filter((v,j,a)=>a.indexOf(v)===j);
   $('below').innerHTML=`<div class="done">${wrong.length?`<p style="margin:0">Nog even oefenen: ${wrong.map(w=>'<b>'+w.n+'</b>').join(', ')}</p>`:'<p style="margin:0">Alles in één keer goed!</p>'}<p style="margin:0;color:var(--muted)">${(()=>{const p=pool(),k=p.filter(i=>known(i.id)).length;return k===p.length?'Je kent alle '+p.length+' plekken. De volgende ronde is herhaling.':'Gekend: '+k+' van '+p.length+'. Nog te leren: '+(p.length-k)+'.'})()}</p><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" id="again">Nog een ronde</button></div></div>`;
-  $('again').onclick=start;
+  $('again').onclick=()=>start();
 }
 
 /* ---------- typed answer checking ---------- */
@@ -576,7 +624,14 @@ $('resetBtn').onclick=()=>{
 };
 let tt;function toast(t){const e=$('toast');e.textContent=t;e.hidden=false;clearTimeout(tt);tt=setTimeout(()=>e.hidden=true,2600)}
 
-syncChips(); syncModes(); updatePassport(); start();
+$('adviceBtn').onclick=()=>showAdvice(false);
+syncChips(); syncModes(); updatePassport();
+{ // first visit on a new day with earlier progress: open with advice
+  const had=LEVELS.some(L=>Object.keys(store.prog[L.m]||{}).length);
+  const newDay=had&&store.lastDay!==today();
+  store.lastDay=today(); save();
+  if(newDay) showAdvice(true); else start();
+}
 </script>
 
 </body>
