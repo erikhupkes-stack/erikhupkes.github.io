@@ -18,6 +18,7 @@ body{margin:0}
   --ink:#1d2a2e; --muted:#5b6b6f; --paper:#f7f9f6; --line:#d9e0dc;
   --accent:#c8255f; --accent-soft:#c8255f22;
   --river:#2a76b5; --mount:#8b5a2b; --city:#1d2a2e;
+  --brons:#a8622a; --zilver:#6f7d8c; --goud:#b8860b; --zilver-soft:#6f7d8c1a; --goud-soft:#e0b0222e;
   --good:#2b8a3e; --good-soft:#2b8a3e1f; --bad:#d6336c; --bad-soft:#e0313118;
   --display:"Bricolage Grotesque", "Trebuchet MS", system-ui, sans-serif;
   --body:"Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
@@ -27,12 +28,14 @@ body{margin:0}
   --ink:#e6eee9; --muted:#9aaba5; --paper:#141c1f; --line:#2b3a36;
   --accent:#ff6f9f; --accent-soft:#ff6f9f2a;
   --river:#5eaee8; --mount:#d0a173; --city:#e6eee9;
+  --brons:#d98f52; --zilver:#b7c3cf; --goud:#f2c94c; --zilver-soft:#b7c3cf1f; --goud-soft:#f2c94c26;
   --good:#5fd07a; --good-soft:#5fd07a22; --bad:#ff7a9c; --bad-soft:#ff7a9c22; color-scheme:dark}}
 :root[data-theme="dark"]{
   --sea:#0f1f27; --sea-deep:#0b1820; --land:#26322d; --border:#3b4a42;
   --ink:#e6eee9; --muted:#9aaba5; --paper:#141c1f; --line:#2b3a36;
   --accent:#ff6f9f; --accent-soft:#ff6f9f2a;
   --river:#5eaee8; --mount:#d0a173; --city:#e6eee9;
+  --brons:#d98f52; --zilver:#b7c3cf; --goud:#f2c94c; --zilver-soft:#b7c3cf1f; --goud-soft:#f2c94c26;
   --good:#5fd07a; --good-soft:#5fd07a22; --bad:#ff7a9c; --bad-soft:#ff7a9c22; color-scheme:dark}
 *{box-sizing:border-box}
 html,body{background:var(--paper);color:var(--ink)}
@@ -106,7 +109,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline
 .passport{border-top:1.5px solid var(--line);padding-top:18px;display:flex;flex-direction:column;gap:14px}
 .passport h2{font-family:var(--display);font-weight:800;font-size:1.4rem;margin:0}
 .passport p{margin:0;color:var(--muted);max-width:65ch}
-.stamps{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:16px}
+.stamps{display:flex;flex-direction:column}
 .stamp{display:flex;flex-direction:column;gap:6px;align-items:center;text-align:center;min-width:0}
 .stamp svg{width:110px;height:110px}
 .stamp .cnt{font-size:.82rem;color:var(--muted);font-variant-numeric:tabular-nums}
@@ -140,6 +143,23 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline
   .side .answers{grid-template-columns:1fr}
   .side .typerow input{flex-basis:100%}
 }
+
+/* three stamp levels per group: aanwijzen = brons, kiezen = zilver, typen = goud */
+.prow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px 20px;align-items:center;padding-block:12px;border-top:1px solid var(--line)}
+.prow:first-child{border-top:0}
+.pname{display:flex;flex-direction:column;gap:6px;min-width:0}
+.pname .itemlist{justify-content:flex-start}
+.plevels{display:flex;gap:10px}
+.lvl{display:flex;flex-direction:column;align-items:center;gap:2px;text-align:center;width:88px}
+.lvl svg{width:80px;height:80px}
+.lvl b{font-size:.8rem}
+.lvl .cnt{font-size:.75rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.itemlist span.l1{border-color:var(--brons);color:var(--ink)}
+.itemlist span.l2{border-color:var(--zilver);color:var(--ink);background:var(--zilver-soft)}
+.itemlist span.l3{border-color:var(--goud);color:var(--ink);background:var(--goud-soft);font-weight:700}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:.85rem;color:var(--muted)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:-1px}
+@media(max-width:560px){.prow{grid-template-columns:1fr}.plevels{justify-content:space-between}.lvl{width:auto;flex:1}}
 </style>
 </head>
 <body>
@@ -195,7 +215,8 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline
 
   <section class="passport" id="passport">
     <h2>Mijn paspoort</h2>
-    <p>Een plek telt als <b>gekend</b> als je hem twee keer achter elkaar goed hebt. Ken je alle plekken van een groep, dan krijg je de stempel.</p>
+    <p>Een plek telt als <b>gekend</b> als je hem twee keer achter elkaar goed hebt. Ken je alle plekken van een groep, dan krijg je een stempel. Elke groep heeft drie stempels: eerst <b>Aanwijzen</b>, dan <b>Kiezen</b>, en als laatste <b>Typen</b>. Met de gouden Typen-stempel heb je de groep 100% geleerd.</p>
+    <div class="legend"><span><i style="background:var(--brons)"></i>Brons · Aanwijzen</span><span><i style="background:var(--zilver)"></i>Zilver · Kiezen</span><span><i style="background:var(--goud)"></i>Goud · Typen</span></div>
     <div class="stamps" id="stamps"></div>
     <button class="btn ghost reset" id="resetBtn">Paspoort leegmaken</button>
   </section>
@@ -265,8 +286,6 @@ const KEY='lise-topo-v1';
 let store={items:{},cats:CATS.map(c=>c.id),mode:'bekijk'};
 try{const s=JSON.parse(localStorage.getItem(KEY)||'null'); if(s) store=Object.assign(store,s);}catch(e){}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(store))}catch(e){}}
-const st=id=>store.items[id]||(store.items[id]={streak:0,ok:0,bad:0});
-const known=id=>(store.items[id]?.streak||0)>=2;
 
 /* ---------- map ---------- */
 const W=960,H=500;
@@ -360,6 +379,16 @@ function drawLabels(list){
 /* ---------- UI state ---------- */
 const $=id=>document.getElementById(id);
 let mode=store.mode, round=null;
+const LEVELS=[
+  {m:'wijs', n:'Aanwijzen', medal:'brons',  col:'var(--brons)'},
+  {m:'kies', n:'Kiezen',    medal:'zilver', col:'var(--zilver)'},
+  {m:'typ',  n:'Typen',     medal:'goud',   col:'var(--goud)'},
+];
+// progress is kept per practice mode; older saves (one shared list) count as Aanwijzen
+if(!store.prog){store.prog={wijs:store.items||{},kies:{},typ:{}}; delete store.items; save();}
+const sget=(id,m=mode)=>store.prog[m]?.[id];
+const st=(id,m=mode)=>{const b=store.prog[m]||(store.prog[m]={}); return b[id]||(b[id]={streak:0,ok:0,bad:0})};
+const known=(id,m=mode)=>(sget(id,m)?.streak||0)>=2;
 const chipsEl=$('chips');
 CATS.forEach(c=>{
   const b=document.createElement('button'); b.className='chip'; b.dataset.cat=c.id;
@@ -392,7 +421,7 @@ function start(){
    Places she already knows (2x in a row right) only come back for a short review,
    oldest first, and fill a whole round only when everything is known. */
 function weightOf(i){
-  const s=store.items[i.id];
+  const s=sget(i.id);
   if(!s||(!s.ok&&!s.bad)) return 3;                 // nog nooit gevraagd
   if(s.streak===0) return 4+Math.min(s.bad,3);      // laatst fout
   return 2;                                         // 1x goed, nog niet gekend
@@ -407,7 +436,7 @@ function weightedPick(list,n,w){
   return out;
 }
 function oldestKnown(list,n){
-  const sorted=[...list].sort((a,b)=>(store.items[a.id]?.last||0)-(store.items[b.id]?.last||0));
+  const sorted=[...list].sort((a,b)=>(sget(a.id)?.last||0)-(sget(b.id)?.last||0));
   return weightedPick(sorted.slice(0,Math.max(n*3,4)),n,()=>1);
 }
 function pickRound(p){
@@ -514,34 +543,36 @@ const ICON={
   gb:'<path d="M-15 10q8-12 15-5t15-6" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/><circle cx="8" cy="-8" r="4" fill="currentColor"/>',
 };
 const TILT={wd:-8,la:6,st:-4,wa:9,ri:-11,ge:4,gb:-6};
-function stampSVG(c,earned){
-  const id='sp'+c.id, col=earned?'var(--accent)':'var(--border)';
-  return `<svg viewBox="-55 -55 110 110" aria-hidden="true" style="color:${col}"><g transform="rotate(${earned?TILT[c.id]:0})" opacity="${earned?.95:.8}">
-   <circle r="50" fill="none" stroke="currentColor" stroke-width="2.5" ${earned?'':'stroke-dasharray="4 5"'}/>
+function stampSVG(c,lv,earned){
+  const id='sp'+c.id+lv.m, col=earned?lv.col:'var(--border)', tilt=earned?((c.id.charCodeAt(0)+lv.m.length*7)%17-8):0;
+  return `<svg viewBox="-55 -55 110 110" aria-hidden="true" style="color:${col}"><g transform="rotate(${tilt})" opacity="${earned?.95:.8}">
+   <circle r="50" fill="none" stroke="currentColor" stroke-width="${earned&&lv.m==='typ'?4:2.5}" ${earned?'':'stroke-dasharray="4 5"'}/>
    <circle r="44" fill="none" stroke="currentColor" stroke-width="1"/>
    <circle r="24" fill="none" stroke="currentColor" stroke-width="1"/>
    <path id="${id}" d="M-34 0a34 34 0 1 1 68 0a34 34 0 1 1 -68 0" fill="none"/>
-   <text font-family="Bricolage Grotesque,system-ui,sans-serif" font-weight="800" font-size="9.5" letter-spacing="1.6" fill="currentColor"><textPath href="#${id}" startOffset="0">${c.n.toUpperCase()} · CITO · </textPath></text>
+   <text font-family="Bricolage Grotesque,system-ui,sans-serif" font-weight="800" font-size="8.6" letter-spacing="1.3" fill="currentColor"><textPath href="#${id}" startOffset="0">${c.n.toUpperCase()} · ${lv.medal.toUpperCase()} · </textPath></text>
    <g>${earned?ICON[c.id]:'<text text-anchor="middle" dy=".35em" font-size="16" font-weight="700" fill="currentColor" font-family="system-ui">?</text>'}</g></g></svg>`;
 }
 let lastEarned=null;
 function updatePassport(){
-  let earned=0;
+  const got=[];
   $('stamps').innerHTML=CATS.map(c=>{
-    const its=ITEMS.filter(i=>i.cat===c.id), kn=its.filter(i=>known(i.id)).length, ok=kn===its.length;
-    if(ok) earned++;
-    return `<div class="stamp">${stampSVG(c,ok)}<b>${c.n}</b><span class="cnt">${kn} van ${its.length} gekend</span>
-      <div class="itemlist">${its.map(i=>`<span class="${known(i.id)?'k':(store.items[i.id]?.ok?'h':'')}">${i.n}</span>`).join('')}</div></div>`;
+    const its=ITEMS.filter(i=>i.cat===c.id);
+    const lv=LEVELS.map(L=>{const k=its.filter(i=>known(i.id,L.m)).length, ok=k===its.length; if(ok)got.push(c.n+' · '+L.n); return {L,k,ok}});
+    const best=i=>LEVELS.reduce((b,L,j)=>known(i.id,L.m)?j+1:b,0);
+    return `<div class="prow"><div class="pname"><b>${c.n}</b>
+      <div class="itemlist">${its.map(i=>`<span class="l${best(i)}">${i.n}</span>`).join('')}</div></div>
+      <div class="plevels">${lv.map(({L,k,ok})=>`<div class="lvl">${stampSVG(c,L,ok)}<b>${L.n}</b><span class="cnt">${k}/${its.length}</span></div>`).join('')}</div></div>`;
   }).join('');
-  $('ppCount').textContent=`${earned} van 7 stempels`;
-  if(lastEarned!==null && earned>lastEarned) toast('Nieuwe stempel in je paspoort!');
-  lastEarned=earned;
+  $('ppCount').textContent=`${got.length} van ${CATS.length*LEVELS.length} stempels`;
+  if(lastEarned){const nieuw=got.filter(g=>!lastEarned.includes(g)); if(nieuw.length) toast(nieuw[0].endsWith('Typen')?'Gouden stempel: '+nieuw[0].split(' · ')[0]+' is 100% geleerd!':'Nieuwe stempel: '+nieuw[0]);}
+  lastEarned=got;
 }
 $('ppBtn').onclick=()=>$('passport').scrollIntoView({behavior:'smooth'});
 let armed=false;
 $('resetBtn').onclick=()=>{
   if(!armed){armed=true;$('resetBtn').textContent='Zeker weten? Klik nog een keer';setTimeout(()=>{armed=false;$('resetBtn').textContent='Paspoort leegmaken'},4000);return}
-  store.items={}; save(); armed=false; $('resetBtn').textContent='Paspoort leegmaken'; lastEarned=null; updatePassport(); toast('Paspoort is leeg');
+  store.prog={wijs:{},kies:{},typ:{}}; save(); armed=false; $('resetBtn').textContent='Paspoort leegmaken'; lastEarned=null; lastEarned=null; updatePassport(); toast('Paspoort is leeg');
 };
 let tt;function toast(t){const e=$('toast');e.textContent=t;e.hidden=false;clearTimeout(tt);tt=setTimeout(()=>e.hidden=true,2600)}
 
