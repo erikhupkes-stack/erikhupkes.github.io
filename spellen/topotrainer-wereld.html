@@ -198,8 +198,8 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline
   <div class="toolbar">
     <div class="seg" role="group" aria-label="Oefenvorm" id="modes">
       <button data-mode="bekijk" aria-pressed="true">Bekijken</button>
-      <button data-mode="wijs" aria-pressed="false">Aanwijzen</button>
       <button data-mode="kies" aria-pressed="false">Kiezen</button>
+      <button data-mode="wijs" aria-pressed="false">Aanwijzen</button>
       <button data-mode="typ" aria-pressed="false">Typen</button>
     </div>
     <div class="chips" id="chips" role="group" aria-label="Wat oefen je?"></div>
@@ -232,8 +232,8 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline
 
   <section class="passport" id="passport">
     <h2>Mijn paspoort</h2>
-    <p>Een plek telt als <b>gekend</b> als je hem twee keer achter elkaar goed hebt. Ken je alle plekken van een groep, dan krijg je een stempel. Elke groep heeft drie stempels: eerst <b>Aanwijzen</b>, dan <b>Kiezen</b>, en als laatste <b>Typen</b>. Met de gouden Typen-stempel heb je de groep 100% geleerd.</p>
-    <div class="legend"><span><i style="background:var(--brons)"></i>Brons · Aanwijzen</span><span><i style="background:var(--zilver)"></i>Zilver · Kiezen</span><span><i style="background:var(--goud)"></i>Goud · Typen</span></div>
+    <p>Een plek telt als <b>gekend</b> als je hem twee keer achter elkaar goed hebt. Ken je alle plekken van een groep, dan krijg je een stempel. Elke groep heeft drie stempels: eerst <b>Kiezen</b>, dan <b>Aanwijzen</b>, en als laatste <b>Typen</b>. Met de gouden Typen-stempel heb je de groep 100% geleerd.</p>
+    <div class="legend"><span><i style="background:var(--brons)"></i>Brons · Kiezen</span><span><i style="background:var(--zilver)"></i>Zilver · Aanwijzen</span><span><i style="background:var(--goud)"></i>Goud · Typen</span></div>
     <div class="stamps" id="stamps"></div>
     <button class="btn ghost reset" id="resetBtn">Paspoort leegmaken</button>
   </section>
@@ -397,8 +397,8 @@ function drawLabels(list){
 const $=id=>document.getElementById(id);
 let mode=store.mode, round=null;
 const LEVELS=[
-  {m:'wijs', n:'Aanwijzen', medal:'brons',  col:'var(--brons)'},
-  {m:'kies', n:'Kiezen',    medal:'zilver', col:'var(--zilver)'},
+  {m:'kies', n:'Kiezen',    medal:'brons',  col:'var(--brons)'},
+  {m:'wijs', n:'Aanwijzen', medal:'zilver', col:'var(--zilver)'},
   {m:'typ',  n:'Typen',     medal:'goud',   col:'var(--goud)'},
 ];
 // progress is kept per practice mode; older saves (one shared list) count as Aanwijzen
@@ -425,7 +425,7 @@ function start(focus){
   clearHL(); $('qbar').className='qbar'; $('below').innerHTML='';
   if(mode==='bekijk'){
     round=null; drawLabels(pool());
-    $('qtext').innerHTML=`<span class="kind">Bekijken</span>Zoek de namen op de kaart. Klaar? Kies <b style="font-size:1.05rem">Aanwijzen</b>, <b style="font-size:1.05rem">Kiezen</b> of <b style="font-size:1.05rem">Typen</b>.`;
+    $('qtext').innerHTML=`<span class="kind">Bekijken</span>Zoek de namen op de kaart. Klaar? Kies <b style="font-size:1.05rem">Kiezen</b>, <b style="font-size:1.05rem">Aanwijzen</b> of <b style="font-size:1.05rem">Typen</b>.`;
     $('prog').innerHTML=`${pool().length} plekken`;
     return;
   }
@@ -458,9 +458,9 @@ function showAdvice(welcome){
   $('qtext').innerHTML=`<span class="kind">${welcome?'Welkom terug!':'Advies voor vandaag'}</span><b>Oefen met ${L.n}</b>`;
   $('prog').innerHTML='';
   const why = allGold ? 'Je hebt alles 100% geleerd. Herhaal met Typen, zodat je het blijft kennen.'
-    : L.m==='wijs' ? `Op de kaart aanwijzen ken je ${k} van de ${p.length} plekken. Eerst de kaart goed in je hoofd, dan pas de namen.`
-    : L.m==='kies' ? `Aanwijzen heb je af. Bij Kiezen ken je ${k} van de ${p.length} plekken.`
-    : `Aanwijzen en Kiezen heb je af. Nu de namen zelf typen: ${k} van de ${p.length} ken je al.`;
+    : L.m==='kies' ? `Bij Kiezen herken je ${k} van de ${p.length} plekken. Eerst leren herkennen, daarna zelf aanwijzen.`
+    : L.m==='wijs' ? `Kiezen heb je af. Nu zelf op de kaart aanwijzen: ${k} van de ${p.length} plekken ken je al.`
+    : `Kiezen en Aanwijzen heb je af. Nu de namen zelf typen, net als op de toets: ${k} van de ${p.length} ken je al.`;
   $('below').innerHTML=`<div class="advice"><p class="why">${why}</p>
     ${hard.length?`<p>Deze plekken vond je moeilijk. Ze staan op de kaart gemarkeerd:</p><div class="hard">${hard.map(i=>`<span>${i.n}</span>`).join('')}</div>`:''}
     <div class="btns">${hard.length?`<button class="btn" id="advHard">Oefen de moeilijke plekken (${L.n})</button>`:''}
