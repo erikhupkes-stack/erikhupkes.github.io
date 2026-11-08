@@ -18,6 +18,7 @@ body{margin:0}
   --ink:#1d2a2e; --muted:#5b6b6f; --paper:#f7f9f6; --line:#d9e0dc;
   --accent:#c8255f; --accent-soft:#c8255f22;
   --river:#2a76b5; --mount:#8b5a2b; --city:#1d2a2e;
+  --brons:#a8622a; --zilver:#6f7d8c; --goud:#b8860b; --zilver-soft:#6f7d8c1a; --goud-soft:#e0b0222e;
   --good:#2b8a3e; --good-soft:#2b8a3e1f; --bad:#d6336c; --bad-soft:#e0313118;
   --display:"Bricolage Grotesque", "Trebuchet MS", system-ui, sans-serif;
   --body:"Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
@@ -27,12 +28,14 @@ body{margin:0}
   --ink:#e6eee9; --muted:#9aaba5; --paper:#141c1f; --line:#2b3a36;
   --accent:#ff6f9f; --accent-soft:#ff6f9f2a;
   --river:#5eaee8; --mount:#d0a173; --city:#e6eee9;
+  --brons:#d98f52; --zilver:#b7c3cf; --goud:#f2c94c; --zilver-soft:#b7c3cf1f; --goud-soft:#f2c94c26;
   --good:#5fd07a; --good-soft:#5fd07a22; --bad:#ff7a9c; --bad-soft:#ff7a9c22; color-scheme:dark}}
 :root[data-theme="dark"]{
   --sea:#0f1f27; --sea-deep:#0b1820; --land:#26322d; --border:#3b4a42;
   --ink:#e6eee9; --muted:#9aaba5; --paper:#141c1f; --line:#2b3a36;
   --accent:#ff6f9f; --accent-soft:#ff6f9f2a;
   --river:#5eaee8; --mount:#d0a173; --city:#e6eee9;
+  --brons:#d98f52; --zilver:#b7c3cf; --goud:#f2c94c; --zilver-soft:#b7c3cf1f; --goud-soft:#f2c94c26;
   --good:#5fd07a; --good-soft:#5fd07a22; --bad:#ff7a9c; --bad-soft:#ff7a9c22; color-scheme:dark}
 *{box-sizing:border-box}
 html,body{background:var(--paper);color:var(--ink)}
@@ -107,7 +110,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline
 .passport{border-top:1.5px solid var(--line);padding-top:18px;display:flex;flex-direction:column;gap:14px}
 .passport h2{font-family:var(--display);font-weight:800;font-size:1.4rem;margin:0}
 .passport p{margin:0;color:var(--muted);max-width:65ch}
-.stamps{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:20px}
+.stamps{display:flex;flex-direction:column}
 .stamp{display:flex;flex-direction:column;gap:6px;align-items:center;text-align:center;min-width:0}
 .stamp svg{width:110px;height:110px}
 .stamp .cnt{font-size:.82rem;color:var(--muted);font-variant-numeric:tabular-nums}
@@ -141,6 +144,31 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline
   .side .answers{grid-template-columns:1fr}
   .side .typerow input{flex-basis:100%}
 }
+
+/* three stamp levels per group: aanwijzen = brons, kiezen = zilver, typen = goud */
+.prow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px 20px;align-items:center;padding-block:12px;border-top:1px solid var(--line)}
+.prow:first-child{border-top:0}
+.pname{display:flex;flex-direction:column;gap:6px;min-width:0}
+.pname .itemlist{justify-content:flex-start}
+.plevels{display:flex;gap:10px}
+.lvl{display:flex;flex-direction:column;align-items:center;gap:2px;text-align:center;width:88px}
+.lvl svg{width:80px;height:80px}
+.lvl b{font-size:.8rem}
+.lvl .cnt{font-size:.75rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.itemlist span.l1{border-color:var(--brons);color:var(--ink)}
+.itemlist span.l2{border-color:var(--zilver);color:var(--ink);background:var(--zilver-soft)}
+.itemlist span.l3{border-color:var(--goud);color:var(--ink);background:var(--goud-soft);font-weight:700}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:.85rem;color:var(--muted)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:-1px}
+@media(max-width:560px){.prow{grid-template-columns:1fr}.plevels{justify-content:space-between}.lvl{width:auto;flex:1}}
+
+.hdr-btns{display:flex;gap:8px;flex-wrap:wrap}
+.advice{display:flex;flex-direction:column;gap:10px}
+.advice p{margin:0}
+.advice .why{color:var(--muted);font-size:.92rem}
+.advice .hard{display:flex;flex-wrap:wrap;gap:5px}
+.advice .hard span{font-size:.82rem;padding:2px 8px;border-radius:6px;border:1px solid var(--bad);color:var(--ink);background:var(--bad-soft)}
+.advice .btns{display:flex;flex-direction:column;gap:8px}
 </style>
 </head>
 <body>
@@ -153,10 +181,13 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline
       <h1>Topotrainer <span>Azië</span></h1>
       <p class="sub">Cito 100 Topo · landen, hoofdsteden en Plus Topo · 36 plekken</p>
     </div>
+    <div class="hdr-btns">
+    <button class="pp-btn" id="adviceBtn">Advies voor vandaag</button>
     <button class="pp-btn" id="ppBtn" aria-label="Naar mijn paspoort">
       <svg viewBox="0 0 26 26" aria-hidden="true"><rect x="4" y="2" width="18" height="22" rx="2.5" fill="var(--accent)"/><circle cx="13" cy="11" r="4.2" fill="none" stroke="var(--paper)" stroke-width="1.4"/><path d="M8.8 11h8.4M13 6.8c-1.6 2.4-1.6 6 0 8.4M13 6.8c1.6 2.4 1.6 6 0 8.4" stroke="var(--paper)" stroke-width="1" fill="none"/><rect x="8" y="18.5" width="10" height="1.5" rx=".75" fill="var(--paper)"/></svg>
       <span id="ppCount">0 van 3 stempels</span>
     </button>
+    </div>
   </header>
 
   <div class="toolbar">
@@ -196,7 +227,8 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline
 
   <section class="passport" id="passport">
     <h2>Mijn paspoort</h2>
-    <p>Een plek telt als <b>gekend</b> als je hem twee keer achter elkaar goed hebt. Ken je alle plekken van een groep, dan krijg je de stempel.</p>
+    <p>Een plek telt als <b>gekend</b> als je hem twee keer achter elkaar goed hebt. Ken je alle plekken van een groep, dan krijg je een stempel. Elke groep heeft drie stempels: eerst <b>Aanwijzen</b>, dan <b>Kiezen</b>, en als laatste <b>Typen</b>. Met de gouden Typen-stempel heb je de groep 100% geleerd.</p>
+    <div class="legend"><span><i style="background:var(--brons)"></i>Brons · Aanwijzen</span><span><i style="background:var(--zilver)"></i>Zilver · Kiezen</span><span><i style="background:var(--goud)"></i>Goud · Typen</span></div>
     <div class="stamps" id="stamps"></div>
     <button class="btn ghost reset" id="resetBtn">Paspoort leegmaken</button>
   </section>
@@ -260,8 +292,6 @@ const KEY='lise-topo-azie-v1';
 let store={items:{},cats:CATS.map(c=>c.id),mode:'bekijk'};
 try{const s=JSON.parse(localStorage.getItem(KEY)||'null'); if(s) store=Object.assign(store,s);}catch(e){}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(store))}catch(e){}}
-const st=id=>store.items[id]||(store.items[id]={streak:0,ok:0,bad:0});
-const known=id=>(store.items[id]?.streak||0)>=2;
 
 /* ---------- map ---------- */
 const W=960,H=640;
@@ -355,6 +385,16 @@ function drawLabels(list){
 const $=id=>document.getElementById(id);
 if(!Array.isArray(store.cats)||!store.cats.every(c=>CATS.some(x=>x.id===c)))store.cats=CATS.map(c=>c.id);
 let mode=store.mode, round=null;
+const LEVELS=[
+  {m:'wijs', n:'Aanwijzen', medal:'brons',  col:'var(--brons)'},
+  {m:'kies', n:'Kiezen',    medal:'zilver', col:'var(--zilver)'},
+  {m:'typ',  n:'Typen',     medal:'goud',   col:'var(--goud)'},
+];
+// progress is kept per practice mode; older saves (one shared list) count as Aanwijzen
+if(!store.prog){store.prog={wijs:store.items||{},kies:{},typ:{}}; delete store.items; save();}
+const sget=(id,m=mode)=>store.prog[m]?.[id];
+const st=(id,m=mode)=>{const b=store.prog[m]||(store.prog[m]={}); return b[id]||(b[id]={streak:0,ok:0,bad:0})};
+const known=(id,m=mode)=>(sget(id,m)?.streak||0)>=2;
 const chipsEl=$('chips');
 CATS.forEach(c=>{
   const b=document.createElement('button'); b.className='chip'; b.dataset.cat=c.id;
@@ -370,7 +410,7 @@ function syncModes(){document.querySelectorAll('#modes button').forEach(b=>b.set
 const pool=()=>ITEMS.filter(i=>store.cats.includes(i.cat));
 const kindOf=i=>i.kind;
 
-function start(){
+function start(focus){
   clearHL(); $('qbar').className='qbar'; $('below').innerHTML='';
   if(mode==='bekijk'){
     round=null; drawLabels(pool());
@@ -379,18 +419,52 @@ function start(){
     return;
   }
   drawLabels([]);
-  round={q:pickRound(pool()),idx:0,res:[],retry:new Set(),locked:false};
+  const q=Array.isArray(focus)?d3.shuffle(focus.slice(0,10)):pickRound(pool());
+  round={q,idx:0,res:[],retry:new Set(),locked:false};
   ask();
 }
 /* Which places to ask in a round.
    Priority: places she got wrong, places never asked, places right only once.
    Places she already knows (2x in a row right) only come back for a short review,
    oldest first, and fill a whole round only when everything is known. */
+/* ---------- difficulty and daily advice ---------- */
+const today=()=>new Date().toLocaleDateString('sv');
+const startOfToday=()=>{const d=new Date();d.setHours(0,0,0,0);return +d};
+// how hard a place is, over all practice modes: mistakes count, right answers make up for them slowly
+function diffScore(i){
+  let ok=0,bad=0; LEVELS.forEach(L=>{const s=sget(i.id,L.m); if(s){ok+=s.ok;bad+=s.bad}});
+  if(!bad) return 0;
+  const cur=sget(i.id); return bad*2-ok*0.5+(cur&&cur.bad&&cur.streak===0?2:0);
+}
+const hardList=p=>p.filter(i=>diffScore(i)>0).sort((a,b)=>diffScore(b)-diffScore(a));
+// advise the first level whose stamps are not complete for the chosen groups
+function advisedLevel(p){return LEVELS.find(L=>!p.every(i=>known(i.id,L.m)))||LEVELS[2]}
+function showAdvice(welcome){
+  round=null; clearHL(); drawLabels([]); resetZoom(); $('qbar').className='qbar';
+  const p=pool(), L=advisedLevel(p), k=p.filter(i=>known(i.id,L.m)).length, hard=hardList(p).slice(0,10);
+  const allGold=p.every(i=>known(i.id,'typ'));
+  hard.forEach(i=>highlight(i));
+  $('qtext').innerHTML=`<span class="kind">${welcome?'Welkom terug!':'Advies voor vandaag'}</span><b>Oefen met ${L.n}</b>`;
+  $('prog').innerHTML='';
+  const why = allGold ? 'Je hebt alles 100% geleerd. Herhaal met Typen, zodat je het blijft kennen.'
+    : L.m==='wijs' ? `Op de kaart aanwijzen ken je ${k} van de ${p.length} plekken. Eerst de kaart goed in je hoofd, dan pas de namen.`
+    : L.m==='kies' ? `Aanwijzen heb je af. Bij Kiezen ken je ${k} van de ${p.length} plekken.`
+    : `Aanwijzen en Kiezen heb je af. Nu de namen zelf typen: ${k} van de ${p.length} ken je al.`;
+  $('below').innerHTML=`<div class="advice"><p class="why">${why}</p>
+    ${hard.length?`<p>Deze plekken vond je moeilijk. Ze staan op de kaart gemarkeerd:</p><div class="hard">${hard.map(i=>`<span>${i.n}</span>`).join('')}</div>`:''}
+    <div class="btns">${hard.length?`<button class="btn" id="advHard">Oefen de moeilijke plekken (${L.n})</button>`:''}
+    <button class="btn ${hard.length?'ghost':''}" id="advGo">Gewone ronde met ${L.n}</button>
+    <button class="btn ghost" id="advClose">Zelf kiezen</button></div></div>`;
+  const go=focus=>{mode=L.m;store.mode=mode;save();syncModes();start(focus)};
+  if(hard.length) $('advHard').onclick=()=>go(hard);
+  $('advGo').onclick=()=>go();
+  $('advClose').onclick=()=>start();
+}
 function weightOf(i){
-  const s=store.items[i.id];
+  const s=sget(i.id);
   if(!s||(!s.ok&&!s.bad)) return 3;                 // nog nooit gevraagd
-  if(s.streak===0) return 4+Math.min(s.bad,3);      // laatst fout
-  return 2;                                         // 1x goed, nog niet gekend
+  if(s.streak===0) return 4+Math.min(s.bad,3)+Math.min(diffScore(i),3); // laatst fout
+  return 2+Math.min(diffScore(i),3);                // 1x goed, nog niet gekend
 }
 function weightedPick(list,n,w){
   const rest=[...list], out=[];
@@ -402,7 +476,10 @@ function weightedPick(list,n,w){
   return out;
 }
 function oldestKnown(list,n){
-  const sorted=[...list].sort((a,b)=>(store.items[a.id]?.last||0)-(store.items[b.id]?.last||0));
+  // review: places not asked today first, the hardest of those first, then the longest ago
+  const t0=startOfToday();
+  const sorted=[...list].sort((a,b)=>{const la=sget(a.id)?.last||0, lb=sget(b.id)?.last||0, ta=la>=t0, tb=lb>=t0;
+    return (ta-tb)||(diffScore(b)-diffScore(a))||(la-lb)});
   return weightedPick(sorted.slice(0,Math.max(n*3,4)),n,()=>1);
 }
 function pickRound(p){
@@ -485,7 +562,7 @@ function finish(){
   $('prog').innerHTML='';
   const wrong=r.q.filter((q,j)=>r.res[j]===false).filter((v,j,a)=>a.indexOf(v)===j);
   $('below').innerHTML=`<div class="done">${wrong.length?`<p style="margin:0">Nog even oefenen: ${wrong.map(w=>'<b>'+w.n+'</b>').join(', ')}</p>`:'<p style="margin:0">Alles in één keer goed!</p>'}<p style="margin:0;color:var(--muted)">${(()=>{const p=pool(),k=p.filter(i=>known(i.id)).length;return k===p.length?'Je kent alle '+p.length+' plekken. De volgende ronde is herhaling.':'Gekend: '+k+' van '+p.length+'. Nog te leren: '+(p.length-k)+'.'})()}</p><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" id="again">Nog een ronde</button></div></div>`;
-  $('again').onclick=start;
+  $('again').onclick=()=>start();
 }
 
 /* ---------- typed answer checking ---------- */
@@ -510,38 +587,47 @@ const ICON={
 };
 const TILT={la:-7,hs:6,pl:-4};
 ICON.hs=ICON.st; ICON.pl='<path d="M0-15l4.4 9 9.9 1.4-7.2 7 1.7 9.9L0 7.6l-8.8 4.7 1.7-9.9-7.2-7 9.9-1.4z" fill="currentColor"/>';
-function stampSVG(c,earned){
-  const id='sp'+c.id, col=earned?'var(--accent)':'var(--border)';
-  return `<svg viewBox="-55 -55 110 110" aria-hidden="true" style="color:${col}"><g transform="rotate(${earned?TILT[c.id]:0})" opacity="${earned?.95:.8}">
-   <circle r="50" fill="none" stroke="currentColor" stroke-width="2.5" ${earned?'':'stroke-dasharray="4 5"'}/>
+function stampSVG(c,lv,earned){
+  const id='sp'+c.id+lv.m, col=earned?lv.col:'var(--border)', tilt=earned?((c.id.charCodeAt(0)+lv.m.length*7)%17-8):0;
+  return `<svg viewBox="-55 -55 110 110" aria-hidden="true" style="color:${col}"><g transform="rotate(${tilt})" opacity="${earned?.95:.8}">
+   <circle r="50" fill="none" stroke="currentColor" stroke-width="${earned&&lv.m==='typ'?4:2.5}" ${earned?'':'stroke-dasharray="4 5"'}/>
    <circle r="44" fill="none" stroke="currentColor" stroke-width="1"/>
    <circle r="24" fill="none" stroke="currentColor" stroke-width="1"/>
    <path id="${id}" d="M-34 0a34 34 0 1 1 68 0a34 34 0 1 1 -68 0" fill="none"/>
-   <text font-family="Bricolage Grotesque,system-ui,sans-serif" font-weight="800" font-size="9.5" letter-spacing="1.6" fill="currentColor"><textPath href="#${id}" startOffset="0">${c.n.toUpperCase()} · AZIË · </textPath></text>
+   <text font-family="Bricolage Grotesque,system-ui,sans-serif" font-weight="800" font-size="8.6" letter-spacing="1.3" fill="currentColor"><textPath href="#${id}" startOffset="0">${c.n.toUpperCase()} · ${lv.medal.toUpperCase()} · </textPath></text>
    <g>${earned?ICON[c.id]:'<text text-anchor="middle" dy=".35em" font-size="16" font-weight="700" fill="currentColor" font-family="system-ui">?</text>'}</g></g></svg>`;
 }
 let lastEarned=null;
 function updatePassport(){
-  let earned=0;
+  const got=[];
   $('stamps').innerHTML=CATS.map(c=>{
-    const its=ITEMS.filter(i=>i.cat===c.id), kn=its.filter(i=>known(i.id)).length, ok=kn===its.length;
-    if(ok) earned++;
-    return `<div class="stamp">${stampSVG(c,ok)}<b>${c.n}</b><span class="cnt">${kn} van ${its.length} gekend</span>
-      <div class="itemlist">${its.map(i=>`<span class="${known(i.id)?'k':(store.items[i.id]?.ok?'h':'')}">${i.n}</span>`).join('')}</div></div>`;
+    const its=ITEMS.filter(i=>i.cat===c.id);
+    const lv=LEVELS.map(L=>{const k=its.filter(i=>known(i.id,L.m)).length, ok=k===its.length; if(ok)got.push(c.n+' · '+L.n); return {L,k,ok}});
+    const best=i=>LEVELS.reduce((b,L,j)=>known(i.id,L.m)?j+1:b,0);
+    return `<div class="prow"><div class="pname"><b>${c.n}</b>
+      <div class="itemlist">${its.map(i=>`<span class="l${best(i)}">${i.n}</span>`).join('')}</div></div>
+      <div class="plevels">${lv.map(({L,k,ok})=>`<div class="lvl">${stampSVG(c,L,ok)}<b>${L.n}</b><span class="cnt">${k}/${its.length}</span></div>`).join('')}</div></div>`;
   }).join('');
-  $('ppCount').textContent=`${earned} van ${CATS.length} stempels`;
-  if(lastEarned!==null && earned>lastEarned) toast('Nieuwe stempel in je paspoort!');
-  lastEarned=earned;
+  $('ppCount').textContent=`${got.length} van ${CATS.length*LEVELS.length} stempels`;
+  if(lastEarned){const nieuw=got.filter(g=>!lastEarned.includes(g)); if(nieuw.length) toast(nieuw[0].endsWith('Typen')?'Gouden stempel: '+nieuw[0].split(' · ')[0]+' is 100% geleerd!':'Nieuwe stempel: '+nieuw[0]);}
+  lastEarned=got;
 }
 $('ppBtn').onclick=()=>$('passport').scrollIntoView({behavior:'smooth'});
 let armed=false;
 $('resetBtn').onclick=()=>{
   if(!armed){armed=true;$('resetBtn').textContent='Zeker weten? Klik nog een keer';setTimeout(()=>{armed=false;$('resetBtn').textContent='Paspoort leegmaken'},4000);return}
-  store.items={}; save(); armed=false; $('resetBtn').textContent='Paspoort leegmaken'; lastEarned=null; updatePassport(); toast('Paspoort is leeg');
+  store.prog={wijs:{},kies:{},typ:{}}; save(); armed=false; $('resetBtn').textContent='Paspoort leegmaken'; lastEarned=null; lastEarned=null; updatePassport(); toast('Paspoort is leeg');
 };
 let tt;function toast(t){const e=$('toast');e.textContent=t;e.hidden=false;clearTimeout(tt);tt=setTimeout(()=>e.hidden=true,2600)}
 
-syncChips(); syncModes(); updatePassport(); start();
+$('adviceBtn').onclick=()=>showAdvice(false);
+syncChips(); syncModes(); updatePassport();
+{ // first visit on a new day with earlier progress: open with advice
+  const had=LEVELS.some(L=>Object.keys(store.prog[L.m]||{}).length);
+  const newDay=had&&store.lastDay!==today();
+  store.lastDay=today(); save();
+  if(newDay) showAdvice(true); else start();
+}
 </script>
 
 </body>
