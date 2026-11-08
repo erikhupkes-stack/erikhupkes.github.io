@@ -383,12 +383,38 @@ function start(){
     return;
   }
   drawLabels([]);
-  // weighted pick: not-known items count 3x
-  const p=pool(); const n=Math.min(10,p.length);
-  const bag=[]; p.forEach(i=>{for(let j=0;j<(known(i.id)?1:3);j++)bag.push(i)});
-  const picked=[]; while(picked.length<n){const i=bag[Math.floor(Math.random()*bag.length)]; if(!picked.includes(i))picked.push(i)}
-  round={q:picked,idx:0,res:[],retry:new Set(),locked:false};
+  round={q:pickRound(pool()),idx:0,res:[],retry:new Set(),locked:false};
   ask();
+}
+/* Which places to ask in a round.
+   Priority: places she got wrong, places never asked, places right only once.
+   Places she already knows (2x in a row right) only come back for a short review,
+   oldest first, and fill a whole round only when everything is known. */
+function weightOf(i){
+  const s=store.items[i.id];
+  if(!s||(!s.ok&&!s.bad)) return 3;                 // nog nooit gevraagd
+  if(s.streak===0) return 4+Math.min(s.bad,3);      // laatst fout
+  return 2;                                         // 1x goed, nog niet gekend
+}
+function weightedPick(list,n,w){
+  const rest=[...list], out=[];
+  while(out.length<n&&rest.length){
+    const tot=rest.reduce((a,i)=>a+w(i),0); let r=Math.random()*tot, j=0;
+    while(j<rest.length-1&&(r-=w(rest[j]))>0) j++;
+    out.push(rest.splice(j,1)[0]);
+  }
+  return out;
+}
+function oldestKnown(list,n){
+  const sorted=[...list].sort((a,b)=>(store.items[a.id]?.last||0)-(store.items[b.id]?.last||0));
+  return weightedPick(sorted.slice(0,Math.max(n*3,4)),n,()=>1);
+}
+function pickRound(p){
+  const MAX=10, kn=p.filter(i=>known(i.id)), nk=p.filter(i=>!known(i.id));
+  if(!nk.length) return d3.shuffle(oldestKnown(kn,Math.min(MAX,kn.length)));
+  const review=Math.min(kn.length, nk.length>=8?1:2);
+  const learn=weightedPick(nk,Math.min(MAX-review,nk.length),weightOf);
+  return d3.shuffle([...learn,...oldestKnown(kn,review)]);
 }
 function progress(){
   const r=round, total=r.q.length;
@@ -435,7 +461,7 @@ svg.on('click',ev=>{
 });
 function answer(ok,extra){
   const r=round, i=r.q[r.idx]; r.locked=true;
-  const s=st(i.id); if(ok){s.ok++;s.streak++}else{s.bad++;s.streak=0} save();
+  const s=st(i.id); if(ok){s.ok++;s.streak++}else{s.bad++;s.streak=0} s.last=Date.now(); save();
   if(r.res[r.idx]===undefined) r.res[r.idx]=ok;
   gHL.selectAll('*').remove();gLineHL.selectAll('*').remove();gPtHL.selectAll('*').remove();
   highlight(i,'good');
@@ -461,7 +487,7 @@ function finish(){
   $('qtext').innerHTML=`<span class="kind">Klaar!</span><b>${good} van de ${n} goed</b>`;
   $('prog').innerHTML='';
   const wrong=r.q.filter((q,j)=>r.res[j]===false).filter((v,j,a)=>a.indexOf(v)===j);
-  $('below').innerHTML=`<div class="done">${wrong.length?`<p style="margin:0">Nog even oefenen: ${wrong.map(w=>'<b>'+w.n+'</b>').join(', ')}</p>`:'<p style="margin:0">Alles in één keer goed!</p>'}<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" id="again">Nog een ronde</button></div></div>`;
+  $('below').innerHTML=`<div class="done">${wrong.length?`<p style="margin:0">Nog even oefenen: ${wrong.map(w=>'<b>'+w.n+'</b>').join(', ')}</p>`:'<p style="margin:0">Alles in één keer goed!</p>'}<p style="margin:0;color:var(--muted)">${(()=>{const p=pool(),k=p.filter(i=>known(i.id)).length;return k===p.length?'Je kent alle '+p.length+' plekken. De volgende ronde is herhaling.':'Gekend: '+k+' van '+p.length+'. Nog te leren: '+(p.length-k)+'.'})()}</p><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" id="again">Nog een ronde</button></div></div>`;
   $('again').onclick=start;
 }
 
