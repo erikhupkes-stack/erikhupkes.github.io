@@ -116,42 +116,61 @@
 <script>
   /* =========================================================
      HIER PAS JE DE SPELLEN AAN — alleen dit stukje hoeft te veranderen.
-     - url:   het adres van de game. Voor een aparte repository is dat
-              "/naam-van-repo/" (of "/naam-van-repo/bestand.html").
+     - url:   het adres van de game, gezien vanaf deze pagina, bijv.
+              "spellen/bestand.html" voor een spel in de map spellen.
+              (Geen "/" vooraan: dan werkt de link op elk adres van de site.)
      - emoji: wordt getoond als er geen plaatje is.
      - img:   (optioneel) pad naar een plaatje, bijv. "img/hoek-erbij.png".
      - soon:  true = tegel "Binnenkort", niet klikbaar.
      ========================================================= */
   const SPELLEN = [
-    {
-      titel: "Hoek erbij",
-      tekst: "Oefen algebra en de rekenvolgorde in een spel waarin je steeds een stap verder komt.",
-      vak: "Wiskunde",
-      niveau: "Klas 1–2",
-      url: "/NAAM-VAN-REPO-1/",
-      emoji: "📐",
-      kleur: "#ff6b4a"
-    },
-    {
-      titel: "Spel 2",
-      tekst: "Korte beschrijving van wat je met dit spel oefent.",
-      vak: "Wiskunde",
-      niveau: "Klas 1",
-      url: "/NAAM-VAN-REPO-2/",
-      emoji: "🎯",
-      kleur: "#3bb4a1"
-    },
-    {
-      titel: "Tabellen leren",
-      tekst: "Flipkaarten om scheikundetabellen te leren, in rondes tot je alles kent.",
-      vak: "Scheikunde",
-      niveau: "Bovenbouw",
-      url: "#",
-      emoji: "🧪",
-      kleur: "#6c63ff",
-      soon: true
-    }
-  ];
+  {
+    titel: "Hoek erbij: rekenvolgorde",
+    tekst: "Loop door de wereld en open poorten met sommen in de goede volgorde. Elk level krijg je er een hoek bij.",
+    vak: "Wiskunde",
+    niveau: "Klas 1–2",
+    url: "spellen/hoek-erbij-rekenvolgorde.html",
+    emoji: "📐",
+    kleur: "#ff6b4a"
+  },
+  {
+    titel: "Hoek erbij: algebra",
+    tekst: "Herleid, haakjes wegwerken en termen samennemen om de poorten te openen.",
+    vak: "Wiskunde",
+    niveau: "Klas 2",
+    url: "spellen/hoek-erbij-algebra.html",
+    emoji: "🔷",
+    kleur: "#7578c6"
+  },
+  {
+    titel: "Hoek erbij 3D",
+    tekst: "De algebra-avonturen in 3D, met een eigen avatar en een museum vol ruimtelichamen. Werkt het best op een laptop.",
+    vak: "Wiskunde",
+    niveau: "Klas 2",
+    url: "spellen/hoek-erbij-3d.html",
+    emoji: "🧊",
+    kleur: "#1e9c93"
+  },
+  {
+    titel: "Gelijksoortig prikken",
+    tekst: "Prik de ballonnen met termen die gelijksoortig zijn met de term onderin. Hoe langer je reeks, hoe lastiger het wordt.",
+    vak: "Wiskunde",
+    niveau: "Klas 2",
+    url: "spellen/gelijksoortig-prikken.html",
+    emoji: "🎈",
+    kleur: "#e5486b"
+  },
+  {
+    titel: "Tabellen leren",
+    tekst: "Flipkaarten om scheikundetabellen te leren, in rondes tot je alles kent.",
+    vak: "Scheikunde",
+    niveau: "Bovenbouw",
+    url: "#",
+    emoji: "🧪",
+    kleur: "#6c63ff",
+    soon: true
+  }
+];
   /* ========================================================= */
 
   const grid = document.getElementById("grid");
