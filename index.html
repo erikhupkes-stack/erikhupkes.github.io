@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Erik's Rekenspellen</title>
+<meta name="description" content="Gratis educatieve spellen voor wiskunde en meer. Speel direct in je browser.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #fdf8f0;
+    --ink: #1f2440;
+    --muted: #5b6080;
+    --card: #ffffff;
+    --line: #ebe3d6;
+    --shadow: 0 4px 0 #e2d8c8;
+    --accent: #ff6b4a;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #161a2e;
+      --ink: #f2f0ea;
+      --muted: #a9adc6;
+      --card: #20253d;
+      --line: #2e3452;
+      --shadow: 0 4px 0 #0e1120;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Nunito", system-ui, sans-serif;
+    line-height: 1.5;
+    background-image: radial-gradient(var(--line) 1.5px, transparent 1.5px);
+    background-size: 26px 26px;
+  }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 0 16px; }
+
+  header { padding: 56px 0 32px; text-align: center; }
+  .logo {
+    display: inline-flex; gap: 6px; margin-bottom: 18px;
+  }
+  .logo span {
+    width: 38px; height: 38px; border-radius: 10px;
+    display: grid; place-items: center;
+    font-family: "Baloo 2", sans-serif; font-weight: 800; font-size: 22px; color: #fff;
+    box-shadow: 0 3px 0 rgba(0,0,0,.18);
+  }
+  .logo span:nth-child(1) { background: #ff6b4a; transform: rotate(-6deg); }
+  .logo span:nth-child(2) { background: #3bb4a1; transform: rotate(4deg); }
+  .logo span:nth-child(3) { background: #f5b82e; transform: rotate(-3deg); }
+  .logo span:nth-child(4) { background: #6c63ff; transform: rotate(5deg); }
+  h1 {
+    font-family: "Baloo 2", sans-serif; font-weight: 800;
+    font-size: clamp(2.2rem, 6vw, 3.6rem); line-height: 1.05; margin: 0 0 12px;
+  }
+  .intro { color: var(--muted); font-size: 1.1rem; max-width: 560px; margin: 0 auto; }
+
+  .filters { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin: 28px 0 8px; }
+  .filters button {
+    font: 700 0.95rem "Nunito", sans-serif;
+    border: 2px solid var(--line); background: var(--card); color: var(--ink);
+    padding: 8px 16px; border-radius: 999px; cursor: pointer;
+  }
+  .filters button[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+
+  .grid {
+    display: grid; gap: 22px; padding: 24px 0 64px;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  }
+  .card {
+    background: var(--card); border: 2px solid var(--line); border-radius: 20px;
+    box-shadow: var(--shadow); overflow: hidden; display: flex; flex-direction: column;
+    text-decoration: none; color: inherit;
+    transition: transform .15s ease, box-shadow .15s ease;
+  }
+  a.card:hover, a.card:focus-visible { transform: translateY(-4px); box-shadow: 0 8px 0 var(--line); outline: none; }
+  .art {
+    height: 140px; display: grid; place-items: center;
+    font-size: 64px; position: relative;
+  }
+  .art img { width: 100%; height: 100%; object-fit: cover; }
+  .body { padding: 18px 20px 20px; display: flex; flex-direction: column; gap: 8px; flex: 1; }
+  .card h2 { font-family: "Baloo 2", sans-serif; font-weight: 800; font-size: 1.5rem; margin: 0; line-height: 1.1; }
+  .card p { margin: 0; color: var(--muted); }
+  .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: auto; padding-top: 8px; }
+  .tag { font-size: .8rem; font-weight: 700; padding: 3px 10px; border-radius: 999px; background: var(--bg); border: 1px solid var(--line); }
+  .play {
+    margin-top: 10px; align-self: flex-start;
+    font-weight: 800; color: #fff; padding: 8px 18px; border-radius: 12px;
+  }
+  .card.soon { opacity: .7; }
+  .card.soon .play { background: var(--muted) !important; }
+
+  footer { text-align: center; color: var(--muted); font-size: .9rem; padding: 0 0 40px; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="logo" aria-hidden="true"><span>+</span><span>−</span><span>×</span><span>÷</span></div>
+      <h1>Erik's Rekenspellen</h1>
+      <p class="intro">Oefen spelenderwijs. Alle spellen werken direct in je browser, op laptop, tablet en telefoon. Geen account nodig.</p>
+      <div class="filters" id="filters"></div>
+    </header>
+
+    <main class="grid" id="grid"></main>
+
+    <footer>Gemaakt door Erik · gratis te gebruiken in de klas en thuis</footer>
+  </div>
+
+<script>
+  /* =========================================================
+     HIER PAS JE DE SPELLEN AAN — alleen dit stukje hoeft te veranderen.
+     - url:   het adres van de game. Voor een aparte repository is dat
+              "/naam-van-repo/" (of "/naam-van-repo/bestand.html").
+     - emoji: wordt getoond als er geen plaatje is.
+     - img:   (optioneel) pad naar een plaatje, bijv. "img/hoek-erbij.png".
+     - soon:  true = tegel "Binnenkort", niet klikbaar.
+     ========================================================= */
+  const SPELLEN = [
+    {
+      titel: "Hoek erbij",
+      tekst: "Oefen algebra en de rekenvolgorde in een spel waarin je steeds een stap verder komt.",
+      vak: "Wiskunde",
+      niveau: "Klas 1–2",
+      url: "/NAAM-VAN-REPO-1/",
+      emoji: "📐",
+      kleur: "#ff6b4a"
+    },
+    {
+      titel: "Spel 2",
+      tekst: "Korte beschrijving van wat je met dit spel oefent.",
+      vak: "Wiskunde",
+      niveau: "Klas 1",
+      url: "/NAAM-VAN-REPO-2/",
+      emoji: "🎯",
+      kleur: "#3bb4a1"
+    },
+    {
+      titel: "Tabellen leren",
+      tekst: "Flipkaarten om scheikundetabellen te leren, in rondes tot je alles kent.",
+      vak: "Scheikunde",
+      niveau: "Bovenbouw",
+      url: "#",
+      emoji: "🧪",
+      kleur: "#6c63ff",
+      soon: true
+    }
+  ];
+  /* ========================================================= */
+
+  const grid = document.getElementById("grid");
+  const filters = document.getElementById("filters");
+
+  function render(vak) {
+    grid.innerHTML = "";
+    SPELLEN.filter(s => !vak || s.vak === vak).forEach(s => {
+      const el = document.createElement(s.soon ? "div" : "a");
+      el.className = "card" + (s.soon ? " soon" : "");
+      if (!s.soon) el.href = s.url;
+      const art = s.img
+        ? `<img src="${s.img}" alt="">`
+        : `<span aria-hidden="true">${s.emoji || "🎮"}</span>`;
+      el.innerHTML = `
+        <div class="art" style="background:${s.kleur}22">${art}</div>
+        <div class="body">
+          <h2>${s.titel}</h2>
+          <p>${s.tekst}</p>
+          <div class="tags">
+            <span class="tag">${s.vak}</span>
+            ${s.niveau ? `<span class="tag">${s.niveau}</span>` : ""}
+          </div>
+          <span class="play" style="background:${s.kleur}">${s.soon ? "Binnenkort" : "Speel ▶"}</span>
+        </div>`;
+      grid.appendChild(el);
+    });
+  }
+
+  const vakken = [...new Set(SPELLEN.map(s => s.vak))];
+  if (vakken.length > 1) {
+    ["Alles", ...vakken].forEach((v, i) => {
+      const b = document.createElement("button");
+      b.textContent = v;
+      b.setAttribute("aria-pressed", i === 0 ? "true" : "false");
+      b.onclick = () => {
+        filters.querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", "false"));
+        b.setAttribute("aria-pressed", "true");
+        render(i === 0 ? null : v);
+      };
+      filters.appendChild(b);
+    });
+  }
+  render(null);
+</script>
+</body>
+</html>
