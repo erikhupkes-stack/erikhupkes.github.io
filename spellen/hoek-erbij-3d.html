@@ -1,0 +1,3956 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<script>
+/* iOS-hulp: vult functies aan die oudere iPhones/iPads missen en laat fouten op het scherm zien. Bewust in oud JavaScript (ES5). */
+(function(){
+  var AP = Array.prototype;
+  if (!AP.flat) AP.flat = function(d){ d = d === undefined ? 1 : d; return d > 0 ? this.reduce(function(a, v){ return a.concat(Array.isArray(v) ? v.flat(d - 1) : v); }, []) : this.slice(); };
+  if (!AP.flatMap) AP.flatMap = function(f, t){ return this.map(f, t).flat(1); };
+  if (!AP.includes) AP.includes = function(x){ return this.indexOf(x) !== -1 || (x !== x && this.some(function(v){ return v !== v; })); };
+  if (!Object.fromEntries) Object.fromEntries = function(it){ var o = {}; Array.from(it).forEach(function(p){ o[p[0]] = p[1]; }); return o; };
+  if (!Object.values) Object.values = function(o){ return Object.keys(o).map(function(k){ return o[k]; }); };
+  if (!Object.entries) Object.entries = function(o){ return Object.keys(o).map(function(k){ return [k, o[k]]; }); };
+  if (!String.prototype.padStart) String.prototype.padStart = function(n, s){ var t = String(this); s = s === undefined ? ' ' : String(s); while (t.length < n) t = s + t; return t.slice(t.length - Math.max(n, String(this).length)); };
+  if (typeof window.TextEncoder === 'undefined') window.TextEncoder = function(){};
+  if (!window.TextEncoder.prototype.encode) window.TextEncoder.prototype.encode = function(str){
+    var bin = unescape(encodeURIComponent(String(str))), out = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+    return out;
+  };
+  if (window.NodeList && !NodeList.prototype.forEach) NodeList.prototype.forEach = AP.forEach;
+
+  var shown = false;
+  function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]; }); }
+  function show(msg){
+    if (shown) return; shown = true;
+    var ios = navigator.userAgent.match(/OS (\d+)_(\d+)/), dev = ios ? 'iOS ' + ios[1] + '.' + ios[2] : navigator.platform || '';
+    var d = document.createElement('div');
+    d.setAttribute('role', 'alert');
+    d.style.cssText = 'position:fixed;left:12px;right:12px;bottom:12px;z-index:99999;background:#C9334F;color:#fff;font:600 15px/1.4 -apple-system,system-ui,sans-serif;padding:12px 14px;border-radius:14px;box-shadow:0 6px 0 rgba(0,0,0,.25)';
+    d.innerHTML = '<b>Het spel loopt vast op dit apparaat.</b><br>Maak een schermafbeelding en laat die aan je docent zien.'
+      + '<div style="font-weight:400;font-size:13px;margin-top:6px;word-break:break-word">' + esc(msg) + '<br>' + esc(dev) + '<br>' + esc(navigator.userAgent.slice(0, 160)) + '</div>';
+    (document.body || document.documentElement).appendChild(d);
+  }
+  window.__hoekReport = show;
+  var here = location.href.split('#')[0];
+  window.onerror = function(m, src, line, col){
+    if (!m || /^Script error\.?$/.test(m)) return;            // fouten uit scripts van andere sites negeren
+    if (src && src.split('#')[0] !== here) return;             // alleen fouten uit deze pagina
+    show(m + (line ? ' (regel ' + line + (col ? ':' + col : '') + ')' : ''));
+  };
+  window.addEventListener('load', function(){
+    setTimeout(function(){ if (!window.__hoekOK) show('Het spel is niet gestart: het script kon niet worden uitgevoerd.'); }, 2500);
+  });
+})();
+</script>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Hoek erbij 3D</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=STIX+Two+Text:ital,wght@0,500;0,600;1,500;1,600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#BCD2E8; --floor-a:#E4EDD8; --floor-b:#D7E3C9; --floor-edge:#C3D1B3;
+  --wall-top:#7578C6; --wall-left:#585BA3; --wall-right:#45488A;
+  --pillar-top:#A9B3E6; --pillar-left:#8590CF; --pillar-right:#6E78BA;
+  --gold:#F5B83A; --gold-left:#D9961C; --gold-right:#B97C0E; --gold-ink:#7A4E00;
+  --ink:#24274F; --ink-soft:#50557F; --card:#FFFFFF; --field:#EEF3F9;
+  --good:#23885A; --bad:#C9334F; --exit:#1E9C93; --shadow:rgba(30,35,80,.22); --heart:#E5486B;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#1B1F3D; --floor-a:#3A4070; --floor-b:#333966; --floor-edge:#2A2F57;
+    --wall-top:#8E91E3; --wall-left:#6467B4; --wall-right:#4C4F94;
+    --pillar-top:#B6BEEF; --pillar-left:#8E98D8; --pillar-right:#727CC0;
+    --ink:#ECEEFF; --ink-soft:#B4B8E4; --card:#272C55; --field:#1F2448;
+    --good:#5CD39A; --bad:#FF7A93; --exit:#4FD6CB; --shadow:rgba(0,0,0,.35); --heart:#FF6B88;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#1B1F3D; --floor-a:#3A4070; --floor-b:#333966; --floor-edge:#2A2F57;
+  --wall-top:#8E91E3; --wall-left:#6467B4; --wall-right:#4C4F94;
+  --pillar-top:#B6BEEF; --pillar-left:#8E98D8; --pillar-right:#727CC0;
+  --ink:#ECEEFF; --ink-soft:#B4B8E4; --card:#272C55; --field:#1F2448;
+  --good:#5CD39A; --bad:#FF7A93; --exit:#4FD6CB; --shadow:rgba(0,0,0,.35); --heart:#FF6B88;
+}
+*,*::before,*::after{box-sizing:inherit}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);overflow:hidden;
+  font-family:'Baloo 2',ui-rounded,'Segoe UI Rounded','Segoe UI',system-ui,sans-serif;
+  -webkit-tap-highlight-color:transparent}
+[hidden]{display:none!important}
+.game{position:relative;height:100%;overflow:hidden}
+canvas#world,canvas#world3d{position:absolute;top:0;right:0;bottom:0;left:0;width:100%;height:100%;display:block}
+.labels{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;overflow:hidden}
+.lbl{position:absolute;transform:translate(-50%,-100%);background:var(--card);color:var(--ink);font-weight:800;font-size:.85rem;line-height:1;
+  padding:5px 9px 3px;border-radius:10px;box-shadow:0 3px 0 var(--wall-right);white-space:nowrap;text-transform:capitalize}
+.lbl.unknown{background:var(--field);color:var(--ink-soft);box-shadow:0 3px 0 var(--wall-left)}
+.info{position:absolute;left:50%;bottom:26px;transform:translateX(-50%);background:var(--card);color:var(--ink);border-radius:18px;
+  padding:12px 20px 9px;box-shadow:0 6px 0 var(--wall-right);text-align:center;pointer-events:none;width:max-content;max-width:calc(100% - 32px)}
+.info b{font-size:1.25rem;display:block;line-height:1.1}
+.info b.nm{text-transform:capitalize}
+.info span{color:var(--ink-soft)}
+.info .nums{display:flex;gap:14px;justify-content:center;margin-top:4px;font-weight:700}
+.info .nums em{font-style:normal;font-size:1.3rem;color:var(--ink)}
+.look{display:flex;gap:14px;align-items:center;margin:8px 0 6px}
+#avatarPrev{width:130px;height:130px;flex:none;border-radius:18px;background:var(--field)}
+.look-opts{flex:1;min-width:0}
+.look-label{font-weight:700;font-size:.95rem;margin:2px 0 4px}
+.swatches,.hatbtns{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px}
+.sw{width:30px;height:30px;border-radius:50%;border:3px solid var(--card);box-shadow:0 0 0 2px var(--wall-top);cursor:pointer;padding:0}
+.sw[aria-pressed="true"]{box-shadow:0 0 0 3px var(--ink)}
+.hatbtn{font:inherit;font-weight:700;font-size:.9rem;padding:4px 10px 2px;border-radius:10px;border:2px solid var(--wall-top);background:var(--field);color:var(--ink);cursor:pointer}
+.hatbtn[aria-pressed="true"]{background:var(--wall-top);color:#fff}
+.sw:focus-visible,.hatbtn:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+
+.hud{position:absolute;top:14px;left:16px;right:16px;display:flex;justify-content:space-between;align-items:flex-start;gap:12px;pointer-events:none}
+.hud > div:first-child{background:color-mix(in srgb,var(--card) 84%,transparent);border-radius:16px;padding:8px 14px 6px;pointer-events:none}
+.hud-shape{font-size:1.9rem;font-weight:800;line-height:1;text-transform:capitalize}
+.hud-sub{font-size:1rem;color:var(--ink-soft);margin-top:4px}
+.hud-hearts{margin-top:6px}
+.hud-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;pointer-events:auto}
+.hearts{display:inline-flex;gap:4px;vertical-align:middle}
+.hearts svg{width:26px;height:24px;display:block}
+.hearts .full path{fill:var(--heart);stroke:#1E2147}
+.hearts .half path.back{fill:none;stroke:#1E2147}
+.hearts .empty path{fill:none;stroke:var(--ink-soft);stroke-dasharray:3 2}
+.hearts .lost{animation:pop .45s}
+@keyframes pop{40%{transform:scale(1.35)}}
+
+.btn{font:inherit;font-weight:700;font-size:1rem;background:var(--wall-top);color:#fff;border:0;border-radius:14px;
+  padding:9px 18px 7px;box-shadow:0 4px 0 var(--wall-right);cursor:pointer;transition:transform .08s}
+.btn:active{transform:translateY(3px);box-shadow:0 1px 0 var(--wall-right)}
+.btn:disabled{opacity:.55;cursor:default}
+.btn.quiet{background:var(--card);color:var(--ink);box-shadow:inset 0 0 0 2px var(--wall-top),0 4px 0 var(--wall-left)}
+.btn.quiet:active{box-shadow:inset 0 0 0 2px var(--wall-top),0 1px 0 var(--wall-left)}
+.btn:focus-visible,input:focus-visible,textarea:focus-visible,.linkbtn:focus-visible,.tk:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.linkbtn{font:inherit;background:none;border:0;color:var(--ink-soft);text-decoration:underline;cursor:pointer;padding:4px}
+
+.overlay{position:absolute;top:0;right:0;bottom:0;left:0;display:grid;place-items:center;padding:16px;
+  background:rgba(188,210,232,.62);background:color-mix(in srgb,var(--bg) 62%,transparent)}
+.card{background:var(--card);color:var(--ink);border-radius:24px;padding:24px 26px 20px;
+  width:min(480px,100%);max-height:100%;overflow:auto;box-shadow:0 10px 0 var(--wall-right)}
+.card p{margin:0 0 12px;line-height:1.45;max-width:60ch}
+h1{font-size:clamp(2.6rem,9vw,3.8rem);line-height:.95;margin:6px 0 14px;font-weight:800;letter-spacing:-.01em}
+h2{font-size:1.6rem;line-height:1.1;margin:0 0 10px;font-weight:800}
+.shapes{display:block;width:100%;height:auto;max-width:300px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:16px}
+.keys{color:var(--ink-soft);font-size:.95rem}
+
+/* puzzel */
+.puzzle-card{width:min(640px,100%);text-align:center}
+.pz-head{display:flex;align-items:center;gap:12px;text-align:left;margin-bottom:6px}
+#solidCanvas{width:84px;height:84px;flex:none;display:block}
+.pz-meta{flex:1;min-width:0}
+.pz-solid{font-size:.9rem;color:var(--ink-soft);line-height:1.2}
+.pz-title{font-weight:800;font-size:1.15rem;line-height:1.15}
+.dots{display:flex;gap:6px;margin-top:6px}
+.dots span{width:14px;height:14px;border-radius:50%;border:2px solid var(--wall-top)}
+.dots span.done{background:var(--gold);border-color:var(--gold-right)}
+.dots span.now{border-color:var(--gold-right);box-shadow:0 0 0 3px color-mix(in srgb,var(--gold) 40%,transparent)}
+.task{color:var(--ink-soft);margin:8px 0 10px!important;max-width:none!important}
+.hist{font-size:1.15rem;line-height:1.4;color:var(--ink-soft);margin-bottom:6px;font-weight:700;word-spacing:.12em;overflow:hidden}
+.hist div{white-space:nowrap;width:max-content;max-width:none;margin:0 auto}
+.expr{display:flex;flex-wrap:nowrap;justify-content:center;align-items:center;gap:.14em;margin:6px 0 4px;font-size:26px;padding:4px 0;overflow:hidden}
+.expr > *{flex:none}
+.tk{-webkit-user-select:none;user-select:none;font:inherit;font-weight:800;font-size:1em;line-height:1;min-width:1.5em;height:max(2.05em,38px);padding:.24em .24em 0;border-radius:.45em;
+  border:2px solid var(--wall-top);background:var(--field);color:var(--ink);cursor:pointer;touch-action:manipulation;transition:background .12s,transform .12s}
+.tk.op{min-width:0;width:1.4em;height:max(1.75em,34px);padding:.16em 0 0;border-radius:.7em;border-style:dashed;font-size:.95em}
+.tk.sel{background:var(--gold);border-color:var(--gold-right);border-style:solid;color:#24274F;transform:translateY(-3px)}
+.tk.ok{background:var(--good);border-color:var(--good);color:#fff}
+.tk.no{background:var(--bad);border-color:var(--bad);color:#fff}
+.tk.fresh{animation:fresh .5s}
+@keyframes fresh{0%{transform:scale(.4)}70%{transform:scale(1.12)}}
+.mx{font-family:'STIX Two Text','Cambria Math','Times New Roman',serif}
+.mx i{font-style:italic}
+.tk.mx{font-family:'STIX Two Text','Cambria Math','Times New Roman',serif;font-weight:600}
+.tk.grp{padding-left:.3em;padding-right:.3em}
+.tk sup,.plain sup,.hist sup,.preview sup{font-size:.62em;line-height:0}
+.kbd{display:flex;gap:8px;justify-content:center;margin-top:8px}
+.kbd .btn{padding:6px 14px 4px;font-size:1rem}
+.preview{min-height:1.4em;margin:6px 0 0!important;color:var(--ink-soft);font-size:1.05rem;max-width:none!important}
+.preview .mx{color:var(--ink);font-size:1.2em}
+.ok-text{color:var(--good)}
+.arc{background:color-mix(in srgb,var(--gold) 50%,transparent);border-radius:4px;color:var(--ink)}
+.stepin.stepin{width:7em}
+.answer-row input.mx-in{width:min(260px,58vw);text-align:left}
+.ul{text-decoration:underline;text-decoration-thickness:3px;text-underline-offset:5px;text-decoration-color:var(--gold-right);color:var(--ink)}
+.stepin{font:inherit;font-weight:800;font-size:1em;width:3.4em;height:2.05em;padding:.24em .2em 0;border-radius:.45em;text-align:center;
+  border:3px solid var(--gold-right);background:color-mix(in srgb,var(--gold) 16%,var(--field));color:var(--ink)}
+.stepin:focus-visible{outline:3px solid var(--wall-top);outline-offset:2px}
+.eqs{font-size:1em;font-weight:800;margin-right:.1em}
+.paren{font-size:1.25em;font-weight:500;color:var(--ink-soft);line-height:1}
+.plain{font-size:1em;font-weight:800}
+.expr .plain{padding:0 .1em}
+.blank{display:inline-block;width:2.2em;height:1.85em;border:3px dashed var(--gold-right);border-radius:12px;background:color-mix(in srgb,var(--gold) 18%,transparent)}
+.answer-row{display:flex;gap:8px;justify-content:center;margin-top:12px}
+.answer-row input{font:inherit;font-size:1.4rem;font-weight:700;width:min(160px,40vw);padding:6px 12px 3px;border-radius:12px;
+  border:2px solid var(--wall-top);background:var(--field);color:var(--ink);text-align:center}
+.feedback{min-height:1.5em;margin:12px 0 2px!important;font-weight:700;max-width:none!important}
+.feedback.good{color:var(--good)} .feedback.bad{color:var(--bad)}
+.rule{font-size:.95rem;color:var(--ink-soft);margin:0 0 4px!important;max-width:none!important}
+.shake{animation:shake .38s}
+@keyframes shake{20%{transform:translateX(-9px)}40%{transform:translateX(8px)}60%{transform:translateX(-5px)}80%{transform:translateX(3px)}}
+
+/* minigame */
+.mini-card{text-align:center}
+.mini-hearts{justify-content:center;margin:4px 0 12px}
+.mini-hearts svg{width:44px;height:40px}
+.choices{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:12px}
+.choice{min-width:118px;font-size:1.15rem}
+.choice.wrong{background:var(--bad);color:#fff;box-shadow:0 4px 0 color-mix(in srgb,var(--bad) 60%,#000)}
+.choice.right{background:var(--good);color:#fff;box-shadow:0 4px 0 color-mix(in srgb,var(--good) 60%,#000)}
+.mini-card .task{margin:0 0 2px!important}
+.choice.right:disabled,.choice.wrong:disabled{opacity:1}
+.mini-q{font-size:clamp(2rem,8vw,2.8rem);font-weight:800;line-height:1.1;margin:6px 0 4px}
+
+.banner{position:absolute;left:50%;top:22%;transform:translateX(-50%);background:var(--card);color:var(--ink);
+  font-weight:800;font-size:clamp(1.3rem,5vw,1.9rem);padding:10px 24px 6px;border-radius:18px;box-shadow:0 6px 0 var(--wall-right);
+  white-space:nowrap;pointer-events:none}
+
+.fields{display:grid;grid-template-columns:1fr 140px;gap:10px;margin:6px 0 4px}
+.fields label{display:flex;flex-direction:column;gap:3px;font-weight:700;font-size:.95rem;min-width:0}
+.fields input,.fields select{width:100%}
+.fields input,.fields select{font:inherit;font-size:1.1rem;font-weight:600;padding:7px 10px 4px;border-radius:12px;border:2px solid var(--wall-top);background:var(--field);color:var(--ink);min-width:0}
+@media (max-width:420px){.fields{grid-template-columns:1fr}}
+.card{-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+.start-card{display:flex;flex-direction:column}
+.start-card > *{flex:none}
+/* kleine schermen (iPhone SE e.d.): naam, klas en Begin direct in beeld */
+@media (max-height:760px){
+  .start-card .shapes{display:none}
+  .start-card h1{font-size:2.3rem;margin:0 0 8px}
+  .start-card .start-form{order:-1;margin-bottom:14px}
+  .start-card h1,.start-card > .keys:first-of-type{order:-2}
+  .start-card .row{margin-top:10px}
+  .start-card p{font-size:.95rem;margin-bottom:8px}
+}
+.qr-card{text-align:center}
+.qr{display:inline-block;background:#fff;padding:10px;border-radius:14px;margin:4px 0 6px;line-height:0}
+.qr svg{width:min(250px,64vw);height:auto;display:block}
+.qr-who{font-weight:800;font-size:1.1rem;margin:0!important;max-width:none!important}
+.row.center{justify-content:center}
+textarea{width:100%;min-height:240px;font:500 .95rem/1.5 ui-monospace,Menlo,Consolas,monospace;padding:10px 12px;border-radius:12px;
+  border:2px solid var(--wall-top);background:var(--field);color:var(--ink);resize:vertical}
+.help{font-size:.92rem;color:var(--ink-soft)}
+.help code{font-size:.9em}
+.error{color:var(--bad);font-weight:700}
+
+.dpad{position:absolute;right:calc(26px + env(safe-area-inset-right,0px));bottom:30px;width:156px;height:156px;transform:rotate(45deg);display:none}
+@media (pointer:coarse){.dpad{display:block}}
+.dpad button{position:absolute;width:54px;height:54px;border-radius:14px;border:0;font:800 1.5rem/1 inherit;color:#fff;
+  background:var(--wall-top);box-shadow:0 4px 0 var(--wall-right);touch-action:none;user-select:none;-webkit-user-select:none}
+.dpad.flat{transform:none}
+.dpad .u{left:51px;top:0}.dpad .d{left:51px;bottom:0}.dpad .l{left:0;top:51px}.dpad .r{right:0;top:51px}
+
+@media (max-width:520px){.puzzle-card{padding:16px 8px 12px}#puzzleOverlay{padding:8px 6px}}
+.step-row{display:flex;justify-content:center;margin-top:10px}
+@media (prefers-reduced-motion:reduce){.shake,.tk.fresh,.hearts .lost{animation:none}.btn,.tk{transition:none}}
+</style>
+</head>
+<body>
+<div class="game" id="game">
+  <canvas id="world"></canvas>
+  <canvas id="world3d" hidden></canvas>
+  <div class="labels" id="labels"></div>
+  <div class="info" id="info" hidden></div>
+
+  <div class="hud">
+    <div>
+      <div class="hud-shape" id="hudShape">driehoek</div>
+      <div class="hud-sub" id="hudSub"></div>
+      <div class="hud-hearts"><span class="hearts" id="hudHearts" aria-label="Levens"></span></div>
+    </div>
+    <div class="hud-actions">
+      <button class="btn quiet" id="btnMyCode" hidden>Mijn code</button>
+      <button class="btn quiet" id="btnEdit">Sommen aanpassen</button>
+      <button class="btn quiet" id="btnRestart">Opnieuw</button>
+    </div>
+  </div>
+
+  <div class="dpad" id="dpad" aria-label="Lopen">
+    <button class="u" data-dir="up" aria-label="Naar boven">↑</button>
+    <button class="r" data-dir="right" aria-label="Naar rechts">→</button>
+    <button class="d" data-dir="down" aria-label="Naar beneden">↓</button>
+    <button class="l" data-dir="left" aria-label="Naar links">←</button>
+  </div>
+
+  <div class="banner" id="banner" hidden></div>
+
+  <!-- Start -->
+  <div class="overlay" id="startOverlay">
+    <div class="card start-card">
+      <svg class="shapes" viewBox="0 0 300 80" aria-hidden="true">
+        <polygon points="30,18 50,58 10,58" fill="#E5486B" stroke="#1E2147" stroke-width="3" stroke-linejoin="round"/>
+        <rect x="74" y="22" width="38" height="38" fill="#F08A24" stroke="#1E2147" stroke-width="3" stroke-linejoin="round"/>
+        <polygon points="160,12 183,29 174,57 146,57 137,29" fill="#2BA6A0" stroke="#1E2147" stroke-width="3" stroke-linejoin="round"/>
+        <polygon points="240,8 265,22 265,52 240,66 215,52 215,22" fill="#7A5BD6" stroke="#1E2147" stroke-width="3" stroke-linejoin="round"/>
+        <text x="288" y="50" font-size="30" font-weight="800" fill="currentColor" font-family="inherit">…</text>
+      </svg>
+      <h1>Hoek erbij</h1>
+      <p class="keys" style="margin-top:-8px"><b>Algebra in 3D</b></p>
+      <p>Je begint in je eigen museum. Loop door de deur naar het level. De gouden blokken in de muren zijn poorten: een poort gaat open als je 2 sommen goed doet. Soms typ je meteen het antwoord, soms tik je eerst aan wat je uitrekent en schrijf je de tussenstap op.</p>
+      <p>Je hebt 3 levens. Elke fout kost een leven. Bij de uitgang krijg je er een hoek bij, en in je museum komt een nieuw ruimtelichaam. Met de knop <b>Mijn code</b> laat je op elk moment zien hoe ver je bent.</p>
+      <p class="keys">Lopen met de pijltjestoetsen of WASD.</p>
+      <div class="start-form">
+      <div class="look">
+        <canvas id="avatarPrev" aria-hidden="true"></canvas>
+        <div class="look-opts">
+          <div class="look-label" id="lblKleur">Kleur</div>
+          <div class="swatches" id="swatches" role="group" aria-labelledby="lblKleur"></div>
+          <div class="look-label" id="lblHoed">Op je hoofd</div>
+          <div class="hatbtns" id="hatbtns" role="group" aria-labelledby="lblHoed"></div>
+        </div>
+      </div>
+      <div class="fields">
+        <label>Je naam<input id="inName" maxlength="30" autocomplete="off" spellcheck="false"></label>
+        <label>Klas<select id="inKlas">
+          <option value="">Kies…</option><option>LV1A</option><option>LV1B</option><option>LV2A</option><option>LV2B</option><option>LV2C</option><option>Anders</option>
+        </select></label>
+      </div>
+      <p class="error" id="startError" hidden></p>
+      <div class="row">
+        <button class="btn" id="btnStart">Begin</button>
+        <button class="btn quiet" id="btnResume" hidden>Verder spelen</button>
+        <button class="linkbtn" id="btnOldCode" hidden>Laat mijn laatste code zien</button>
+      </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Puzzel -->
+  <div class="overlay" id="puzzleOverlay" hidden>
+    <div class="card puzzle-card" id="puzzleCard" role="dialog" aria-modal="true" aria-labelledby="pzTitle">
+      <div class="pz-head">
+        <canvas id="solidCanvas"></canvas>
+        <div class="pz-meta">
+          <div class="pz-title" id="pzTitle"></div>
+          <div class="pz-solid" id="solidName"></div>
+          <div class="dots" id="dots"></div>
+        </div>
+        <span class="hearts" id="pzHearts" aria-label="Levens"></span>
+      </div>
+      <p class="task" id="task"></p>
+      <div class="hist" id="hist"></div>
+      <div class="expr" id="expr"></div>
+      <div class="answer-row" id="answerRow" hidden>
+        <input id="answer" class="mx-in" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="antwoord" aria-label="Jouw antwoord">
+        <button class="btn" id="btnCheck">Controleer</button>
+      </div>
+      <div class="kbd" id="kbd" hidden>
+        <button type="button" class="btn quiet" data-ins="²" aria-label="kwadraat">x²</button>
+        <button type="button" class="btn quiet" data-ins="−" aria-label="min">−</button>
+        <button type="button" class="btn quiet" id="btnKn" hidden>kan niet</button>
+      </div>
+      <p class="preview" id="preview">&nbsp;</p>
+      <div class="step-row" id="selRow" hidden><button class="btn" id="btnSel" type="button">Controleer keuze</button></div>
+      <div class="step-row" id="stepRow" hidden><button class="btn" id="btnStep" type="button">Controleer</button></div>
+      <p class="feedback" id="feedback" aria-live="polite"></p>
+      <p class="rule" id="rule" hidden>Eerst vermenigvuldigen en haakjes wegwerken. Daarna alle gelijksoortige termen samennemen, elk met het teken ervoor.</p>
+      <button class="linkbtn" id="btnLater">Later verder</button>
+    </div>
+  </div>
+
+  <!-- Minigame -->
+  <div class="overlay" id="miniOverlay" hidden>
+    <div class="card mini-card" id="miniCard" role="dialog" aria-modal="true" aria-labelledby="miniTitle">
+      <h2 id="miniTitle">Je levens zijn op</h2>
+      <p id="miniIntro"></p>
+      <div class="hearts mini-hearts" id="miniHearts"></div>
+      <p class="task" id="miniPrompt"></p>
+      <div class="mini-q" id="miniQ"></div>
+      <div class="choices" id="miniChoices" hidden></div>
+      <div class="answer-row" id="miniRow" hidden>
+        <input id="miniAnswer" autocomplete="off" inputmode="numeric" spellcheck="false" placeholder="?" aria-label="Jouw antwoord">
+        <button class="btn" id="btnMiniCheck">Controleer</button>
+      </div>
+      <p class="feedback" id="miniFeedback" aria-live="polite"></p>
+      <div class="row" style="justify-content:center"><button class="btn" id="btnMiniDone" hidden>Terug naar de poort</button></div>
+    </div>
+  </div>
+
+  <!-- Einde -->
+  <div class="overlay" id="qrOverlay" hidden>
+    <div class="card qr-card" role="dialog" aria-modal="true" aria-labelledby="qrTitle">
+      <h2 id="qrTitle"></h2>
+      <p id="qrText"></p>
+      <div class="qr" id="qrBox" role="img" aria-label="QR-code met je resultaten"></div>
+      <p class="qr-who" id="qrWho"></p>
+      <div class="row center"><button class="btn" id="btnQrNext"></button></div>
+    </div>
+  </div>
+
+  <!-- Sommen aanpassen -->
+  <div class="overlay" id="editOverlay" hidden>
+    <div class="card">
+      <h2>Sommen aanpassen</h2>
+      <p class="help">Elke som op een eigen regel; het spel rekent het antwoord zelf uit. Gebruik <code>*</code> of <code>·</code> voor keer, <code>^2</code> of <code>²</code> voor een kwadraat. Begin elk level met een kopregel met <b>#</b> en daarachter tussen blokhaken hoe er gewerkt wordt: <code>[antwoord]</code> (antwoord intypen), <code>[antwoord, kan niet]</code> (met knop kan niet) of <code>[stappen]</code> (aantikken en tussenstappen).</p>
+      <p class="help">Elke poort heeft 2 sommen. Een level krijgt 1 poort per 2 sommen, hoogstens 3; het spel kiest de sommen steeds willekeurig.</p>
+      <textarea id="editText" spellcheck="false"></textarea>
+      <p class="error" id="editError" hidden></p>
+      <div class="row">
+        <button class="btn" id="btnSave">Opslaan en opnieuw beginnen</button>
+        <button class="btn quiet" id="btnCancel">Annuleren</button>
+        <button class="linkbtn" id="btnDefault">Voorbeeldsommen terugzetten</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* qrcode-generator, (c) 2009 Kazuhiko Arase, MIT-licentie */
+var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],f={},c=function(t,r){o=function(t){for(var r=new Array(t),e=0;e<t;e+=1){r[e]=new Array(t);for(var n=0;n<t;n+=1)r[e][n]=null}return r}(i=4*e+17),l(0,0),l(i-7,0),l(0,i-7),s(),h(),d(t,r),e>=7&&v(t),null==a&&(a=p(e,n,u)),w(a,r)},l=function(t,r){for(var e=-1;e<=7;e+=1)if(!(t+e<=-1||i<=t+e))for(var n=-1;n<=7;n+=1)r+n<=-1||i<=r+n||(o[t+e][r+n]=0<=e&&e<=6&&(0==n||6==n)||0<=n&&n<=6&&(0==e||6==e)||2<=e&&e<=4&&2<=n&&n<=4)},h=function(){for(var t=8;t<i-8;t+=1)null==o[t][6]&&(o[t][6]=t%2==0);for(var r=8;r<i-8;r+=1)null==o[6][r]&&(o[6][r]=r%2==0)},s=function(){for(var t=B.getPatternPosition(e),r=0;r<t.length;r+=1)for(var n=0;n<t.length;n+=1){var i=t[r],a=t[n];if(null==o[i][a])for(var u=-2;u<=2;u+=1)for(var f=-2;f<=2;f+=1)o[i+u][a+f]=-2==u||2==u||-2==f||2==f||0==u&&0==f}},v=function(t){for(var r=B.getBCHTypeNumber(e),n=0;n<18;n+=1){var a=!t&&1==(r>>n&1);o[Math.floor(n/3)][n%3+i-8-3]=a}for(n=0;n<18;n+=1){a=!t&&1==(r>>n&1);o[n%3+i-8-3][Math.floor(n/3)]=a}},d=function(t,r){for(var e=n<<3|r,a=B.getBCHTypeInfo(e),u=0;u<15;u+=1){var f=!t&&1==(a>>u&1);u<6?o[u][8]=f:u<8?o[u+1][8]=f:o[i-15+u][8]=f}for(u=0;u<15;u+=1){f=!t&&1==(a>>u&1);u<8?o[8][i-u-1]=f:u<9?o[8][15-u-1+1]=f:o[8][15-u-1]=f}o[i-8][8]=!t},w=function(t,r){for(var e=-1,n=i-1,a=7,u=0,f=B.getMaskFunction(r),c=i-1;c>0;c-=2)for(6==c&&(c-=1);;){for(var g=0;g<2;g+=1)if(null==o[n][c-g]){var l=!1;u<t.length&&(l=1==(t[u]>>>a&1)),f(n,c-g)&&(l=!l),o[n][c-g]=l,-1==(a-=1)&&(u+=1,a=7)}if((n+=e)<0||i<=n){n-=e,e=-e;break}}},p=function(t,r,e){for(var n=A.getRSBlocks(t,r),o=b(),i=0;i<e.length;i+=1){var a=e[i];o.put(a.getMode(),4),o.put(a.getLength(),B.getLengthInBits(a.getMode(),t)),a.write(o)}var u=0;for(i=0;i<n.length;i+=1)u+=n[i].dataCount;if(o.getLengthInBits()>8*u)throw"code length overflow. ("+o.getLengthInBits()+">"+8*u+")";for(o.getLengthInBits()+4<=8*u&&o.put(0,4);o.getLengthInBits()%8!=0;)o.putBit(!1);for(;!(o.getLengthInBits()>=8*u||(o.put(236,8),o.getLengthInBits()>=8*u));)o.put(17,8);return function(t,r){for(var e=0,n=0,o=0,i=new Array(r.length),a=new Array(r.length),u=0;u<r.length;u+=1){var f=r[u].dataCount,c=r[u].totalCount-f;n=Math.max(n,f),o=Math.max(o,c),i[u]=new Array(f);for(var g=0;g<i[u].length;g+=1)i[u][g]=255&t.getBuffer()[g+e];e+=f;var l=B.getErrorCorrectPolynomial(c),h=k(i[u],l.getLength()-1).mod(l);for(a[u]=new Array(l.getLength()-1),g=0;g<a[u].length;g+=1){var s=g+h.getLength()-a[u].length;a[u][g]=s>=0?h.getAt(s):0}}var v=0;for(g=0;g<r.length;g+=1)v+=r[g].totalCount;var d=new Array(v),w=0;for(g=0;g<n;g+=1)for(u=0;u<r.length;u+=1)g<i[u].length&&(d[w]=i[u][g],w+=1);for(g=0;g<o;g+=1)for(u=0;u<r.length;u+=1)g<a[u].length&&(d[w]=a[u][g],w+=1);return d}(o,n)};f.addData=function(t,r){var e=null;switch(r=r||"Byte"){case"Numeric":e=M(t);break;case"Alphanumeric":e=x(t);break;case"Byte":e=m(t);break;case"Kanji":e=L(t);break;default:throw"mode:"+r}u.push(e),a=null},f.isDark=function(t,r){if(t<0||i<=t||r<0||i<=r)throw t+","+r;return o[t][r]},f.getModuleCount=function(){return i},f.make=function(){if(e<1){for(var t=1;t<40;t++){for(var r=A.getRSBlocks(t,n),o=b(),i=0;i<u.length;i++){var a=u[i];o.put(a.getMode(),4),o.put(a.getLength(),B.getLengthInBits(a.getMode(),t)),a.write(o)}var g=0;for(i=0;i<r.length;i++)g+=r[i].dataCount;if(o.getLengthInBits()<=8*g)break}e=t}c(!1,function(){for(var t=0,r=0,e=0;e<8;e+=1){c(!0,e);var n=B.getLostPoint(f);(0==e||t>n)&&(t=n,r=e)}return r}())},f.createTableTag=function(t,r){t=t||2;var e="";e+='<table style="',e+=" border-width: 0px; border-style: none;",e+=" border-collapse: collapse;",e+=" padding: 0px; margin: "+(r=void 0===r?4*t:r)+"px;",e+='">',e+="<tbody>";for(var n=0;n<f.getModuleCount();n+=1){e+="<tr>";for(var o=0;o<f.getModuleCount();o+=1)e+='<td style="',e+=" border-width: 0px; border-style: none;",e+=" border-collapse: collapse;",e+=" padding: 0px; margin: 0px;",e+=" width: "+t+"px;",e+=" height: "+t+"px;",e+=" background-color: ",e+=f.isDark(n,o)?"#000000":"#ffffff",e+=";",e+='"/>';e+="</tr>"}return e+="</tbody>",e+="</table>"},f.createSvgTag=function(t,r,e,n){var o={};"object"==typeof arguments[0]&&(t=(o=arguments[0]).cellSize,r=o.margin,e=o.alt,n=o.title),t=t||2,r=void 0===r?4*t:r,(e="string"==typeof e?{text:e}:e||{}).text=e.text||null,e.id=e.text?e.id||"qrcode-description":null,(n="string"==typeof n?{text:n}:n||{}).text=n.text||null,n.id=n.text?n.id||"qrcode-title":null;var i,a,u,c,g=f.getModuleCount()*t+2*r,l="";for(c="l"+t+",0 0,"+t+" -"+t+",0 0,-"+t+"z ",l+='<svg version="1.1" xmlns="http://www.w3.org/2000/svg"',l+=o.scalable?"":' width="'+g+'px" height="'+g+'px"',l+=' viewBox="0 0 '+g+" "+g+'" ',l+=' preserveAspectRatio="xMinYMin meet"',l+=n.text||e.text?' role="img" aria-labelledby="'+y([n.id,e.id].join(" ").trim())+'"':"",l+=">",l+=n.text?'<title id="'+y(n.id)+'">'+y(n.text)+"</title>":"",l+=e.text?'<description id="'+y(e.id)+'">'+y(e.text)+"</description>":"",l+='<rect width="100%" height="100%" fill="white" cx="0" cy="0"/>',l+='<path d="',a=0;a<f.getModuleCount();a+=1)for(u=a*t+r,i=0;i<f.getModuleCount();i+=1)f.isDark(a,i)&&(l+="M"+(i*t+r)+","+u+c);return l+='" stroke="transparent" fill="black"/>',l+="</svg>"},f.createDataURL=function(t,r){t=t||2,r=void 0===r?4*t:r;var e=f.getModuleCount()*t+2*r,n=r,o=e-r;return I(e,e,function(r,e){if(n<=r&&r<o&&n<=e&&e<o){var i=Math.floor((r-n)/t),a=Math.floor((e-n)/t);return f.isDark(a,i)?0:1}return 1})},f.createImgTag=function(t,r,e){t=t||2,r=void 0===r?4*t:r;var n=f.getModuleCount()*t+2*r,o="";return o+="<img",o+=' src="',o+=f.createDataURL(t,r),o+='"',o+=' width="',o+=n,o+='"',o+=' height="',o+=n,o+='"',e&&(o+=' alt="',o+=y(e),o+='"'),o+="/>"};var y=function(t){for(var r="",e=0;e<t.length;e+=1){var n=t.charAt(e);switch(n){case"<":r+="&lt;";break;case">":r+="&gt;";break;case"&":r+="&amp;";break;case'"':r+="&quot;";break;default:r+=n}}return r};return f.createASCII=function(t,r){if((t=t||1)<2)return function(t){t=void 0===t?2:t;var r,e,n,o,i,a=1*f.getModuleCount()+2*t,u=t,c=a-t,g={"██":"█","█ ":"▀"," █":"▄","  ":" "},l={"██":"▀","█ ":"▀"," █":" ","  ":" "},h="";for(r=0;r<a;r+=2){for(n=Math.floor((r-u)/1),o=Math.floor((r+1-u)/1),e=0;e<a;e+=1)i="█",u<=e&&e<c&&u<=r&&r<c&&f.isDark(n,Math.floor((e-u)/1))&&(i=" "),u<=e&&e<c&&u<=r+1&&r+1<c&&f.isDark(o,Math.floor((e-u)/1))?i+=" ":i+="█",h+=t<1&&r+1>=c?l[i]:g[i];h+="\n"}return a%2&&t>0?h.substring(0,h.length-a-1)+Array(a+1).join("▀"):h.substring(0,h.length-1)}(r);t-=1,r=void 0===r?2*t:r;var e,n,o,i,a=f.getModuleCount()*t+2*r,u=r,c=a-r,g=Array(t+1).join("██"),l=Array(t+1).join("  "),h="",s="";for(e=0;e<a;e+=1){for(o=Math.floor((e-u)/t),s="",n=0;n<a;n+=1)i=1,u<=n&&n<c&&u<=e&&e<c&&f.isDark(o,Math.floor((n-u)/t))&&(i=0),s+=i?g:l;for(o=0;o<t;o+=1)h+=s+"\n"}return h.substring(0,h.length-1)},f.renderTo2dContext=function(t,r){r=r||2;for(var e=f.getModuleCount(),n=0;n<e;n++)for(var o=0;o<e;o++)t.fillStyle=f.isDark(n,o)?"black":"white",t.fillRect(o*r,n*r,r,r)},f};t.stringToBytes=(t.stringToBytesFuncs={default:function(t){for(var r=[],e=0;e<t.length;e+=1){var n=t.charCodeAt(e);r.push(255&n)}return r}}).default,t.createStringToBytes=function(t,r){var e=function(){for(var e=S(t),n=function(){var t=e.read();if(-1==t)throw"eof";return t},o=0,i={};;){var a=e.read();if(-1==a)break;var u=n(),f=n()<<8|n();i[String.fromCharCode(a<<8|u)]=f,o+=1}if(o!=r)throw o+" != "+r;return i}(),n="?".charCodeAt(0);return function(t){for(var r=[],o=0;o<t.length;o+=1){var i=t.charCodeAt(o);if(i<128)r.push(i);else{var a=e[t.charAt(o)];"number"==typeof a?(255&a)==a?r.push(a):(r.push(a>>>8),r.push(255&a)):r.push(n)}}return r}};var r,e,n,o,i,a=1,u=2,f=4,c=8,g={L:1,M:0,Q:3,H:2},l=0,h=1,s=2,v=3,d=4,w=5,p=6,y=7,B=(r=[[],[6,18],[6,22],[6,26],[6,30],[6,34],[6,22,38],[6,24,42],[6,26,46],[6,28,50],[6,30,54],[6,32,58],[6,34,62],[6,26,46,66],[6,26,48,70],[6,26,50,74],[6,30,54,78],[6,30,56,82],[6,30,58,86],[6,34,62,90],[6,28,50,72,94],[6,26,50,74,98],[6,30,54,78,102],[6,28,54,80,106],[6,32,58,84,110],[6,30,58,86,114],[6,34,62,90,118],[6,26,50,74,98,122],[6,30,54,78,102,126],[6,26,52,78,104,130],[6,30,56,82,108,134],[6,34,60,86,112,138],[6,30,58,86,114,142],[6,34,62,90,118,146],[6,30,54,78,102,126,150],[6,24,50,76,102,128,154],[6,28,54,80,106,132,158],[6,32,58,84,110,136,162],[6,26,54,82,110,138,166],[6,30,58,86,114,142,170]],e=1335,n=7973,i=function(t){for(var r=0;0!=t;)r+=1,t>>>=1;return r},(o={}).getBCHTypeInfo=function(t){for(var r=t<<10;i(r)-i(e)>=0;)r^=e<<i(r)-i(e);return 21522^(t<<10|r)},o.getBCHTypeNumber=function(t){for(var r=t<<12;i(r)-i(n)>=0;)r^=n<<i(r)-i(n);return t<<12|r},o.getPatternPosition=function(t){return r[t-1]},o.getMaskFunction=function(t){switch(t){case l:return function(t,r){return(t+r)%2==0};case h:return function(t,r){return t%2==0};case s:return function(t,r){return r%3==0};case v:return function(t,r){return(t+r)%3==0};case d:return function(t,r){return(Math.floor(t/2)+Math.floor(r/3))%2==0};case w:return function(t,r){return t*r%2+t*r%3==0};case p:return function(t,r){return(t*r%2+t*r%3)%2==0};case y:return function(t,r){return(t*r%3+(t+r)%2)%2==0};default:throw"bad maskPattern:"+t}},o.getErrorCorrectPolynomial=function(t){for(var r=k([1],0),e=0;e<t;e+=1)r=r.multiply(k([1,C.gexp(e)],0));return r},o.getLengthInBits=function(t,r){if(1<=r&&r<10)switch(t){case a:return 10;case u:return 9;case f:case c:return 8;default:throw"mode:"+t}else if(r<27)switch(t){case a:return 12;case u:return 11;case f:return 16;case c:return 10;default:throw"mode:"+t}else{if(!(r<41))throw"type:"+r;switch(t){case a:return 14;case u:return 13;case f:return 16;case c:return 12;default:throw"mode:"+t}}},o.getLostPoint=function(t){for(var r=t.getModuleCount(),e=0,n=0;n<r;n+=1)for(var o=0;o<r;o+=1){for(var i=0,a=t.isDark(n,o),u=-1;u<=1;u+=1)if(!(n+u<0||r<=n+u))for(var f=-1;f<=1;f+=1)o+f<0||r<=o+f||0==u&&0==f||a==t.isDark(n+u,o+f)&&(i+=1);i>5&&(e+=3+i-5)}for(n=0;n<r-1;n+=1)for(o=0;o<r-1;o+=1){var c=0;t.isDark(n,o)&&(c+=1),t.isDark(n+1,o)&&(c+=1),t.isDark(n,o+1)&&(c+=1),t.isDark(n+1,o+1)&&(c+=1),0!=c&&4!=c||(e+=3)}for(n=0;n<r;n+=1)for(o=0;o<r-6;o+=1)t.isDark(n,o)&&!t.isDark(n,o+1)&&t.isDark(n,o+2)&&t.isDark(n,o+3)&&t.isDark(n,o+4)&&!t.isDark(n,o+5)&&t.isDark(n,o+6)&&(e+=40);for(o=0;o<r;o+=1)for(n=0;n<r-6;n+=1)t.isDark(n,o)&&!t.isDark(n+1,o)&&t.isDark(n+2,o)&&t.isDark(n+3,o)&&t.isDark(n+4,o)&&!t.isDark(n+5,o)&&t.isDark(n+6,o)&&(e+=40);var g=0;for(o=0;o<r;o+=1)for(n=0;n<r;n+=1)t.isDark(n,o)&&(g+=1);return e+=Math.abs(100*g/r/r-50)/5*10},o),C=function(){for(var t=new Array(256),r=new Array(256),e=0;e<8;e+=1)t[e]=1<<e;for(e=8;e<256;e+=1)t[e]=t[e-4]^t[e-5]^t[e-6]^t[e-8];for(e=0;e<255;e+=1)r[t[e]]=e;var n={glog:function(t){if(t<1)throw"glog("+t+")";return r[t]},gexp:function(r){for(;r<0;)r+=255;for(;r>=256;)r-=255;return t[r]}};return n}();function k(t,r){if(void 0===t.length)throw t.length+"/"+r;var e=function(){for(var e=0;e<t.length&&0==t[e];)e+=1;for(var n=new Array(t.length-e+r),o=0;o<t.length-e;o+=1)n[o]=t[o+e];return n}(),n={getAt:function(t){return e[t]},getLength:function(){return e.length},multiply:function(t){for(var r=new Array(n.getLength()+t.getLength()-1),e=0;e<n.getLength();e+=1)for(var o=0;o<t.getLength();o+=1)r[e+o]^=C.gexp(C.glog(n.getAt(e))+C.glog(t.getAt(o)));return k(r,0)},mod:function(t){if(n.getLength()-t.getLength()<0)return n;for(var r=C.glog(n.getAt(0))-C.glog(t.getAt(0)),e=new Array(n.getLength()),o=0;o<n.getLength();o+=1)e[o]=n.getAt(o);for(o=0;o<t.getLength();o+=1)e[o]^=C.gexp(C.glog(t.getAt(o))+r);return k(e,0).mod(t)}};return n}var A=function(){var t=[[1,26,19],[1,26,16],[1,26,13],[1,26,9],[1,44,34],[1,44,28],[1,44,22],[1,44,16],[1,70,55],[1,70,44],[2,35,17],[2,35,13],[1,100,80],[2,50,32],[2,50,24],[4,25,9],[1,134,108],[2,67,43],[2,33,15,2,34,16],[2,33,11,2,34,12],[2,86,68],[4,43,27],[4,43,19],[4,43,15],[2,98,78],[4,49,31],[2,32,14,4,33,15],[4,39,13,1,40,14],[2,121,97],[2,60,38,2,61,39],[4,40,18,2,41,19],[4,40,14,2,41,15],[2,146,116],[3,58,36,2,59,37],[4,36,16,4,37,17],[4,36,12,4,37,13],[2,86,68,2,87,69],[4,69,43,1,70,44],[6,43,19,2,44,20],[6,43,15,2,44,16],[4,101,81],[1,80,50,4,81,51],[4,50,22,4,51,23],[3,36,12,8,37,13],[2,116,92,2,117,93],[6,58,36,2,59,37],[4,46,20,6,47,21],[7,42,14,4,43,15],[4,133,107],[8,59,37,1,60,38],[8,44,20,4,45,21],[12,33,11,4,34,12],[3,145,115,1,146,116],[4,64,40,5,65,41],[11,36,16,5,37,17],[11,36,12,5,37,13],[5,109,87,1,110,88],[5,65,41,5,66,42],[5,54,24,7,55,25],[11,36,12,7,37,13],[5,122,98,1,123,99],[7,73,45,3,74,46],[15,43,19,2,44,20],[3,45,15,13,46,16],[1,135,107,5,136,108],[10,74,46,1,75,47],[1,50,22,15,51,23],[2,42,14,17,43,15],[5,150,120,1,151,121],[9,69,43,4,70,44],[17,50,22,1,51,23],[2,42,14,19,43,15],[3,141,113,4,142,114],[3,70,44,11,71,45],[17,47,21,4,48,22],[9,39,13,16,40,14],[3,135,107,5,136,108],[3,67,41,13,68,42],[15,54,24,5,55,25],[15,43,15,10,44,16],[4,144,116,4,145,117],[17,68,42],[17,50,22,6,51,23],[19,46,16,6,47,17],[2,139,111,7,140,112],[17,74,46],[7,54,24,16,55,25],[34,37,13],[4,151,121,5,152,122],[4,75,47,14,76,48],[11,54,24,14,55,25],[16,45,15,14,46,16],[6,147,117,4,148,118],[6,73,45,14,74,46],[11,54,24,16,55,25],[30,46,16,2,47,17],[8,132,106,4,133,107],[8,75,47,13,76,48],[7,54,24,22,55,25],[22,45,15,13,46,16],[10,142,114,2,143,115],[19,74,46,4,75,47],[28,50,22,6,51,23],[33,46,16,4,47,17],[8,152,122,4,153,123],[22,73,45,3,74,46],[8,53,23,26,54,24],[12,45,15,28,46,16],[3,147,117,10,148,118],[3,73,45,23,74,46],[4,54,24,31,55,25],[11,45,15,31,46,16],[7,146,116,7,147,117],[21,73,45,7,74,46],[1,53,23,37,54,24],[19,45,15,26,46,16],[5,145,115,10,146,116],[19,75,47,10,76,48],[15,54,24,25,55,25],[23,45,15,25,46,16],[13,145,115,3,146,116],[2,74,46,29,75,47],[42,54,24,1,55,25],[23,45,15,28,46,16],[17,145,115],[10,74,46,23,75,47],[10,54,24,35,55,25],[19,45,15,35,46,16],[17,145,115,1,146,116],[14,74,46,21,75,47],[29,54,24,19,55,25],[11,45,15,46,46,16],[13,145,115,6,146,116],[14,74,46,23,75,47],[44,54,24,7,55,25],[59,46,16,1,47,17],[12,151,121,7,152,122],[12,75,47,26,76,48],[39,54,24,14,55,25],[22,45,15,41,46,16],[6,151,121,14,152,122],[6,75,47,34,76,48],[46,54,24,10,55,25],[2,45,15,64,46,16],[17,152,122,4,153,123],[29,74,46,14,75,47],[49,54,24,10,55,25],[24,45,15,46,46,16],[4,152,122,18,153,123],[13,74,46,32,75,47],[48,54,24,14,55,25],[42,45,15,32,46,16],[20,147,117,4,148,118],[40,75,47,7,76,48],[43,54,24,22,55,25],[10,45,15,67,46,16],[19,148,118,6,149,119],[18,75,47,31,76,48],[34,54,24,34,55,25],[20,45,15,61,46,16]],r=function(t,r){var e={};return e.totalCount=t,e.dataCount=r,e},e={};return e.getRSBlocks=function(e,n){var o=function(r,e){switch(e){case g.L:return t[4*(r-1)+0];case g.M:return t[4*(r-1)+1];case g.Q:return t[4*(r-1)+2];case g.H:return t[4*(r-1)+3];default:return}}(e,n);if(void 0===o)throw"bad rs block @ typeNumber:"+e+"/errorCorrectionLevel:"+n;for(var i=o.length/3,a=[],u=0;u<i;u+=1)for(var f=o[3*u+0],c=o[3*u+1],l=o[3*u+2],h=0;h<f;h+=1)a.push(r(c,l));return a},e}(),b=function(){var t=[],r=0,e={getBuffer:function(){return t},getAt:function(r){var e=Math.floor(r/8);return 1==(t[e]>>>7-r%8&1)},put:function(t,r){for(var n=0;n<r;n+=1)e.putBit(1==(t>>>r-n-1&1))},getLengthInBits:function(){return r},putBit:function(e){var n=Math.floor(r/8);t.length<=n&&t.push(0),e&&(t[n]|=128>>>r%8),r+=1}};return e},M=function(t){var r=a,e=t,n={getMode:function(){return r},getLength:function(t){return e.length},write:function(t){for(var r=e,n=0;n+2<r.length;)t.put(o(r.substring(n,n+3)),10),n+=3;n<r.length&&(r.length-n==1?t.put(o(r.substring(n,n+1)),4):r.length-n==2&&t.put(o(r.substring(n,n+2)),7))}},o=function(t){for(var r=0,e=0;e<t.length;e+=1)r=10*r+i(t.charAt(e));return r},i=function(t){if("0"<=t&&t<="9")return t.charCodeAt(0)-"0".charCodeAt(0);throw"illegal char :"+t};return n},x=function(t){var r=u,e=t,n={getMode:function(){return r},getLength:function(t){return e.length},write:function(t){for(var r=e,n=0;n+1<r.length;)t.put(45*o(r.charAt(n))+o(r.charAt(n+1)),11),n+=2;n<r.length&&t.put(o(r.charAt(n)),6)}},o=function(t){if("0"<=t&&t<="9")return t.charCodeAt(0)-"0".charCodeAt(0);if("A"<=t&&t<="Z")return t.charCodeAt(0)-"A".charCodeAt(0)+10;switch(t){case" ":return 36;case"$":return 37;case"%":return 38;case"*":return 39;case"+":return 40;case"-":return 41;case".":return 42;case"/":return 43;case":":return 44;default:throw"illegal char :"+t}};return n},m=function(r){var e=f,n=t.stringToBytes(r),o={getMode:function(){return e},getLength:function(t){return n.length},write:function(t){for(var r=0;r<n.length;r+=1)t.put(n[r],8)}};return o},L=function(r){var e=c,n=t.stringToBytesFuncs.SJIS;if(!n)throw"sjis not supported.";!function(){var t=n("友");if(2!=t.length||38726!=(t[0]<<8|t[1]))throw"sjis not supported."}();var o=n(r),i={getMode:function(){return e},getLength:function(t){return~~(o.length/2)},write:function(t){for(var r=o,e=0;e+1<r.length;){var n=(255&r[e])<<8|255&r[e+1];if(33088<=n&&n<=40956)n-=33088;else{if(!(57408<=n&&n<=60351))throw"illegal char at "+(e+1)+"/"+n;n-=49472}n=192*(n>>>8&255)+(255&n),t.put(n,13),e+=2}if(e<r.length)throw"illegal char at "+(e+1)}};return i},D=function(){var t=[],r={writeByte:function(r){t.push(255&r)},writeShort:function(t){r.writeByte(t),r.writeByte(t>>>8)},writeBytes:function(t,e,n){e=e||0,n=n||t.length;for(var o=0;o<n;o+=1)r.writeByte(t[o+e])},writeString:function(t){for(var e=0;e<t.length;e+=1)r.writeByte(t.charCodeAt(e))},toByteArray:function(){return t},toString:function(){var r="";r+="[";for(var e=0;e<t.length;e+=1)e>0&&(r+=","),r+=t[e];return r+="]"}};return r},S=function(t){var r=t,e=0,n=0,o=0,i={read:function(){for(;o<8;){if(e>=r.length){if(0==o)return-1;throw"unexpected end of file./"+o}var t=r.charAt(e);if(e+=1,"="==t)return o=0,-1;t.match(/^\s$/)||(n=n<<6|a(t.charCodeAt(0)),o+=6)}var i=n>>>o-8&255;return o-=8,i}},a=function(t){if(65<=t&&t<=90)return t-65;if(97<=t&&t<=122)return t-97+26;if(48<=t&&t<=57)return t-48+52;if(43==t)return 62;if(47==t)return 63;throw"c:"+t};return i},I=function(t,r,e){for(var n=function(t,r){var e=t,n=r,o=new Array(t*r),i={setPixel:function(t,r,n){o[r*e+t]=n},write:function(t){t.writeString("GIF87a"),t.writeShort(e),t.writeShort(n),t.writeByte(128),t.writeByte(0),t.writeByte(0),t.writeByte(0),t.writeByte(0),t.writeByte(0),t.writeByte(255),t.writeByte(255),t.writeByte(255),t.writeString(","),t.writeShort(0),t.writeShort(0),t.writeShort(e),t.writeShort(n),t.writeByte(0);var r=a(2);t.writeByte(2);for(var o=0;r.length-o>255;)t.writeByte(255),t.writeBytes(r,o,255),o+=255;t.writeByte(r.length-o),t.writeBytes(r,o,r.length-o),t.writeByte(0),t.writeString(";")}},a=function(t){for(var r=1<<t,e=1+(1<<t),n=t+1,i=u(),a=0;a<r;a+=1)i.add(String.fromCharCode(a));i.add(String.fromCharCode(r)),i.add(String.fromCharCode(e));var f,c,g,l=D(),h=(f=l,c=0,g=0,{write:function(t,r){if(t>>>r!=0)throw"length over";for(;c+r>=8;)f.writeByte(255&(t<<c|g)),r-=8-c,t>>>=8-c,g=0,c=0;g|=t<<c,c+=r},flush:function(){c>0&&f.writeByte(g)}});h.write(r,n);var s=0,v=String.fromCharCode(o[s]);for(s+=1;s<o.length;){var d=String.fromCharCode(o[s]);s+=1,i.contains(v+d)?v+=d:(h.write(i.indexOf(v),n),i.size()<4095&&(i.size()==1<<n&&(n+=1),i.add(v+d)),v=d)}return h.write(i.indexOf(v),n),h.write(e,n),h.flush(),l.toByteArray()},u=function(){var t={},r=0,e={add:function(n){if(e.contains(n))throw"dup key:"+n;t[n]=r,r+=1},size:function(){return r},indexOf:function(r){return t[r]},contains:function(r){return void 0!==t[r]}};return e};return i}(t,r),o=0;o<r;o+=1)for(var i=0;i<t;i+=1)n.setPixel(i,o,e(i,o));var a=D();n.write(a);for(var u=function(){var t=0,r=0,e=0,n="",o={},i=function(t){n+=String.fromCharCode(a(63&t))},a=function(t){if(t<0);else{if(t<26)return 65+t;if(t<52)return t-26+97;if(t<62)return t-52+48;if(62==t)return 43;if(63==t)return 47}throw"n:"+t};return o.writeByte=function(n){for(t=t<<8|255&n,r+=8,e+=1;r>=6;)i(t>>>r-6),r-=6},o.flush=function(){if(r>0&&(i(t<<6-r),t=0,r=0),e%3!=0)for(var o=3-e%3,a=0;a<o;a+=1)n+="="},o.toString=function(){return n},o}(),f=a.toByteArray(),c=0;c<f.length;c+=1)u.writeByte(f[c]);return u.flush(),"data:image/gif;base64,"+u};return t}();qrcode.stringToBytesFuncs["UTF-8"]=function(t){return function(t){for(var r=[],e=0;e<t.length;e++){var n=t.charCodeAt(e);n<128?r.push(n):n<2048?r.push(192|n>>6,128|63&n):n<55296||n>=57344?r.push(224|n>>12,128|n>>6&63,128|63&n):(e++,n=65536+((1023&n)<<10|1023&t.charCodeAt(e)),r.push(240|n>>18,128|n>>12&63,128|n>>6&63,128|63&n))}return r}(t)},function(t){"function"==typeof define&&define.amd?define([],t):"object"==typeof exports&&(module.exports=t())}(function(){return qrcode});
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+var __defProp = Object.defineProperty;
+var __defProps = Object.defineProperties;
+var __getOwnPropDescs = Object.getOwnPropertyDescriptors;
+var __getOwnPropSymbols = Object.getOwnPropertySymbols;
+var __hasOwnProp = Object.prototype.hasOwnProperty;
+var __propIsEnum = Object.prototype.propertyIsEnumerable;
+var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+var __spreadValues = (a, b) => {
+  for (var prop in b || (b = {}))
+    if (__hasOwnProp.call(b, prop))
+      __defNormalProp(a, prop, b[prop]);
+  if (__getOwnPropSymbols)
+    for (var prop of __getOwnPropSymbols(b)) {
+      if (__propIsEnum.call(b, prop))
+        __defNormalProp(a, prop, b[prop]);
+    }
+  return a;
+};
+var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
+(() => {
+  "use strict";
+  const CODE_PREFIX = "HEB1|";
+  const CODE_SALT = "hoek-erbij/lyceum-vos";
+  function fnvHash(str) {
+    let h = 2166136261;
+    for (const b of new TextEncoder().encode(str)) {
+      h ^= b;
+      h = Math.imul(h, 16777619) >>> 0;
+    }
+    return h.toString(36);
+  }
+  function encodeCode(obj) {
+    const j = JSON.stringify(obj);
+    return CODE_PREFIX + j + "|" + fnvHash(CODE_SALT + j);
+  }
+  function decodeCode(text) {
+    if (typeof text !== "string" || !text.startsWith(CODE_PREFIX)) return { error: "Dit is geen code van Hoek erbij." };
+    const rest = text.slice(CODE_PREFIX.length), k = rest.lastIndexOf("|");
+    if (k < 0) return { error: "Deze code is onvolledig." };
+    const j = rest.slice(0, k), h = rest.slice(k + 1);
+    if (fnvHash(CODE_SALT + j) !== h) return { error: "Deze code klopt niet: hij is aangepast of beschadigd." };
+    let o;
+    try {
+      o = JSON.parse(j);
+    } catch (e) {
+      return { error: "Deze code is beschadigd." };
+    }
+    if (!o || typeof o.n !== "string" || typeof o.s !== "string" || !Array.isArray(o.L)) return { error: "Deze code mist gegevens." };
+    return { data: o };
+  }
+  const B32 = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+  function b32enc(bytes) {
+    let out = "", bits = 0, val = 0;
+    for (const b of bytes) {
+      val = val << 8 | b;
+      bits += 8;
+      while (bits >= 5) {
+        out += B32[val >>> bits - 5 & 31];
+        bits -= 5;
+        val &= (1 << bits) - 1;
+      }
+    }
+    if (bits > 0) out += B32[val << 5 - bits & 31];
+    return out;
+  }
+  function b32dec(str) {
+    const out = [];
+    let bits = 0, val = 0;
+    for (const ch of str) {
+      const i = B32.indexOf(ch);
+      if (i < 0) continue;
+      val = val << 5 | i;
+      bits += 5;
+      if (bits >= 8) {
+        out.push(val >>> bits - 8 & 255);
+        bits -= 8;
+        val &= (1 << bits) - 1;
+      }
+    }
+    return new Uint8Array(out);
+  }
+  function utf8Text(bytes) {
+    if (typeof TextDecoder !== "undefined") return new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+    let bin = "";
+    for (const b of bytes) bin += String.fromCharCode(b);
+    return decodeURIComponent(escape(bin));
+  }
+  function encodeCode2(obj) {
+    return "HEB2:" + b32enc(new TextEncoder().encode(encodeCode(obj).slice(CODE_PREFIX.length)));
+  }
+  function decodeAny(text) {
+    const s = String(text == null ? "" : text);
+    const m = s.toUpperCase().match(/HEB2\W*([A-Z2-7]+)/);
+    if (m) {
+      let inner;
+      try {
+        inner = utf8Text(b32dec(m[1]));
+      } catch (e) {
+        return { error: "Deze code is beschadigd." };
+      }
+      return decodeCode(CODE_PREFIX + inner);
+    }
+    return decodeCode(s.trim());
+  }
+  const VOORBEELD = "# Level 1 (opgave 1: vermenigvuldigen) [antwoord]\n6a · 7b\n−3b · 8a\n2y · −5y\n7 · −3pq\nr · 2p · q\n4p · 2p · 3q\n−m · −1 · −n\n−5ab · −3a\n3n · 7p\n4m · −5m\n4 · −5bm\n5 · −6ay\n4a · x · 3n\n6p · −3p\n4p · 9q\n3a · −4a\n2n · −3n\n−6y · 3n\n\n# Level 2 (opgave 2 en 3: optellen en aftrekken) [antwoord, kan niet]\n3x + 4x\n8y − 6y\n3p + 5p + 9p\n12pq − 5pq\n−3x + 7x − 3x\n−6p + 7p − p\n5xy + 4xy\n15ab + 40ac\n4m + 12\n−2abc + 18abc\n3def − 8de\npq + pq\n−4p + 7p − 4p\n14nq − 9nq\n9x − 12x\n4p + 4x\n−2m + 11m − m\n−9a + 4a − 4a\n3q + 12q\n4mn − 2m\n7ax − 5ax\n−9b + 4b − 2b\n\n# Level 3 (opgave 4: door elkaar) [antwoord, kan niet]\n6a − 5a\n6a · 5b\n6a + 5b\n10x + 2x\n10x · 2x\n10x − 2x\n8p · 7q\n8p − 7q\n−8p · 7p\n6a − 2n\n3a · 9n\n2b · 8x\n3a + 7n\n10m + 8m\n4n − 5q\n5x + 7x\n−9n − 9n\n8q + 9q\n\n# Level 4 (opgave 5: gelijksoortige termen) [stappen]\n4x − 5y + 7x + 3y\n4x − 5y − 7x − 3y\n−4x − 5y + 7x + 3y\n4a − 7 + 5a\n4ab − 3ab + a + 3ab\n−p + 8p − 2qr − 9p\n5x − 4y − x + 5y\n−6p + y − 8p − 9y\n8an − 7an − a\n2a + 2x − 3a + 9x\n5m + 2 + 8m − 2\n3ax − 2ax + 2a\n9q + 5 + 2q + 4\n7b + 8n − 8b − 6n\n\n# Level 5 (opgave 6 en 7: herleiden en rekenvolgorde) [stappen]\n2x · 8y + 7x · 3y\n3a · 5b − 9b · a\n4x · 6 − 5 · 2x\n−2p · 3q − 3q · 8p\n2p · 3q − 3q · 8p\n3a · 8a + 12a · 2a\n2x · 3x − 3x · −5x\n−4a · 3b · 2c + 25abc\n5 · −2x − 3x · −6x\n2a · 7b + 3a · 4b\n2a + 7b + 3a + 4b\n2 + a + 7 + b\n2a · 7b − 3a · 4b\n2a · −7b − 3a · −4b\n2a · 7a + 3a · 4a\n2a · 8 + 4 · 3a\n2a + 8 + 4 + 3a\n2a + 8 + 4 · 3a\n4p · 4q − 5q · 5p\n6n · 6y + 4y · 6n\n2n · 3p − 5p · 5n\n3m · 3n − 2n · 6m\n\n# Level 6 (opgave 3: haakjes wegwerken) [antwoord]\n3(a + 2b)\n4(6a − 9)\nx(5x + 3y)\n2p(5p − 1)\n2m(6m − 5y)\n3(6p + 3)\n9(2m − 3)\n2(5a + 6n)\nb(5b + 5)\n7(6m + 4x)\n3m(2m − 4)\n6(4b + 5x)\n5(5b − 4n)\n4a(4a − 4m)\n\n# Level 7 (opgave 4: haakjes wegwerken) [antwoord]\n5x(4x + 2)\n−3(9pq − 4r)\n−(4x − y)\n3(4m − 3n)\n5n(2n + 2)\n−9(6a + 6n)\n−6(b + 2p)\n−2(4b + 3q)\n−(4m − 9y)\n6m(2m − 1)\n−(5q + 1)\n−(6a + 1)\n5a(3a + 4)\n−3(4m − 3n)\n\n# Level 8 (opgave 5 en A6: herleiden met haakjes) [stappen]\n5x(7x − 2) + 3x\n7 − (3a − 4)\n−2(x + 5) + 8 + x\n3(a + 2b) + 5(a + b)\n5a(3 − b) + 3b(2a − 7)\n5(2x − 3) − 4(x − 7)\n−5x(7y − 2) + 4y · 9x\n5a − 4(2a − 8)\n−(4a − 2b) + 5a − 3b\n8(a + 2b) + 2(3a + b)\n2x(3 + 6y) − 3(2x − xy)\n2p − 5q − (p + 4q)\n5(2a − 8) + 5a\n4(3n − 8) − 8n\n5(2n − y) + 6(4n − y)\n2(2m + 1) − 8m\n5(2m − 5) + 6m\n15 − (3m − 7)";
+  const STORE_KEY = "hoekerbij.algebra.v1";
+  const SUMS_PER_DOOR = 2, MAX_DOORS = 3, LIVES = 3, MINI_NEEDED = 6;
+  const TW = 64, TH = 38, WALL_H = 27, PILLAR_H = 15, PED_H = 11;
+  const STEP_TIME = 0.14;
+  const PLAYER_INK = "#1E2147";
+  const PORTAL_COLORS = ["#E5486B", "#3F7FD9", "#3C9A52"];
+  const PLAYER_COLORS = ["#E5486B", "#F08A24", "#2BA6A0", "#7A5BD6", "#3C9A52", "#D94FB0", "#3F7FD9", "#C9A227"];
+  const POLY_NAMES = { 3: "driehoek", 4: "vierkant", 5: "vijfhoek", 6: "zeshoek", 7: "zevenhoek", 8: "achthoek", 9: "negenhoek", 10: "tienhoek", 11: "elfhoek", 12: "twaalfhoek" };
+  const polyName = (n) => POLY_NAMES[n] || n + "-hoek";
+  const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const SUP = { "0": "⁰", "1": "¹", "2": "²", "3": "³", "4": "⁴", "5": "⁵", "6": "⁶", "7": "⁷", "8": "⁸", "9": "⁹" };
+  const UNSUP = { "⁰": "0", "¹": "1", "²": "2", "³": "3", "⁴": "4", "⁵": "5", "⁶": "6", "⁷": "7", "⁸": "8", "⁹": "9" };
+  function monoKey(v) {
+    return Object.keys(v).sort().map((l) => l + (v[l] > 1 ? "^" + v[l] : "")).join("");
+  }
+  function monoMul(a, b) {
+    const v = __spreadValues({}, a.v);
+    for (const l in b.v) v[l] = (v[l] || 0) + b.v[l];
+    return { c: a.c * b.c, v };
+  }
+  function polyAddMono(p, m, s = 1) {
+    const k = monoKey(m.v), cur = p.get(k), c = (cur ? cur.c : 0) + s * m.c;
+    if (c === 0) p.delete(k);
+    else p.set(k, { c, v: m.v });
+  }
+  function polyEq(p, q) {
+    if (p.size !== q.size) return false;
+    for (const [k, m] of p) {
+      const o = q.get(k);
+      if (!o || o.c !== m.c) return false;
+    }
+    return true;
+  }
+  function polyMul(p, q) {
+    const r = /* @__PURE__ */ new Map();
+    for (const a of p.values()) for (const b of q.values()) polyAddMono(r, monoMul(a, b));
+    return r;
+  }
+  function polyFromMono(m) {
+    const p = /* @__PURE__ */ new Map();
+    polyAddMono(p, m);
+    return p;
+  }
+  function lettersText(v) {
+    return Object.keys(v).sort().map((l) => l + (v[l] > 1 ? String(v[l]).split("").map((d) => SUP[d]).join("") : "")).join("");
+  }
+  function lettersHtml(v) {
+    return Object.keys(v).sort().map((l) => "<i>".concat(l, "</i>") + (v[l] > 1 ? "<sup>".concat(v[l], "</sup>") : "")).join("");
+  }
+  function coefText(c, hasLetters, html) {
+    const neg = c < 0, a = Math.abs(c);
+    const num = hasLetters && a === 1 ? "" : String(a);
+    return (neg ? "−" : "") + num;
+  }
+  function monoText(m) {
+    const has = Object.keys(m.v).length > 0;
+    return coefText(m.c, has) + lettersText(m.v);
+  }
+  function monoHtml(m) {
+    const has = Object.keys(m.v).length > 0;
+    return coefText(m.c, has) + lettersHtml(m.v);
+  }
+  function listText(list, html) {
+    if (!list.length) return "0";
+    return list.map((m, i) => {
+      const f = html ? monoHtml : monoText;
+      if (i === 0) return f(m);
+      return (m.c < 0 ? " − " : " + ") + f({ c: Math.abs(m.c), v: m.v });
+    }).join("");
+  }
+  function polyList(p) {
+    return [...p.values()];
+  }
+  const KAN_NIET = /^\s*(kan\s*niet|kn|knk)\s*\.?\s*$/i;
+  function parseAnswer(str) {
+    let s = String(str).toLowerCase().replace(/[−–]/g, "-").replace(/\s+/g, "");
+    s = s.replace(/[⁰¹²³⁴⁵⁶⁷⁸⁹]+/g, (m) => "^" + m.split("").map((c) => UNSUP[c]).join(""));
+    if (!s) return { error: "leeg" };
+    let i = 0;
+    const terms = [];
+    let tidy = true;
+    while (i < s.length) {
+      let sign = 1;
+      if (s[i] === "+" || s[i] === "-") {
+        sign = s[i] === "-" ? -1 : 1;
+        i++;
+      } else if (terms.length) return { error: "teken" };
+      let num = "";
+      while (i < s.length && /[0-9]/.test(s[i])) num += s[i++];
+      const v = {};
+      let letters = 0;
+      while (i < s.length && /[a-z]/.test(s[i])) {
+        const l = s[i++];
+        let e = 1;
+        if (s[i] === "^") {
+          i++;
+          let d = "";
+          while (i < s.length && /[0-9]/.test(s[i])) d += s[i++];
+          if (!d) return { error: "macht" };
+          e = +d;
+        }
+        if (v[l]) tidy = false;
+        v[l] = (v[l] || 0) + e;
+        letters++;
+      }
+      if (!num && !letters) return { error: "onleesbaar" };
+      if (num && letters && +num === 1) tidy = false;
+      const c = sign * (num ? +num : 1);
+      if (c === 0 && letters) tidy = false;
+      terms.push({ c, v });
+    }
+    const poly2 = /* @__PURE__ */ new Map(), keys = /* @__PURE__ */ new Set();
+    for (const t of terms) {
+      const k = monoKey(t.v);
+      if (keys.has(k)) tidy = false;
+      keys.add(k);
+      polyAddMono(poly2, t);
+    }
+    if (terms.length > 1 && terms.some((t) => t.c === 0)) tidy = false;
+    return { poly: poly2, tidy, terms };
+  }
+  function parseExercise(src) {
+    const s = String(src).replace(/[−–]/g, "-").replace(/[·×]/g, "*").replace(/[⁰¹²³⁴⁵⁶⁷⁸⁹]+/g, (m) => "^" + m.split("").map((c) => UNSUP[c]).join(""));
+    const toks = s.match(/\d+|[a-z]|\^\d+|[-+*()]/gi);
+    if (!toks || toks.join("") !== s.replace(/\s+/g, "")) throw new Error("onbekende tekens");
+    let i = 0;
+    const peek = () => toks[i], next = () => toks[i++];
+    function mono(neg) {
+      let num = null;
+      const v = {};
+      if (/^\d+$/.test(peek() || "")) num = +next();
+      while (/^[a-z]$/i.test(peek() || "")) {
+        const l = next().toLowerCase();
+        let e = 1;
+        if (/^\^\d+$/.test(peek() || "")) e = +next().slice(1);
+        v[l] = (v[l] || 0) + e;
+      }
+      if (num === null && !Object.keys(v).length) throw new Error("factor verwacht");
+      return { k: "m", c: (num === null ? 1 : num) * (neg ? -1 : 1), v };
+    }
+    function factor(allowNeg) {
+      let neg = false;
+      if (allowNeg && peek() === "-") {
+        next();
+        neg = true;
+      }
+      if (peek() === "(") {
+        if (neg) throw new Error("min voor haakje in factor");
+        next();
+        const inner = expr();
+        if (next() !== ")") throw new Error(") verwacht");
+        return { k: "g", terms: inner };
+      }
+      return mono(neg);
+    }
+    function term(sign) {
+      const parts = [factor(false)];
+      while (true) {
+        if (peek() === "*") {
+          next();
+          parts.push(factor(true));
+        } else if (peek() === "(") {
+          parts.push(factor(false));
+        } else break;
+      }
+      return { sign, parts };
+    }
+    function expr() {
+      const terms = [];
+      let sign = 1;
+      if (peek() === "-" || peek() === "+") {
+        sign = next() === "-" ? -1 : 1;
+      }
+      terms.push(term(sign));
+      while (peek() === "+" || peek() === "-") {
+        const sg = next() === "-" ? -1 : 1;
+        terms.push(term(sg));
+      }
+      return terms;
+    }
+    const res = expr();
+    if (i !== toks.length) throw new Error("rest");
+    return normalize(res);
+  }
+  function normalize(terms) {
+    return terms.map((t) => {
+      const parts = t.parts.map((p) => p.k === "g" ? { k: "g", terms: normalize(p.terms) } : __spreadProps(__spreadValues({}, p), { v: __spreadValues({}, p.v) }));
+      let sign = t.sign;
+      if (parts[0].k === "m" && parts[0].c < 0) {
+        parts[0].c = -parts[0].c;
+        sign = -sign;
+      }
+      return { sign, parts };
+    });
+  }
+  function termPoly(t) {
+    let p = polyFromMono({ c: t.sign, v: {} });
+    for (const part of t.parts) p = polyMul(p, part.k === "m" ? polyFromMono(part) : exprPoly(part.terms));
+    return p;
+  }
+  function exprPoly(terms) {
+    const p = /* @__PURE__ */ new Map();
+    for (const t of terms) for (const m of termPoly(t).values()) polyAddMono(p, m);
+    return p;
+  }
+  const isMonoTerm = (t) => t.parts.length === 1 && t.parts[0].k === "m";
+  function isDone(terms) {
+    if (!terms.every(isMonoTerm)) return false;
+    const keys = terms.map((t) => monoKey(t.parts[0].v));
+    return new Set(keys).size === keys.length;
+  }
+  function cannotSimplify(terms) {
+    return terms.length > 1 && isDone(terms);
+  }
+  function groupHtml(terms) {
+    return "(" + exprHtml(terms) + ")";
+  }
+  function partHtml(p) {
+    return p.k === "m" ? monoHtml(p) : groupHtml(p.terms);
+  }
+  function exprHtml(terms) {
+    return dispTokens(terms).map((d) => d.k === "sign" ? d.first ? "−" : " ".concat(d.v < 0 ? "−" : "+", " ") : d.k === "dot" ? " · " : d.html).join("");
+  }
+  function dispTokens(terms) {
+    const out = [];
+    terms.forEach((t, ti) => {
+      let merged = false;
+      if (ti > 0) out.push({ k: "sign", term: ti, v: t.sign });
+      else if (t.sign < 0) {
+        if (t.parts[0].k === "m") merged = true;
+        else out.push({ k: "sign", term: ti, v: -1, first: true });
+      }
+      t.parts.forEach((p, pi) => {
+        if (pi > 0 && p.k === "m" && t.parts[pi - 1].k === "m") out.push({ k: "dot", term: ti, part: pi });
+        let html;
+        if (pi === 0 && merged) html = monoHtml({ c: -p.c, v: p.v });
+        else html = partHtml(p);
+        out.push({ k: "chip", term: ti, part: pi, html, merged: pi === 0 && merged, group: p.k === "g" });
+      });
+    });
+    return out;
+  }
+  function judgeSelection(terms, disp, sel) {
+    const items = [...sel].sort((a, b) => a - b).map((i) => disp[i]);
+    if (!items.length) return { ok: false, hint: "Tik eerst iets aan." };
+    const termIds = [...new Set(items.map((d) => d.term))].sort((a, b) => a - b);
+    const allMono = terms.every(isMonoTerm);
+    if (termIds.length === 1) {
+      const ti = termIds[0], t = terms[ti];
+      const chips = items.filter((d) => d.k === "chip").map((d) => d.part).sort((a, b) => a - b);
+      const dots = items.filter((d) => d.k === "dot").map((d) => d.part);
+      const hasSign = items.some((d) => d.k === "sign");
+      const signTok = disp.some((d) => d.k === "sign" && d.term === ti);
+      const merged = disp.some((d) => d.k === "chip" && d.term === ti && d.merged);
+      const gi = t.parts.findIndex((p) => p.k === "g");
+      if (gi >= 0 && chips.includes(gi)) {
+        if (chips.length !== t.parts.length || dots.length) return { ok: false, hint: "Neem het getal of de letter vóór de haakjes ook mee." };
+        if (t.sign < 0 && signTok && !hasSign) return { ok: false, hint: "Neem het minteken vóór de term mee." };
+        const useSign = hasSign || merged || t.sign < 0;
+        const factor = gi === 1 ? t.parts[0] : { k: "m", c: 1, v: {} };
+        const newTerms = [];
+        for (const it of t.parts[gi].terms) {
+          let m = { c: factor.c * it.sign, v: __spreadValues({}, factor.v) };
+          for (const p of it.parts) {
+            if (p.k !== "m") return { ok: false, hint: "Dit kan nog niet." };
+            m = monoMul(m, p);
+          }
+          m.c *= t.sign;
+          if (m.c !== 0) newTerms.push(m);
+        }
+        const expect2 = /* @__PURE__ */ new Map();
+        newTerms.forEach((m) => polyAddMono(expect2, useSign ? m : { c: m.c * t.sign, v: m.v }));
+        return {
+          ok: true,
+          kind: "haakjes",
+          expect: expect2,
+          replaceFrom: items,
+          apply: (ts) => {
+            const out = ts.slice();
+            out.splice(ti, 1, ...newTerms.map((m) => ({ sign: m.c < 0 ? -1 : 1, parts: [{ k: "m", c: Math.abs(m.c), v: m.v }] })));
+            return out;
+          }
+        };
+      }
+      if (chips.length === 2 && chips[1] === chips[0] + 1 && dots.length === 1 && dots[0] === chips[1] && t.parts[chips[0]].k === "m" && t.parts[chips[1]].k === "m") {
+        const a = chips[0];
+        if (hasSign && a !== 0) return { ok: false, hint: "Het teken hoort niet bij deze twee factoren." };
+        const prod = monoMul(t.parts[a], t.parts[a + 1]);
+        const signed = a === 0 && (hasSign || merged);
+        const expect2 = polyFromMono(signed ? { c: prod.c * t.sign, v: prod.v } : prod);
+        if (prod.c === 0) expect2.clear();
+        return {
+          ok: true,
+          kind: "product",
+          expect: expect2,
+          replaceFrom: items,
+          apply: (ts) => {
+            const out = ts.map((x) => ({ sign: x.sign, parts: x.parts.slice() })), nt = out[ti];
+            let p = { k: "m", c: prod.c, v: prod.v }, sign = nt.sign;
+            if (a === 0 && p.c < 0) {
+              p.c = -p.c;
+              sign = -sign;
+            }
+            nt.parts.splice(a, 2, p);
+            nt.sign = sign;
+            return out;
+          }
+        };
+      }
+      if (allMono && chips.length === 1) return { ok: false, hint: "Kies minstens twee gelijksoortige termen, elk met het teken ervoor." };
+      return { ok: false, hint: t.parts.length > 1 ? "Kies twee factoren met de · ertussen, of een hele term met haakjes." : "Dit is geen stap die je zo kunt doen." };
+    }
+    if (!allMono) return { ok: false, hint: "Eerst vermenigvuldigen en haakjes wegwerken, daarna pas termen samennemen." };
+    if (items.some((d) => d.k === "dot")) return { ok: false, hint: "Dit is geen stap die je zo kunt doen." };
+    for (const ti of termIds) {
+      if (!items.some((d) => d.k === "chip" && d.term === ti)) return { ok: false, hint: "Neem bij elk teken ook de term mee." };
+      if (ti > 0 && !items.some((d) => d.k === "sign" && d.term === ti)) return { ok: false, hint: "Neem het teken vóór elke term mee." };
+    }
+    const key = monoKey(terms[termIds[0]].parts[0].v);
+    if (termIds.some((ti) => monoKey(terms[ti].parts[0].v) !== key)) return { ok: false, hint: "Deze termen zijn niet gelijksoortig." };
+    const all = terms.map((t, i) => i).filter((i) => monoKey(terms[i].parts[0].v) === key);
+    if (all.length !== termIds.length) return { ok: false, hint: "Er is nog een gelijksoortige term. Neem ze allemaal tegelijk samen." };
+    let c = 0;
+    for (const ti of termIds) c += terms[ti].sign * terms[ti].parts[0].c;
+    const v = terms[termIds[0]].parts[0].v;
+    const expect = /* @__PURE__ */ new Map();
+    if (c !== 0) expect.set(key, { c, v });
+    return {
+      ok: true,
+      kind: "samen",
+      expect,
+      replaceFrom: items,
+      apply: (ts) => {
+        const out = [];
+        ts.forEach((t, i) => {
+          if (i === termIds[0]) {
+            if (c !== 0) out.push({ sign: c < 0 ? -1 : 1, parts: [{ k: "m", c: Math.abs(c), v }] });
+          } else if (!termIds.includes(i)) out.push(t);
+        });
+        return out.length ? out : [{ sign: 1, parts: [{ k: "m", c: 0, v: {} }] }];
+      }
+    };
+  }
+  function parseSommen(text) {
+    const levels2 = [], errors = [];
+    let cur = null, mode = { stappen: false, kn: false };
+    text.split(/\r?\n/).forEach((raw, n) => {
+      const line = raw.trim();
+      if (!line) return;
+      if (line.startsWith("#")) {
+        const tag = (line.match(/\[([^\]]*)\]/) || ["", ""])[1].toLowerCase();
+        mode = { stappen: /stappen/.test(tag), kn: /kan\s*niet/.test(tag) };
+        cur = [];
+        cur.mode = mode;
+        levels2.push(cur);
+        return;
+      }
+      let terms;
+      try {
+        terms = parseExercise(line);
+      } catch (e) {
+        errors.push("Regel ".concat(n + 1, " (").concat(line, ") kan ik niet lezen."));
+        return;
+      }
+      const item = { type: mode.stappen ? "stappen" : "antwoord", terms, kn: mode.kn, src: line };
+      if (item.type === "stappen" && isDone(terms)) {
+        errors.push("Regel ".concat(n + 1, " (").concat(line, ") is al herleid; daar zijn geen stappen voor."));
+        return;
+      }
+      item.kanNiet = cannotSimplify(terms);
+      if (item.kanNiet && !mode.kn) {
+        errors.push("Regel ".concat(n + 1, " (").concat(line, ") kan niet korter. Zet [kan niet] in de kopregel van dit level."));
+        return;
+      }
+      item.expect = exprPoly(terms);
+      if (!cur) {
+        cur = [];
+        cur.mode = mode;
+        levels2.push(cur);
+      }
+      cur.push(item);
+    });
+    return { levels: levels2.filter((l) => l.length), errors };
+  }
+  function loadText() {
+    try {
+      const t = localStorage.getItem(STORE_KEY);
+      if (t && parseSommen(t).levels.length) return t;
+    } catch (e) {
+    }
+    return VOORBEELD;
+  }
+  function saveText(t) {
+    try {
+      localStorage.setItem(STORE_KEY, t);
+    } catch (e) {
+    }
+  }
+  function toNum(s) {
+    s = s.replace(/\s+/g, "").replace(/[−–]/g, "-").replace(/,/g, ".");
+    if (/^[-+]?(\d+\.?\d*|\.\d+)$/.test(s)) return parseFloat(s);
+    return null;
+  }
+  const PHI = (1 + Math.sqrt(5)) / 2;
+  const sub = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
+  const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+  const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+  const len = (a) => Math.hypot(a[0], a[1], a[2]);
+  const scale = (a, s) => [a[0] * s, a[1] * s, a[2] * s];
+  function makeSolid(name, V) {
+    const r = len(V[0]);
+    V = V.map((v) => scale(v, 1 / r));
+    const faces = [], seen = /* @__PURE__ */ new Set(), E = 1e-6;
+    for (let i = 0; i < V.length; i++) for (let j = i + 1; j < V.length; j++) for (let k = j + 1; k < V.length; k++) {
+      let n = cross(sub(V[j], V[i]), sub(V[k], V[i]));
+      const l = len(n);
+      if (l < 1e-9) continue;
+      n = scale(n, 1 / l);
+      let d = dot(n, V[i]);
+      let pos = 0, neg = 0;
+      for (const v of V) {
+        const s = dot(n, v) - d;
+        if (s > E) pos++;
+        else if (s < -E) neg++;
+      }
+      if (pos && neg) continue;
+      if (pos) {
+        n = scale(n, -1);
+        d = -d;
+      }
+      const key = n.map((x) => Math.round(x * 1e3) || 0).join(",");
+      if (seen.has(key)) continue;
+      seen.add(key);
+      const idx = [];
+      V.forEach((v, q) => {
+        if (Math.abs(dot(n, v) - d) < 1e-5) idx.push(q);
+      });
+      const c = idx.reduce((acc, q) => [acc[0] + V[q][0] / idx.length, acc[1] + V[q][1] / idx.length, acc[2] + V[q][2] / idx.length], [0, 0, 0]);
+      let u = sub(V[idx[0]], c);
+      u = scale(u, 1 / len(u));
+      const w = cross(n, u);
+      idx.sort((a, b) => {
+        const pa = sub(V[a], c), pb = sub(V[b], c);
+        return Math.atan2(dot(pa, w), dot(pa, u)) - Math.atan2(dot(pb, w), dot(pb, u));
+      });
+      faces.push({ n, idx });
+    }
+    return { name, v: V, faces };
+  }
+  const cubeV = [];
+  for (const a of [-1, 1]) for (const b of [-1, 1]) for (const c of [-1, 1]) cubeV.push([a, b, c]);
+  const icoV = [], dodV = cubeV.slice();
+  for (const a of [-1, 1]) for (const b of [-1, 1]) {
+    icoV.push([0, a, b * PHI], [a, b * PHI, 0], [b * PHI, 0, a]);
+    dodV.push([0, a / PHI, b * PHI], [a / PHI, b * PHI, 0], [b * PHI, 0, a / PHI]);
+  }
+  const SOLIDS = [
+    makeSolid("tetraëder", [[1, 1, 1], [1, -1, -1], [-1, 1, -1], [-1, -1, 1]]),
+    makeSolid("kubus", cubeV),
+    makeSolid("octaëder", [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]]),
+    makeSolid("dodecaëder", dodV),
+    makeSolid("icosaëder", icoV),
+    // Archimedische lichamen
+    makeSolid("afgeknotte tetraëder", permsSigned([3, 1, 1], (v) => v.filter((x) => x < 0).length % 2 === 0)),
+    makeSolid("kuboctaëder", permsSigned([1, 1, 0])),
+    makeSolid("afgeknotte octaëder", permsSigned([0, 1, 2])),
+    makeSolid("afgeknotte kubus", permsSigned([Math.SQRT2 - 1, 1, 1])),
+    makeSolid("rombokuboctaëder", permsSigned([1, 1, 1 + Math.SQRT2]))
+  ];
+  function permsSigned(base, keep) {
+    const out = [], seen = /* @__PURE__ */ new Set();
+    const perms = [[0, 1, 2], [0, 2, 1], [1, 0, 2], [1, 2, 0], [2, 0, 1], [2, 1, 0]];
+    for (const pm of perms) for (let m = 0; m < 8; m++) {
+      const v = pm.map((j, i) => base[j] * (m >> i & 1 ? -1 : 1));
+      if (keep && !keep(v)) continue;
+      const k = v.map((x) => Math.round(x * 1e6) || 0).join(",");
+      if (!seen.has(k)) {
+        seen.add(k);
+        out.push(v);
+      }
+    }
+    return out;
+  }
+  const LIGHT = (() => {
+    const l = [-0.45, 0.6, 0.7];
+    const m = len(l);
+    return l.map((x) => x / m);
+  })();
+  const hexCache = {};
+  function hexRgb(h) {
+    if (hexCache[h]) return hexCache[h];
+    const s = h.replace("#", "");
+    const f = s.length === 3 ? s.split("").map((c) => c + c).join("") : s;
+    return hexCache[h] = [parseInt(f.slice(0, 2), 16), parseInt(f.slice(2, 4), 16), parseInt(f.slice(4, 6), 16)];
+  }
+  function shade(h, f) {
+    const [r, g, b] = hexRgb(h);
+    const c = (x) => Math.max(0, Math.min(255, Math.round(x * f)));
+    return "rgb(".concat(c(r), ",").concat(c(g), ",").concat(c(b), ")");
+  }
+  function drawSolid(ctx2, S, cx, cy, R, t, base, ink) {
+    const ay = t * 0.9, ax = 0.5 + Math.sin(t * 0.4) * 0.35;
+    const cy_ = Math.cos(ay), sy_ = Math.sin(ay), cx_ = Math.cos(ax), sx_ = Math.sin(ax);
+    const rot = (v) => {
+      const x = v[0] * cy_ + v[2] * sy_, z = -v[0] * sy_ + v[2] * cy_, y = v[1];
+      return [x, y * cx_ - z * sx_, y * sx_ + z * cx_];
+    };
+    const P = S.v.map(rot);
+    ctx2.save();
+    ctx2.lineJoin = "round";
+    ctx2.lineWidth = Math.max(1, R / 20);
+    ctx2.strokeStyle = ink;
+    for (const f of S.faces) {
+      const n = rot(f.n);
+      if (n[2] <= 1e-3) continue;
+      const lam = Math.max(0, dot(n, LIGHT));
+      ctx2.beginPath();
+      f.idx.forEach((i, k) => {
+        const X = cx + P[i][0] * R, Y = cy - P[i][1] * R;
+        k ? ctx2.lineTo(X, Y) : ctx2.moveTo(X, Y);
+      });
+      ctx2.closePath();
+      ctx2.fillStyle = shade(base, 0.62 + 0.5 * lam);
+      ctx2.fill();
+      ctx2.stroke();
+    }
+    ctx2.restore();
+  }
+  function boundaryR(m, th) {
+    const seg = 2 * Math.PI / m;
+    const a = ((th + Math.PI / 2) % seg + seg) % seg - seg / 2;
+    return Math.cos(Math.PI / m) / Math.cos(a);
+  }
+  function shapePts(n, from, t) {
+    if (from == null || t >= 1) {
+      const p2 = [];
+      for (let k = 0; k < n; k++) {
+        const th = -Math.PI / 2 + 2 * Math.PI * k / n;
+        p2.push([Math.cos(th), Math.sin(th)]);
+      }
+      return p2;
+    }
+    const angs = [];
+    for (let k = 0; k < from; k++) angs.push(2 * Math.PI * k / from);
+    for (let k = 0; k < n; k++) angs.push(2 * Math.PI * k / n);
+    angs.sort((a, b) => a - b);
+    const e = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+    const p = [];
+    let last = -1;
+    for (const a0 of angs) {
+      if (a0 - last < 1e-6) continue;
+      last = a0;
+      const th = a0 - Math.PI / 2;
+      const r = boundaryR(from, th) * (1 - e) + boundaryR(n, th) * e;
+      p.push([r * Math.cos(th), r * Math.sin(th)]);
+    }
+    return p;
+  }
+  const $ = (id) => document.getElementById(id);
+  const canvas = $("world"), ctx = canvas.getContext("2d");
+  const sCanvas = $("solidCanvas"), sctx = sCanvas.getContext("2d");
+  let C = {};
+  function readColors() {
+    const cs = getComputedStyle(document.documentElement);
+    for (const k of [
+      "bg",
+      "floor-a",
+      "floor-b",
+      "floor-edge",
+      "wall-top",
+      "wall-left",
+      "wall-right",
+      "pillar-top",
+      "pillar-left",
+      "pillar-right",
+      "gold",
+      "gold-left",
+      "gold-right",
+      "gold-ink",
+      "ink",
+      "exit",
+      "shadow"
+    ]) C[k] = cs.getPropertyValue("--" + k).trim();
+    if (window.__recolor3d) window.__recolor3d();
+  }
+  readColors();
+  (() => {
+    const mq = matchMedia("(prefers-color-scheme: dark)");
+    if (mq.addEventListener) mq.addEventListener("change", readColors);
+    else if (mq.addListener) mq.addListener(readColors);
+  })();
+  new MutationObserver(readColors).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+  let sommenText = loadText();
+  let levels = parseSommen(sommenText).levels;
+  let state = "start";
+  let li = 0, map = null;
+  const player = { x: 0, y: 0, px: 0, py: 0, speed: 0, moving: false, dir: [0, -1], tele: null, ride: null };
+  let morph = null;
+  const held = /* @__PURE__ */ new Set();
+  let lives = LIVES, wrongCount = 0, miniCount = 0, startTime = 0, clock = 0;
+  let cam = { x: 0, y: 0 }, zoom = 1, W = 0, H = 0, dpr = 1;
+  let puzzleSpin = 0;
+  function shuffle(a) {
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+  const rnd = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+  function buildLevel(index) {
+    const groups = {};
+    for (const it of levels[index]) {
+      const key = it.type === "mc" ? "mc:" + it.options.length : it.type;
+      (groups[key] = groups[key] || []).push(it);
+    }
+    const lists = Object.values(groups).map((l) => shuffle(l.slice()));
+    const pool = [];
+    while (lists.some((l) => l.length)) for (const l of shuffle(lists.filter((l2) => l2.length))) pool.push(l.shift());
+    const G = Math.max(1, Math.min(MAX_DOORS, Math.floor(pool.length / SUMS_PER_DOOR)));
+    const doorSums = [];
+    for (let d = 0; d < G; d++) doorSums.push(pool.slice(d * SUMS_PER_DOOR, d * SUMS_PER_DOOR + SUMS_PER_DOOR));
+    const R = G + 1;
+    map = null;
+    for (let attempt = 0; attempt < 300 && !map; attempt++) map = layoutLevel(G, R, doorSums, attempt > 240);
+    map.solid = SOLIDS[index % SOLIDS.length];
+    map.theme = index % THEME_NAMES.length;
+    map.hinted = /* @__PURE__ */ new Set();
+    if (session) session.cur = newStats();
+    resetPlayer(map.start.x, map.start.y);
+    map.kind = "level";
+    const p = iso(player.x + 0.5, player.y + 0.5, 0);
+    cam.x = p[0];
+    cam.y = p[1] - 40;
+    if (G3) G3.build(map, true);
+    updateHUD();
+  }
+  const ROT = { N: (x, y) => [x, y], E: (x, y) => [5 - y, x], W: (x, y) => [y, 10 - x] };
+  const ROTDIM = { N: [11, 6], E: [6, 11], W: [6, 11] };
+  const OPP = { N: "S", E: "W", W: "E" };
+  const CANON = { N: { S: "bottom", E: "right", W: "left" }, E: { S: "right", W: "bottom", N: "left" }, W: { S: "left", E: "bottom", N: "right" } };
+  function genRoom(kind, entry, hasExit) {
+    const g = Array.from({ length: 6 }, (_, y) => Array.from({ length: 11 }, (_2, x) => x === 0 || x === 10 || y === 0 || y === 5 ? 1 : 0));
+    const out = { g, entry: null, entryTile: null, exit: null, exitTile: null, tele: [], mech: null };
+    const K = (x, y) => x + "," + y, used = /* @__PURE__ */ new Set();
+    let flip = Math.random() < 0.5;
+    if (kind === "portal") {
+      if (entry === "left") flip = false;
+      if (entry === "right") flip = true;
+    }
+    if (kind === "secret") {
+      if (entry === "right") flip = false;
+      if (entry === "left") flip = true;
+    }
+    const mx = (x) => flip ? 10 - x : x;
+    const setEntry = (cols, rows) => {
+      if (!entry) return;
+      if (entry === "bottom") {
+        const c = cols[rnd(0, cols.length - 1)];
+        out.entry = [c, 5];
+        out.entryTile = [c, 4];
+      } else {
+        const r = rows[rnd(0, rows.length - 1)];
+        out.entry = [entry === "left" ? 0 : 10, r];
+        out.entryTile = [entry === "left" ? 1 : 9, r];
+      }
+    };
+    const setExit = (cols) => {
+      const c = cols[rnd(0, cols.length - 1)];
+      if (hasExit) out.exit = [c, 0];
+      out.exitTile = [c, 1];
+      return c;
+    };
+    const pick = (cols, rows, avoid) => {
+      for (let k = 0; k < 200; k++) {
+        const x = cols[rnd(0, cols.length - 1)], y = rows[rnd(0, rows.length - 1)];
+        if (g[y][x] !== 0 || used.has(K(x, y)) || avoid.some((a) => a && a[0] === x && a[1] === y)) continue;
+        used.add(K(x, y));
+        return [x, y];
+      }
+      return null;
+    };
+    if (kind === "portal") {
+      for (let y = 1; y <= 4; y++) {
+        g[y][mx(4)] = 2;
+        g[y][mx(7)] = 2;
+      }
+      setExit([mx(8)]);
+      setEntry([2, 3].map(mx), [1, 2, 3, 4]);
+      const rows = [1, 2, 3, 4], A = [1, 2, 3].map(mx), B = [5, 6].map(mx), Cc = [8, 9].map(mx), av = [out.entryTile, out.exitTile];
+      const colors = shuffle(PORTAL_COLORS.slice());
+      for (const [P, Q, col] of [[A, B, colors[0]], [B, Cc, colors[1]], [B, A, colors[2]]]) {
+        const p = pick(P, rows, av), q = pick(Q, rows, av);
+        if (!p || !q) return null;
+        out.tele.push([p, q, col]);
+      }
+    } else if (kind === "secret") {
+      for (let y = 1; y <= 4; y++) g[y][5] = 2;
+      setExit([2, 3, 4].map(mx));
+      setEntry([6, 7, 8].map(mx), [1, 2, 3, 4]);
+      const av = [out.entryTile, out.exitTile];
+      const a = pick([6, 7, 8, 9].map(mx), [1, 2, 3, 4], av), b = pick([1, 2, 3, 4].map(mx), [1, 2, 3, 4], av);
+      if (!a || !b) return null;
+      out.tele.push([a, b, null]);
+    } else {
+      const ex = setExit([2, 3, 4, 5, 6, 7, 8]);
+      setEntry([1, 2, 3, 4, 5, 6, 7, 8, 9], [4]);
+      const t = out.entryTile || [5, 4];
+      out.mech = placeMech(g, 0, kind, ex, [{ x: t[0], y: t[1] }]);
+    }
+    if (out.entry) g[out.entry[1]][out.entry[0]] = 3;
+    if (out.exit) g[out.exit[1]][out.exit[0]] = 3;
+    return out;
+  }
+  function layoutLevel(G, R, doorSums, straight) {
+    const feat2 = G >= 2, feat3 = G >= 3;
+    const mk = shuffle(["wip", "brug", "vlot"]);
+    const kinds = [];
+    for (let k = 0; k < R; k++) kinds.push(k === 0 ? mk[0] : k === R - 1 ? mk[1] : k === 1 ? "portal" : "secret");
+    const dirs = [];
+    let prev = null;
+    for (let k = 0; k < R; k++) {
+      let opts = prev === "E" ? ["N", "E"] : prev === "W" ? ["N", "W"] : ["N", "E", "W"];
+      if (straight) opts = ["N"];
+      dirs.push(prev && Math.random() < 0.3 && opts.includes(prev) ? prev : opts[rnd(0, opts.length - 1)]);
+      prev = dirs[k];
+    }
+    const rooms = [];
+    const inter = (a, b) => a.ox + 1 <= b.ox + b.w - 1 && b.ox <= a.ox + a.w - 2 && a.oy + 1 <= b.oy + b.h - 1 && b.oy <= a.oy + a.h - 2;
+    for (let k = 0; k < R; k++) {
+      const D = dirs[k], entry = k === 0 ? null : CANON[D][OPP[dirs[k - 1]]];
+      const cr = genRoom(kinds[k], entry, k < R - 1);
+      if (!cr) return null;
+      const rot = ROT[D], [w, h] = ROTDIM[D];
+      let ox = 0, oy = 0;
+      if (k > 0) {
+        const p = rooms[k - 1].exitW, e = rot(cr.entry[0], cr.entry[1]);
+        ox = p[0] - e[0];
+        oy = p[1] - e[1];
+      }
+      const room = { k, cr, ox, oy, w, h, rot: (x, y) => {
+        const r = rot(x, y);
+        return [r[0] + ox, r[1] + oy];
+      } };
+      room.exitW = cr.exit ? room.rot(cr.exit[0], cr.exit[1]) : null;
+      for (const o of rooms) if (inter(room, o) || inter(o, room)) return null;
+      rooms.push(room);
+    }
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    for (const r of rooms) {
+      minX = Math.min(minX, r.ox);
+      minY = Math.min(minY, r.oy);
+      maxX = Math.max(maxX, r.ox + r.w - 1);
+      maxY = Math.max(maxY, r.oy + r.h - 1);
+    }
+    const W2 = maxX - minX + 3, H2 = maxY - minY + 3, dx = 1 - minX, dy = 1 - minY;
+    const grid = Array.from({ length: H2 }, () => Array(W2).fill(9));
+    const roomOf = Array.from({ length: H2 }, () => Array(W2).fill(-1));
+    const tw = (r, x, y) => {
+      const p = r.rot(x, y);
+      return [p[0] + dx, p[1] + dy];
+    };
+    for (const r of rooms) for (let y = 0; y < 6; y++) for (let x = 0; x < 11; x++) {
+      const v = r.cr.g[y][x], [X, Y] = tw(r, x, y), cur = grid[Y][X];
+      if (v === 1 && cur !== 9) continue;
+      grid[Y][X] = v;
+      if (x > 0 && x < 10 && y > 0 && y < 5) roomOf[Y][X] = r.k;
+    }
+    const gates = [];
+    for (let k = 0; k < R - 1; k++) {
+      const [X, Y] = tw(rooms[k], rooms[k].cr.exit[0], rooms[k].cr.exit[1]);
+      gates.push({ x: X, y: Y, sums: doorSums[k], progress: 0, work: null, open: false, anim: 0, nr: k + 1 });
+    }
+    const K = (x, y) => x + "," + y, tele = /* @__PURE__ */ new Map();
+    for (const r of rooms) for (const [p, q2, col] of r.cr.tele) {
+      const P = tw(r, p[0], p[1]), Q = tw(r, q2[0], q2[1]);
+      if (col) {
+        tele.set(K(P[0], P[1]), { x: Q[0], y: Q[1], color: col });
+        tele.set(K(Q[0], Q[1]), { x: P[0], y: P[1], color: col });
+      } else tele.set(K(P[0], P[1]), { x: Q[0], y: Q[1], secret: true });
+    }
+    const s0 = tw(rooms[0], 5, 4), start = { x: s0[0], y: s0[1] };
+    const last = rooms[R - 1], e0 = tw(last, last.cr.exitTile[0], last.cr.exitTile[1]), exit = { x: e0[0], y: e0[1] };
+    const mechs = [];
+    for (const r of rooms) {
+      const m = r.cr.mech;
+      if (!m) continue;
+      m.k = r.k;
+      if (m.type === "vlot") m.route = m.route.map((q2) => {
+        const p = tw(r, q2.x, q2.y);
+        return { x: p[0], y: p[1] };
+      });
+      else {
+        const n = tw(r, m.c, 3), f = tw(r, m.c, 2);
+        m.near = { x: n[0], y: n[1] };
+        m.far = { x: f[0], y: f[1] };
+        m.fwd = [f[0] - n[0], f[1] - n[1]];
+        if (m.button) {
+          const b = tw(r, m.button.x, m.button.y);
+          m.button = { x: b[0], y: b[1] };
+        }
+      }
+      mechs.push(m);
+    }
+    const seen = /* @__PURE__ */ new Set([K(start.x, start.y)]), q = [start];
+    let ok = false;
+    while (q.length) {
+      const c = q.shift();
+      if (c.x === exit.x && c.y === exit.y) {
+        ok = true;
+        break;
+      }
+      const tp = tele.get(K(c.x, c.y));
+      if (tp && !seen.has(K(tp.x, tp.y))) {
+        seen.add(K(tp.x, tp.y));
+        q.push({ x: tp.x, y: tp.y });
+      }
+      for (const [ddx, ddy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        const nx = c.x + ddx, ny = c.y + ddy, kk = K(nx, ny);
+        if (seen.has(kk) || ny < 0 || ny >= H2 || nx < 0 || nx >= W2) continue;
+        const v = grid[ny][nx];
+        if (v !== 0 && v !== 3 && v !== 7) continue;
+        seen.add(kk);
+        q.push({ x: nx, y: ny });
+      }
+    }
+    if (!ok) return null;
+    return { grid, gates, start, exit, w: W2, h: H2, tele, R, feat2, feat3, mechs, roomOf };
+  }
+  const MUSEUM_SLOTS = [[2, 2], [4, 2], [6, 2], [8, 2], [2, 4], [4, 4], [6, 4], [8, 4], [2, 6], [4, 6], [6, 6], [8, 6]];
+  function buildMuseum(fresh) {
+    const MW = 11, MH = 9;
+    const grid = Array.from({ length: MH }, (_, y) => Array.from({ length: MW }, (_2, x) => x === 0 || x === MW - 1 || y === 0 || y === MH - 1 ? 1 : 0));
+    const n = Math.min(levels.length, MUSEUM_SLOTS.length);
+    const slots = [];
+    for (let i = 0; i < n; i++) {
+      const [x, y] = MUSEUM_SLOTS[i];
+      grid[y][x] = 4;
+      slots.push({ x, y, i, solid: SOLIDS[i % SOLIDS.length] });
+    }
+    const open = li < levels.length;
+    grid[0][5] = 5;
+    map = {
+      kind: "museum",
+      mechs: [],
+      grid,
+      gates: [],
+      start: { x: 5, y: 7 },
+      exit: open ? { x: 5, y: 1 } : null,
+      door: { x: 5, y: 0, open },
+      w: MW,
+      h: MH,
+      tele: /* @__PURE__ */ new Map(),
+      R: 0,
+      feat2: false,
+      feat3: false,
+      hinted: /* @__PURE__ */ new Set(),
+      slots,
+      fresh: fresh ? li - 1 : -1,
+      solid: SOLIDS[Math.min(li, levels.length - 1) % SOLIDS.length]
+    };
+    resetPlayer(5, 7);
+    const p = iso(5.5, 7.5, 0);
+    cam.x = p[0];
+    cam.y = p[1] - 40;
+    if (G3) G3.build(map, true);
+    updateHUD();
+    if (fresh && li - 1 >= 0 && slots[li - 1]) {
+      const S = slots[li - 1].solid;
+      setTimeout(() => showBanner(li >= levels.length ? "Je museum is compleet!" : "Nieuw in je museum: ".concat(S.name, "!"), 2600), 350);
+    }
+  }
+  function enterLevel() {
+    if (li >= levels.length) return;
+    buildLevel(li);
+    showBanner("Level ".concat(li + 1, ": ").concat(THEME_NAMES[map.theme]), 2e3);
+  }
+  const THEME_NAMES = ["Ruitjespapier", "Getallenland", "Breukenbakkerij", "Vormenland", "Cirkelland", "Fibonacci-tuin", "Assenstelsel", "Fractalruimte"];
+  function placeMech(grid, j, type, tx, avoid) {
+    const r1 = 5 * j + 1, r2 = 5 * j + 2, r3 = 5 * j + 3, r4 = 5 * j + 4;
+    if (type === "vlot") {
+      for (let x = 1; x <= 9; x++) {
+        grid[r1][x] = 6;
+        grid[r2][x] = 6;
+        grid[r3][x] = 6;
+      }
+      for (let x = Math.max(1, tx - 1); x <= Math.min(9, tx + 1); x++) grid[r1][x] = 0;
+      const opts2 = [];
+      for (let x = 1; x <= 9; x++) if (Math.abs(x - tx) >= 3) opts2.push(x);
+      const a = opts2[rnd(0, opts2.length - 1)];
+      const route = [{ x: a, y: r3 }, { x: a, y: r2 }];
+      const st = a < tx ? 1 : -1;
+      for (let x = a + st; ; x += st) {
+        route.push({ x, y: r2 });
+        if (x === tx) break;
+      }
+      for (const q of route) grid[q.y][q.x] = 7;
+      return { type, j, route, pos: 0, dir: 1, wait: 1.2, rider: false };
+    }
+    for (let x = 1; x <= 9; x++) {
+      grid[r2][x] = 6;
+      grid[r3][x] = 6;
+    }
+    const c = rnd(2, 8);
+    grid[r2][c] = 7;
+    grid[r3][c] = 7;
+    if (type === "wip") return { type, j, c, tilt: 1, show: 1 };
+    const opts = [];
+    for (let x = 1; x <= 9; x++) if (Math.abs(x - c) >= 4 && !avoid.some((q) => q.x === x && q.y === r4)) opts.push(x);
+    const b = opts.length ? opts[rnd(0, opts.length - 1)] : c > 5 ? 1 : 9;
+    return { type: "brug", j, c, button: { x: b, y: r4 }, up: false, anim: 0 };
+  }
+  function mechAt(x, y) {
+    for (const m of map.mechs || []) {
+      if (m.type === "vlot") {
+        if (m.route.some((q) => q.x === x && q.y === y)) return m;
+      } else if (m.near.x === x && m.near.y === y || m.far.x === x && m.far.y === y) return m;
+    }
+    return null;
+  }
+  const raftTile = (m) => m.route[Math.round(m.pos)];
+  function mechEnter(x, y) {
+    const m = mechAt(x, y);
+    if (!m) return false;
+    if (m.type === "wip") return true;
+    if (m.type === "brug") return m.up && m.anim > 0.9;
+    const t = raftTile(m);
+    return m.wait > 0 && t.x === x && t.y === y;
+  }
+  function mechHint(x, y) {
+    const k = map.roomOf && map.roomOf[y] ? map.roomOf[y][x] : -1, m = (map.mechs || []).find((m2) => m2.k === k);
+    if (!m || map.hinted.has("w" + k)) return;
+    map.hinted.add("w" + k);
+    showBanner(m.type === "vlot" ? "Wacht tot het vlot er is en stap op." : m.type === "brug" ? "Zoek de knop, dan komt de brug omhoog." : "Loop over de wip naar de overkant.", 2400);
+  }
+  function mechArrive() {
+    for (const m of map.mechs || []) {
+      if (m.type === "brug" && !m.up && player.x === m.button.x && player.y === m.button.y) {
+        m.up = true;
+        showBanner("Klik! De brug komt omhoog.", 1800);
+      }
+      if (m.type === "vlot") {
+        const t = raftTile(m);
+        if (t.x === player.x && t.y === player.y && m.wait > 0) m.wait = Math.min(m.wait, 0.6);
+      }
+    }
+  }
+  function updateMechs(dt) {
+    for (const m of map.mechs || []) {
+      if (m.type === "wip") {
+        if (player.x === m.near.x && player.y === m.near.y) m.tilt = 1;
+        else if (player.x === m.far.x && player.y === m.far.y) m.tilt = -1;
+        m.show += (m.tilt - m.show) * (1 - Math.exp(-dt * 7));
+      } else if (m.type === "brug") {
+        if (m.up) m.anim = Math.min(1, m.anim + dt / 1.2);
+      } else {
+        const L = m.route.length - 1;
+        if (m.wait > 0) {
+          m.wait -= dt;
+          if (m.wait <= 0) {
+            const t = raftTile(m);
+            m.rider = player.x === t.x && player.y === t.y && !player.tele;
+            if (m.rider) {
+              player.ride = { ox: player.px - t.x, oy: player.py - t.y };
+              held.clear();
+            }
+          }
+          continue;
+        }
+        m.pos += m.dir * dt * 1.7;
+        if (m.pos >= L || m.pos <= 0) {
+          m.pos = m.pos >= L ? L : 0;
+          m.dir = -m.dir;
+          m.wait = 2.5;
+        }
+        const i = Math.min(L - 1, Math.floor(m.pos)), f = m.pos - i, a = m.route[i], b = m.route[i + 1];
+        if (m.rider) {
+          const r = player.ride, k = Math.exp(-dt * 5);
+          r.ox *= k;
+          r.oy *= k;
+          player.px = a.x + (b.x - a.x) * f + r.ox;
+          player.py = a.y + (b.y - a.y) * f + r.oy;
+          const t = raftTile(m);
+          player.x = t.x;
+          player.y = t.y;
+          if (m.wait > 0) {
+            m.rider = false;
+            player.ride = null;
+          }
+        }
+      }
+    }
+  }
+  function solidFacts(S) {
+    const E = S.faces.reduce((a, f) => a + f.idx.length, 0) / 2;
+    return { F: S.faces.length, E, V: S.v.length, kind: PLATO.includes(S.name) ? "platonisch lichaam" : "archimedisch lichaam" };
+  }
+  let infoKey = "";
+  function updateInfo() {
+    let html = "", key = "";
+    if (map && map.kind === "museum" && state === "play") {
+      const s = map.slots.find((s2) => Math.abs(s2.x - player.x) + Math.abs(s2.y - player.y) === 1);
+      if (s) {
+        key = "slot" + s.i + (s.i < li);
+        if (s.i < li) {
+          const f = solidFacts(s.solid);
+          html = '<b class="nm">'.concat(esc(s.solid.name), "</b><span>").concat(f.kind, '</span><div class="nums"><span><em>').concat(f.F, "</em> vlakken</span><span><em>").concat(f.E, "</em> ribben</span><span><em>").concat(f.V, "</em> hoekpunten</span></div>");
+        } else html = "<b>Nog niet verzameld</b><span>Haal level ".concat(s.i + 1, " om dit lichaam te krijgen.</span>");
+      }
+    }
+    if (key === infoKey) return;
+    infoKey = key;
+    $("info").innerHTML = html;
+    $("info").hidden = !html;
+  }
+  const HATS = [{ id: "geen", label: "Niets" }, { id: "pet", label: "Pet" }, { id: "hoed", label: "Hoge hoed" }, { id: "muts", label: "Feestmuts" }, { id: "kroon", label: "Kroon" }];
+  const COLOR_NAMES = ["roze", "oranje", "blauwgroen", "paars", "groen", "magenta", "blauw", "okergeel"];
+  const look = { c: 0, h: "geen" };
+  let lookTouched = false;
+  function renderLookPicker() {
+    const sw = $("swatches"), hb = $("hatbtns");
+    sw.innerHTML = PLAYER_COLORS.map((c, i) => '<button type="button" class="sw" style="background:'.concat(c, '" data-c="').concat(i, '" aria-label="').concat(COLOR_NAMES[i], '" aria-pressed="').concat(i === look.c, '"></button>')).join("");
+    hb.innerHTML = HATS.map((h) => '<button type="button" class="hatbtn" data-h="'.concat(h.id, '" aria-pressed="').concat(h.id === look.h, '">').concat(h.label, "</button>")).join("");
+    for (const b of sw.children) b.onclick = () => {
+      look.c = +b.dataset.c;
+      lookTouched = true;
+      renderLookPicker();
+      if (G3) G3.lookChanged();
+      sw.children[look.c].focus();
+    };
+    for (const b of hb.children) b.onclick = () => {
+      look.h = b.dataset.h;
+      lookTouched = true;
+      renderLookPicker();
+      if (G3) G3.lookChanged();
+      [...hb.children].find((x) => x.dataset.h === look.h).focus();
+    };
+  }
+  const gateAt = (x, y) => map.gates.find((g) => g.x === x && g.y === y);
+  const PLATO = ["tetraëder", "kubus", "octaëder", "dodecaëder", "icosaëder"];
+  function solidLabel(S) {
+    return "".concat(S.name[0].toUpperCase() + S.name.slice(1), ": ").concat(PLATO.includes(S.name) ? "platonisch" : "archimedisch", " lichaam, ").concat(S.faces.length, " vlakken");
+  }
+  const HEART = "M12 21s-7.5-4.6-9.6-9.3C.9 8.2 3 4.5 6.6 4.5c2.2 0 3.6 1.3 4.4 2.6.8-1.3 2.2-2.6 4.4-2.6 3.6 0 5.7 3.7 4.2 7.2C19.5 16.4 12 21 12 21z";
+  function heartSvg(kind, extra = "") {
+    if (kind === "half") return '<svg viewBox="0 0 24 24" class="half '.concat(extra, '">') + '<path d="'.concat(HEART, '" fill="var(--heart)" opacity=".45" stroke="none"/><path class="back" d="').concat(HEART, '" stroke-width="1.6"/></svg>');
+    return '<svg viewBox="0 0 24 24" class="'.concat(kind, " ").concat(extra, '"><path d="').concat(HEART, '" stroke-width="1.6"/></svg>');
+  }
+  function renderHearts(el, n, lostIndex = -1) {
+    let h = "";
+    for (let i = 0; i < LIVES; i++) h += heartSvg(i < n ? "full" : "empty", i === lostIndex ? "lost" : "");
+    el.innerHTML = h;
+    el.setAttribute("aria-label", "".concat(n, " van ").concat(LIVES, " levens"));
+  }
+  function updateHearts(lostIndex) {
+    renderHearts($("hudHearts"), lives, lostIndex);
+    renderHearts($("pzHearts"), lives, lostIndex);
+  }
+  function updateHUD() {
+    const n = li + 3;
+    $("hudShape").textContent = polyName(n);
+    if (map && map.kind === "museum") {
+      $("hudSub").textContent = "Museum: ".concat(Math.min(li, levels.length), " van ").concat(levels.length, " lichamen") + (li < levels.length ? ". Loop door de deur naar level ".concat(li + 1, ".") : ". Je museum is compleet!");
+      updateHearts();
+      return;
+    }
+    const open = map ? map.gates.filter((g) => g.open).length : 0, tot = map ? map.gates.length : 0;
+    $("hudSub").textContent = "Level ".concat(li + 1, " van ").concat(levels.length, ", ").concat(open, " van ").concat(tot, " ").concat(tot === 1 ? "poort" : "poorten", " open");
+    if (map) $("hudSub").textContent += ". Poortsteen: ".concat(map.solid.name);
+    updateHearts();
+  }
+  let bannerTimer = 0;
+  function showBanner(text, ms) {
+    const b = $("banner");
+    b.textContent = text;
+    b.hidden = false;
+    clearTimeout(bannerTimer);
+    bannerTimer = setTimeout(() => b.hidden = true, ms);
+  }
+  const DIRS = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
+  const SPEED = 3.8, PR = 0.3;
+  let gateCool = 0;
+  function resetPlayer(x, y) {
+    Object.assign(player, { x, y, px: x, py: y, speed: 0, moving: false, dir: [0, -1], tele: null, ride: null });
+    held.clear();
+  }
+  function setPlayerTile(x, y) {
+    player.x = player.px = x;
+    player.y = player.py = y;
+  }
+  function solid(x, y) {
+    if (!map || y < 0 || y >= map.h || x < 0 || x >= map.w) return true;
+    const v = map.grid[y][x];
+    if (v === 0) return false;
+    if (v === 3) {
+      const g = gateAt(x, y);
+      return !(g && g.open);
+    }
+    if (v === 7) return !mechEnter(x, y);
+    return true;
+  }
+  function hitAt(nx, ny, ox, oy) {
+    const x0 = Math.floor(nx - PR + 0.5), x1 = Math.floor(nx + PR + 0.5), y0 = Math.floor(ny - PR + 0.5), y1 = Math.floor(ny + PR + 0.5);
+    for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
+      if (!solid(x, y)) continue;
+      const was = Math.abs(ox - x) < 0.5 + PR - 1e-6 && Math.abs(oy - y) < 0.5 + PR - 1e-6;
+      if (was && Math.hypot(nx - x, ny - y) >= Math.hypot(ox - x, oy - y) - 1e-9) continue;
+      return [x, y];
+    }
+    return null;
+  }
+  function walk(dt) {
+    gateCool = Math.max(0, gateCool - dt);
+    let ix = 0, iy = 0;
+    for (const d of held) {
+      ix += DIRS[d][0];
+      iy += DIRS[d][1];
+    }
+    const L = Math.hypot(ix, iy);
+    if (state !== "play" || player.tele || player.ride || !L) {
+      player.moving = false;
+      player.speed = 0;
+      return;
+    }
+    ix /= L;
+    iy /= L;
+    player.dir = [ix, iy];
+    player.speed = Math.min(SPEED, player.speed + dt * SPEED * 7);
+    const s = player.speed * dt, ox = player.px, oy = player.py, hits = [];
+    let nx = ox + ix * s, h = ix ? hitAt(nx, oy, ox, oy) : null;
+    if (h) {
+      hits.push(h);
+      const c = ix > 0 ? h[0] - 0.5 - PR - 1e-3 : h[0] + 0.5 + PR + 1e-3;
+      nx = (ix > 0 ? c >= ox : c <= ox) ? c : ox;
+    }
+    let ny = oy + iy * s;
+    h = iy ? hitAt(nx, ny, nx, oy) : null;
+    if (h) {
+      hits.push(h);
+      const c = iy > 0 ? h[1] - 0.5 - PR - 1e-3 : h[1] + 0.5 + PR + 1e-3;
+      ny = (iy > 0 ? c >= oy : c <= oy) ? c : oy;
+    }
+    if (hits.length && (!ix || !iy)) {
+      const ax = !ix, tgt = ax ? Math.round(nx) : Math.round(ny);
+      const aheadFree = ax ? !solid(tgt, Math.round(ny) + Math.sign(iy)) : !solid(Math.round(nx) + Math.sign(ix), tgt);
+      if (aheadFree) {
+        const cur = ax ? nx : ny, d = tgt - cur, step = Math.sign(d) * Math.min(Math.abs(d), s);
+        const tx2 = ax ? nx + step : nx, ty2 = ax ? ny : ny + step;
+        if (!hitAt(tx2, ty2, nx, ny)) {
+          nx = tx2;
+          ny = ty2;
+        }
+      }
+    }
+    player.moving = Math.hypot(nx - ox, ny - oy) > 1e-4;
+    player.px = nx;
+    player.py = ny;
+    for (const [x, y] of hits) {
+      const v = map.grid[y] && map.grid[y][x];
+      if (v === 3 && gateCool <= 0) {
+        const g = gateAt(x, y);
+        if (g && !g.open) {
+          gateCool = 0.8;
+          openPuzzle(g);
+          return;
+        }
+      }
+      if (v === 6 || v === 7) mechHint(x, y);
+    }
+    const tx = Math.round(player.px), ty = Math.round(player.py);
+    if (tx !== player.x || ty !== player.y) {
+      player.x = tx;
+      player.y = ty;
+      onArrive();
+    }
+  }
+  function onArrive() {
+    if (map.exit && player.x === map.exit.x && player.y === map.exit.y) {
+      if (map.kind === "museum") {
+        enterLevel();
+        return;
+      }
+      levelUp();
+      return;
+    }
+    mechArrive();
+    const tp = map.tele.get(player.x + "," + player.y);
+    if (tp) {
+      if (tp.secret) setPlayerTile(tp.x, tp.y);
+      else {
+        player.tele = { t: 0, to: tp, moved: false };
+        held.clear();
+      }
+    }
+    roomHint();
+  }
+  function roomHint() {
+    if (map.kind === "museum") return;
+    mechHint(player.x, player.y);
+    const k = map.roomOf[player.y] ? map.roomOf[player.y][player.x] : -1;
+    if (map.feat2 && k === 1 && !map.hinted.has(2)) {
+      map.hinted.add(2);
+      showBanner("Stap op een gekleurd vak!", 2200);
+    }
+    if (map.feat3 && k === 2 && !map.hinted.has(3)) {
+      map.hinted.add(3);
+      showBanner("Hier zit ergens een geheim portaal…", 2600);
+    }
+  }
+  let session = null, stateBeforeOverlay = "play";
+  const SPELER_KEY = "hoekerbij.speler", CODE_KEY = "hoekerbij.algebra.laatstecode";
+  function newStats() {
+    return { t0: performance.now(), v: 0, r: 0, i: 0, o: 0, m: 0, c: 0 };
+  }
+  function stamp() {
+    const d = /* @__PURE__ */ new Date(), p = (x) => String(x).padStart(2, "0");
+    return "".concat(d.getFullYear(), "-").concat(p(d.getMonth() + 1), "-").concat(p(d.getDate()), " ").concat(p(d.getHours()), ":").concat(p(d.getMinutes()));
+  }
+  function count(kind) {
+    if (session && session.cur) session.cur[kind]++;
+  }
+  function partial() {
+    if (!session || !session.cur || !map || map.kind === "museum") return null;
+    const c = session.cur;
+    return [li + 1, map.gates.filter((g) => g.open).length, map.gates.length, Math.round((performance.now() - c.t0) / 1e3), c.v, c.r, c.i, c.o, c.m, c.c];
+  }
+  function codeText() {
+    const o = { v: 1, g: "algebra", n: session.n, k: session.k, s: session.s, d: session.d, lv: session.lv, t: Math.floor(Date.now() / 1e3), L: session.L };
+    const P = partial();
+    if (P) o.P = P;
+    return encodeCode2(o);
+  }
+  function saveLastCode(text) {
+    const P = partial();
+    try {
+      localStorage.setItem(CODE_KEY, JSON.stringify({ text, n: session.n, k: session.k, d: session.d, lv: session.lv, levels: session.L.length, P }));
+    } catch (e) {
+    }
+  }
+  function progressText() {
+    const P = partial(), done = session.L.length;
+    const gehaald = done === 0 ? "Nog geen level gehaald." : done === 1 ? "Level 1 gehaald." : "Level 1 tot en met ".concat(done, " gehaald.");
+    if (P) return (done ? gehaald + " " : "") + "Bezig met level ".concat(P[0], ": ").concat(P[1], " van ").concat(P[2], " poorten open.");
+    return gehaald;
+  }
+  function qrSvg(text) {
+    qrcode.stringToBytes = qrcode.stringToBytesFuncs["UTF-8"];
+    const mode = /^HEB2:[A-Z2-7]+$/.test(text) ? "Alphanumeric" : "Byte";
+    const q = qrcode(0, "M");
+    q.addData(text, mode);
+    q.make();
+    return q.createSvgTag({ cellSize: 6, margin: 2, scalable: true });
+  }
+  function totals() {
+    const t = { sec: 0, v: 0, r: 0, i: 0, o: 0, m: 0, c: 0 };
+    for (const l of session.L) {
+      t.sec += l[0];
+      t.v += l[1];
+      t.r += l[2];
+      t.i += l[3];
+      t.o += l[4];
+      t.m += l[5];
+      t.c += l[6];
+    }
+    return t;
+  }
+  const fmtTime = (sec) => {
+    const m = Math.floor(sec / 60), s = sec % 60;
+    return m ? "".concat(m, " min ").concat(s, " s") : "".concat(s, " s");
+  };
+  function showQr(mode) {
+    let text, who, title, body, btn;
+    if (mode === "old") {
+      let saved = null;
+      try {
+        saved = JSON.parse(localStorage.getItem(CODE_KEY) || "null");
+      } catch (e) {
+      }
+      if (!saved) return;
+      text = saved.text;
+      who = "".concat(saved.n, " (").concat(saved.k, ")");
+      title = "Je laatste code";
+      body = saved.P ? "Gestart op ".concat(saved.d, ". ").concat(saved.levels, " van ").concat(saved.lv, " levels gehaald, bezig met level ").concat(saved.P[0], " (").concat(saved.P[1], " van ").concat(saved.P[2], " poorten open).") : "Gestart op ".concat(saved.d, ". ").concat(saved.levels, " van ").concat(saved.lv, " levels gehaald.");
+      btn = "Terug";
+    } else {
+      text = codeText();
+      who = "".concat(session.n, " (").concat(session.k, ")");
+      const done = session.L.length;
+      if (mode === "final") {
+        const t = totals();
+        title = "Je bent een ".concat(polyName(done + 3), " geworden!");
+        body = "Alle ".concat(done, " levels gehaald in ").concat(fmtTime(t.sec), ". Laat deze code scannen door je docent.");
+        btn = "Nog een keer";
+      } else if (mode === "level") {
+        title = "Level ".concat(done, " gehaald!");
+        body = "Laat deze code scannen door je docent. Daarna ga je verder.";
+        btn = "Verder naar level ".concat(done + 1);
+      } else {
+        title = "Mijn code tot nu toe";
+        body = progressText() + " Laat deze code scannen door je docent.";
+        btn = "Terug naar het spel";
+      }
+    }
+    if (mode !== "old") saveLastCode(text);
+    $("qrTitle").textContent = title;
+    $("qrText").textContent = body;
+    $("qrWho").textContent = who;
+    $("qrBox").innerHTML = qrSvg(text);
+    $("btnQrNext").textContent = btn;
+    $("qrOverlay").dataset.mode = mode;
+    if (state !== "qr") stateBeforeOverlay = state;
+    state = "qr";
+    held.clear();
+    $("qrOverlay").hidden = false;
+    $("btnQrNext").focus();
+  }
+  function closeQr() {
+    const mode = $("qrOverlay").dataset.mode;
+    $("qrOverlay").hidden = true;
+    if (mode === "level" || mode === "final") {
+      li++;
+      buildMuseum(true);
+      state = "play";
+    } else if (mode === "old") {
+      state = "start";
+    } else state = stateBeforeOverlay;
+  }
+  function recordLevel() {
+    const c = session.cur;
+    session.L.push([Math.round((performance.now() - c.t0) / 1e3), c.v, c.r, c.i, c.o, c.m, c.c]);
+    session.cur = null;
+  }
+  function openStart(canResume) {
+    let sp = null;
+    try {
+      sp = JSON.parse(localStorage.getItem(SPELER_KEY) || "null");
+    } catch (e) {
+    }
+    if (sp) {
+      if (!$("inName").value) $("inName").value = sp.n || "";
+      if (!$("inKlas").value) $("inKlas").value = sp.k || "";
+      if (!lookTouched) {
+        if (sp.c != null) look.c = sp.c % PLAYER_COLORS.length;
+        if (sp.h) look.h = sp.h;
+        renderLookPicker();
+      }
+    }
+    let hasOld = false;
+    try {
+      hasOld = !!localStorage.getItem(CODE_KEY);
+    } catch (e) {
+    }
+    $("btnOldCode").hidden = !hasOld;
+    $("btnResume").hidden = !canResume;
+    $("startError").hidden = true;
+    if (state !== "start") stateBeforeOverlay = state;
+    state = "start";
+    held.clear();
+    $("startOverlay").hidden = false;
+  }
+  function beginGame() {
+    const n = $("inName").value.trim().replace(/\s+/g, " "), k = $("inKlas").value;
+    const er = $("startError");
+    if (n.length < 2) {
+      er.textContent = "Typ eerst je naam.";
+      er.hidden = false;
+      $("inName").focus();
+      return;
+    }
+    if (!k) {
+      er.textContent = "Kies je klas.";
+      er.hidden = false;
+      $("inKlas").focus();
+      return;
+    }
+    try {
+      localStorage.setItem(SPELER_KEY, JSON.stringify({ n, k, c: look.c, h: look.h }));
+    } catch (e) {
+    }
+    session = { n, k, s: Math.random().toString(36).slice(2, 8), d: stamp(), lv: levels.length, L: [], cur: null };
+    restart();
+  }
+  function levelUp() {
+    state = "levelup";
+    held.clear();
+    const n = li + 3;
+    morph = { from: n, to: n + 1, t: 0 };
+    showBanner("Je bent nu een ".concat(polyName(n + 1), "!"), 1900);
+  }
+  function finishLevelUp() {
+    morph = null;
+    if (session) recordLevel();
+    if (!session) {
+      li++;
+      buildMuseum(true);
+      state = "play";
+      return;
+    }
+    showQr(li + 1 < levels.length ? "level" : "final");
+  }
+  function restart() {
+    li = 0;
+    wrongCount = 0;
+    miniCount = 0;
+    lives = LIVES;
+    morph = null;
+    held.clear();
+    curGate = null;
+    buildMuseum(false);
+    state = "play";
+    startTime = performance.now();
+    ["startOverlay", "qrOverlay", "puzzleOverlay", "editOverlay", "miniOverlay"].forEach((id) => $(id).hidden = true);
+    $("btnMyCode").hidden = !session;
+    $("banner").hidden = true;
+  }
+  let curGate = null, busy = false, selected = /* @__PURE__ */ new Set(), lastInput = null;
+  function openPuzzle(g) {
+    state = "puzzle";
+    held.clear();
+    curGate = g;
+    puzzleSpin = 0;
+    $("solidName").textContent = solidLabel(map.solid);
+    $("puzzleOverlay").hidden = false;
+    updateHearts();
+    if (!g.work) loadSum(g);
+    else {
+      renderPuzzle();
+      focusInput();
+    }
+  }
+  function loadSum(g) {
+    const sum = g.sums[g.progress];
+    g.work = { sum, terms: sum.terms, hist: [], phase: "select", judge: null, sel: null, finished: false };
+    selected.clear();
+    busy = false;
+    $("feedback").textContent = "";
+    $("feedback").className = "feedback";
+    $("rule").hidden = true;
+    if (sum.type === "antwoord") {
+      const inp = $("answer");
+      inp.value = "";
+      inp.disabled = false;
+      $("btnCheck").disabled = false;
+    }
+    renderPuzzle();
+    focusInput();
+  }
+  function focusInput() {
+    setTimeout(() => {
+      const w = curGate && curGate.work;
+      if (!w) return;
+      const el = w.sum.type === "antwoord" ? $("answer") : $("stepIn");
+      if (el && !el.disabled) el.focus();
+    }, 40);
+  }
+  function renderPuzzle() {
+    renderPuzzleInner();
+    fitExpr();
+    updatePreview();
+  }
+  function fitExpr() {
+    const ex = $("expr"), hist = $("hist");
+    if (!ex || $("puzzleOverlay").hidden) return;
+    const width = (el) => {
+      const k = el.children;
+      if (!k.length) return 0;
+      return k[k.length - 1].getBoundingClientRect().right - k[0].getBoundingClientRect().left;
+    };
+    ex.style.fontSize = "";
+    let fs = parseFloat(getComputedStyle(ex).fontSize);
+    for (let k = 0; k < 4; k++) {
+      const need = width(ex) + 4, have = ex.clientWidth;
+      if (need <= have) break;
+      fs = Math.max(12, Math.floor(fs * have / need * 10) / 10);
+      ex.style.fontSize = fs + "px";
+    }
+    hist.style.fontSize = "";
+    let hs = parseFloat(getComputedStyle(hist).fontSize);
+    for (let k = 0; k < 4; k++) {
+      const need = Math.max(0, ...[...hist.children].map((d) => d.scrollWidth)), have = hist.clientWidth;
+      if (need <= have) break;
+      hs = Math.max(10, Math.floor(hs * have / need * 10) / 10);
+      hist.style.fontSize = hs + "px";
+    }
+  }
+  function esc(s) {
+    return String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+  }
+  function tokText(d) {
+    return d.k === "sign" ? d.first ? "−" : d.v < 0 ? "−" : "+" : d.k === "dot" ? "·" : d.html;
+  }
+  function lineHtml(terms, sel, kind) {
+    const cls = kind === "samen" ? "arc" : "ul";
+    const disp = dispTokens(terms);
+    return disp.map((d, i) => {
+      let h = tokText(d);
+      if (d.k === "sign" && !d.first) h = " ".concat(h, " ");
+      if (d.k === "dot") h = " ".concat(h, " ");
+      return sel && sel.has(i) ? '<span class="'.concat(cls, '">').concat(h, "</span>") : h;
+    }).join("");
+  }
+  function addSpan(ex, cls, html) {
+    const el = document.createElement("span");
+    el.className = cls;
+    el.innerHTML = html;
+    ex.appendChild(el);
+    return el;
+  }
+  function renderPuzzleInner() {
+    const g = curGate, w = g.work, type = w.sum.type;
+    $("pzTitle").textContent = "Poort ".concat(g.nr, ": som ").concat(Math.min(g.progress + 1, g.sums.length), " van ").concat(g.sums.length);
+    $("dots").innerHTML = g.sums.map((_, i) => '<span class="'.concat(i < g.progress ? "done" : i === g.progress ? "now" : "", '"></span>')).join("");
+    const typing = type === "stappen" && w.phase === "type";
+    $("task").textContent = type === "antwoord" ? w.sum.kn ? "Herleid. Kan het niet korter? Kies dan kan niet." : "Herleid: schrijf het zo kort mogelijk op." : w.finished ? "Klaar!" : typing ? "Reken het onderstreepte deel uit en vul het in, met het teken ervoor." : "Tik aan wat je als eerste uitrekent: twee factoren met de · ertussen, een term met haakjes, of alle gelijksoortige termen met hun teken.";
+    $("answerRow").hidden = type !== "antwoord";
+    $("btnKn").hidden = !(type === "antwoord" && w.sum.kn);
+    $("selRow").hidden = !(type === "stappen" && w.phase === "select" && !w.finished);
+    $("stepRow").hidden = !typing;
+    $("kbd").hidden = !(type === "antwoord" || typing) || w.finished;
+    const lines = typing ? w.hist.concat([lineHtml(w.terms, w.sel, w.judge && w.judge.kind)]) : w.hist;
+    $("hist").innerHTML = lines.map((h, i) => '<div class="mx">' + (i ? "= " : "") + h + "</div>").join("");
+    const ex = $("expr");
+    ex.innerHTML = "";
+    if (lines.length) addSpan(ex, "eqs", "=");
+    if (type === "antwoord") {
+      addSpan(ex, "plain mx", exprHtml(w.terms));
+      if (w.finished) addSpan(ex, "plain mx ok-text", " = " + w.finishedHtml);
+      return;
+    }
+    const disp = dispTokens(w.terms);
+    if (typing) {
+      let placed = false;
+      disp.forEach((d, i) => {
+        if (w.sel.has(i)) {
+          if (!placed) {
+            placed = true;
+            const el = document.createElement("input");
+            el.className = "stepin";
+            el.id = "stepIn";
+            el.autocomplete = "off";
+            el.spellcheck = false;
+            el.setAttribute("autocapitalize", "off");
+            el.setAttribute("aria-label", "Uitkomst van het onderstreepte deel");
+            el.addEventListener("keydown", (e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                checkStep();
+              }
+            });
+            el.addEventListener("input", updatePreview);
+            el.addEventListener("focus", () => lastInput = el);
+            ex.appendChild(el);
+          }
+          return;
+        }
+        addSpan(ex, d.k === "chip" ? "plain mx" : "plain", tokText(d));
+      });
+      return;
+    }
+    if (w.finished) {
+      addSpan(ex, "plain mx ok-text", lineHtml(w.terms));
+      return;
+    }
+    disp.forEach((d, i) => {
+      const el = document.createElement("button");
+      el.type = "button";
+      el.className = "tk mx" + (d.k !== "chip" ? " op" : "") + (d.group ? " grp" : "") + (selected.has(i) ? " sel" : "") + (d.fresh ? " fresh" : "");
+      el.innerHTML = tokText(d);
+      el.setAttribute("aria-pressed", selected.has(i));
+      el.dataset.i = i;
+      el.addEventListener("pointerdown", (e) => {
+        if (e.pointerType !== "mouse") e.preventDefault();
+        toggleToken(i);
+      });
+      el.addEventListener("click", (e) => {
+        if (e.detail === 0 || !window.PointerEvent) toggleToken(i);
+      });
+      ex.appendChild(el);
+    });
+  }
+  function tokenEls() {
+    return [...$("expr").querySelectorAll(".tk[data-i]")];
+  }
+  function toggleToken(i) {
+    if (busy || state !== "puzzle") return;
+    if (selected.has(i)) selected.delete(i);
+    else selected.add(i);
+    tokenEls().forEach((b) => {
+      const j = +b.dataset.i;
+      b.classList.toggle("sel", selected.has(j));
+      b.setAttribute("aria-pressed", selected.has(j));
+    });
+  }
+  function checkSelection() {
+    if (busy || !curGate) return;
+    const w = curGate.work, fb = $("feedback");
+    if (!selected.size) {
+      fb.textContent = "Tik eerst aan wat je wilt uitrekenen.";
+      fb.className = "feedback bad";
+      return;
+    }
+    const disp = dispTokens(w.terms);
+    const r = judgeSelection(w.terms, disp, selected);
+    busy = true;
+    if (r.ok) {
+      tokenEls().forEach((b) => {
+        if (selected.has(+b.dataset.i)) {
+          b.classList.remove("sel");
+          b.classList.add("ok");
+        }
+      });
+      fb.textContent = "";
+      fb.className = "feedback";
+      $("rule").hidden = true;
+      setTimeout(() => {
+        w.judge = r;
+        w.sel = new Set(selected);
+        w.phase = "type";
+        selected.clear();
+        busy = false;
+        renderPuzzle();
+        focusInput();
+      }, 350);
+    } else {
+      tokenEls().forEach((b) => {
+        if (selected.has(+b.dataset.i)) {
+          b.classList.remove("sel");
+          b.classList.add("no");
+        }
+      });
+      count("v");
+      mistake(r.hint);
+      setTimeout(() => {
+        selected.clear();
+        busy = false;
+        if (state === "puzzle") renderPuzzle();
+      }, 700);
+    }
+  }
+  const TIDY_MSG = "Goed gerekend, maar schrijf het zo kort mogelijk: geen 1 voor een letter, x² in plaats van xx, en gelijksoortige termen samen.";
+  function checkStep() {
+    if (busy || !curGate) return;
+    const w = curGate.work, inp = $("stepIn"), fb = $("feedback");
+    if (!inp || w.phase !== "type") return;
+    const a = parseAnswer(inp.value);
+    if (a.error) {
+      fb.textContent = "Dit kan ik niet lezen. Schrijf bijvoorbeeld −12ab of 3x² − 5x.";
+      fb.className = "feedback bad";
+      inp.focus();
+      return;
+    }
+    if (!polyEq(a.poly, w.judge.expect)) {
+      count("r");
+      mistake();
+      if (lives > 0) inp.select();
+      return;
+    }
+    if (!a.tidy) {
+      fb.textContent = TIDY_MSG;
+      fb.className = "feedback bad";
+      inp.select();
+      return;
+    }
+    fb.textContent = "";
+    fb.className = "feedback";
+    w.hist.push(lineHtml(w.terms, w.sel, w.judge.kind));
+    w.terms = w.judge.apply(w.terms);
+    w.phase = "select";
+    w.judge = null;
+    w.sel = null;
+    if (isDone(w.terms)) {
+      w.finished = true;
+      busy = true;
+      sumDone("Goed! Herleid: ".concat(lineHtml(w.terms)));
+    } else renderPuzzle();
+  }
+  function checkAnswer() {
+    if (busy || !curGate) return;
+    const w = curGate.work, inp = $("answer"), fb = $("feedback"), raw = inp.value;
+    const kn = KAN_NIET.test(raw);
+    if (!raw.trim()) {
+      fb.textContent = "Typ eerst je antwoord.";
+      fb.className = "feedback bad";
+      inp.focus();
+      return;
+    }
+    if (kn) {
+      if (!w.sum.kn) {
+        fb.textContent = "Hier kan het altijd korter. Herleid de som.";
+        fb.className = "feedback bad";
+        inp.select();
+        return;
+      }
+      if (w.sum.kanNiet) return answerRight("Goed! Deze termen zijn niet gelijksoortig: het kan niet korter.", "kan niet");
+      count("i");
+      mistake();
+      if (lives > 0) inp.select();
+      return;
+    }
+    const a = parseAnswer(raw);
+    if (a.error) {
+      fb.textContent = "Dit kan ik niet lezen. Schrijf bijvoorbeeld 42ab, −10y² of 3a + 6b.";
+      fb.className = "feedback bad";
+      inp.focus();
+      return;
+    }
+    if (w.sum.kanNiet) {
+      if (polyEq(a.poly, w.sum.expect)) {
+        fb.textContent = "Kan dit korter? Zo niet, kies kan niet.";
+        fb.className = "feedback bad";
+        inp.select();
+        return;
+      }
+      count("i");
+      mistake();
+      if (lives > 0) inp.select();
+      return;
+    }
+    if (!polyEq(a.poly, w.sum.expect)) {
+      count("i");
+      mistake();
+      if (lives > 0) inp.select();
+      return;
+    }
+    if (!a.tidy) {
+      fb.textContent = TIDY_MSG;
+      fb.className = "feedback bad";
+      inp.select();
+      return;
+    }
+    answerRight("Goed!", listText(polyList(w.sum.expect), true));
+  }
+  function answerRight(msg, html) {
+    const w = curGate.work;
+    $("answer").disabled = true;
+    $("btnCheck").disabled = true;
+    busy = true;
+    w.finished = true;
+    w.finishedHtml = html;
+    sumDone(msg);
+  }
+  function sumDone(msg) {
+    const g = curGate;
+    g.progress++;
+    $("feedback").innerHTML = msg;
+    $("feedback").className = "feedback good";
+    $("rule").hidden = true;
+    renderPuzzle();
+    setTimeout(() => {
+      if (curGate !== g) return;
+      if (g.progress >= g.sums.length) {
+        puzzleSpin = 1;
+        $("feedback").textContent = "De poort gaat open!";
+        setTimeout(() => {
+          g.open = true;
+          g.work = null;
+          closePuzzle();
+          updateHUD();
+        }, 650);
+      } else loadSum(g);
+    }, 1500);
+  }
+  function mistake(hint) {
+    wrongCount++;
+    lives = Math.max(0, lives - 1);
+    updateHearts(lives);
+    const fb = $("feedback");
+    const base = lives ? lives === 1 ? "Dat is niet goed. Nog 1 leven." : "Dat is niet goed. Nog ".concat(lives, " levens.") : "Dat is niet goed. Je levens zijn op.";
+    fb.textContent = hint ? base + " " + hint : base;
+    fb.className = "feedback bad";
+    if (curGate.work.sum.type === "stappen" && curGate.work.phase === "select") $("rule").hidden = false;
+    const card = $("puzzleCard");
+    card.classList.remove("shake");
+    void card.offsetWidth;
+    card.classList.add("shake");
+    if (lives === 0) {
+      busy = true;
+      setTimeout(startMini, 1300);
+    }
+  }
+  function closePuzzle() {
+    $("puzzleOverlay").hidden = true;
+    curGate = null;
+    busy = false;
+    state = "play";
+  }
+  function updatePreview() {
+    const pv = $("preview");
+    if (!pv) return;
+    const w = curGate && curGate.work;
+    const el = !w ? null : w.sum.type === "antwoord" ? $("answer") : w.phase === "type" ? $("stepIn") : null;
+    if (!el || !el.value.trim() || w.finished) {
+      pv.innerHTML = "&nbsp;";
+      return;
+    }
+    if (KAN_NIET.test(el.value)) {
+      pv.innerHTML = "Je kiest: kan niet";
+      return;
+    }
+    const a = parseAnswer(el.value);
+    pv.innerHTML = a.error ? "Je schrijft: …" : 'Je schrijft: <span class="mx">' + listText(a.terms, true) + "</span>";
+  }
+  function insertText(t) {
+    const el = lastInput && document.body.contains(lastInput) && !lastInput.disabled ? lastInput : $("answerRow").hidden ? $("stepIn") : $("answer");
+    if (!el) return;
+    const s = el.selectionStart != null ? el.selectionStart : el.value.length, e = el.selectionEnd != null ? el.selectionEnd : el.value.length;
+    el.value = el.value.slice(0, s) + t + el.value.slice(e);
+    el.focus();
+    el.setSelectionRange(s + t.length, s + t.length);
+    updatePreview();
+  }
+  let mini = null;
+  const BEWERKING = { "+": "som", "−": "verschil", "·": "product", ":": "quotiënt" };
+  function makeMiniSum(prev) {
+    let q;
+    do {
+      q = makeMiniOne();
+    } while (prev && q.kind === prev.kind && q.q === prev.q);
+    return q;
+  }
+  function makeMiniOne() {
+    const kind = rnd(0, 2);
+    const LET = ["a", "b", "p", "q", "x", "y", "m", "n"];
+    const two = () => {
+      const a2 = LET[rnd(0, 7)];
+      let b2 = LET[rnd(0, 7)];
+      while (b2 === a2) b2 = LET[rnd(0, 7)];
+      return [a2, b2];
+    };
+    const neg = (n) => n < 0 ? "−" + -n : String(n);
+    if (kind === 0) {
+      const t = rnd(0, 3);
+      if (t === 0) {
+        const a3 = rnd(2, 9) * (rnd(0, 1) ? -1 : 1), b3 = rnd(2, 9) * (rnd(0, 1) ? -1 : 1);
+        return { kind: "calc", q: "".concat(neg(a3), " · ").concat(neg(b3)), a: a3 * b3 };
+      }
+      if (t === 1) {
+        const a3 = -rnd(2, 15), b3 = rnd(2, 15);
+        return { kind: "calc", q: "".concat(neg(a3), " + ").concat(b3), a: a3 + b3 };
+      }
+      if (t === 2) {
+        const a3 = rnd(2, 9), b3 = rnd(a3 + 1, 18);
+        return { kind: "calc", q: "".concat(a3, " − ").concat(b3), a: a3 - b3 };
+      }
+      const a2 = -rnd(2, 12), b2 = rnd(2, 12);
+      return { kind: "calc", q: "".concat(neg(a2), " − ").concat(b2), a: a2 - b2 };
+    }
+    if (kind === 1) {
+      const [a2, b2] = two(), t = rnd(0, 3), c1 = rnd(2, 9), c2 = rnd(2, 9);
+      const pairs = [
+        ["".concat(c1).concat(a2).concat(b2), "−".concat(c2).concat(b2).concat(a2), "ja"],
+        ["".concat(c1).concat(a2), "".concat(c2).concat(a2, "²"), "nee"],
+        ["".concat(c1).concat(a2), "".concat(c2).concat(b2), "nee"],
+        ["".concat(c1).concat(a2), "−".concat(a2), "ja"]
+      ][t];
+      return {
+        kind: "mc",
+        q: "".concat(pairs[0], " en ").concat(pairs[1]),
+        prompt: "Zijn deze termen gelijksoortig?",
+        options: ["ja", "nee"],
+        a: pairs[2],
+        why: pairs[2] === "ja" ? "Ze hebben precies dezelfde letters, dus ze zijn gelijksoortig." : "De letters (of machten) verschillen, dus ze zijn niet gelijksoortig."
+      };
+    }
+    const [a, b] = two(), op = rnd(0, 1) ? "+" : "·";
+    const x = "".concat(rnd(2, 9)).concat(a), y = "".concat(rnd(2, 9)).concat(b);
+    return {
+      kind: "mc",
+      q: "".concat(x, " ").concat(op, " ").concat(y),
+      prompt: "Zijn ".concat(x, " en ").concat(y, " factoren of termen?"),
+      options: ["factoren", "termen"],
+      a: op === "+" ? "termen" : "factoren",
+      why: op === "+" ? "Bij optellen heten ze termen." : "Bij vermenigvuldigen heten ze factoren."
+    };
+  }
+  function startMini() {
+    state = "mini";
+    miniCount++;
+    count("o");
+    $("puzzleOverlay").hidden = true;
+    mini = { correct: 0, sum: makeMiniSum(), locked: false };
+    $("miniTitle").textContent = "Je levens zijn op";
+    $("miniIntro").textContent = "Laad ze weer op: elke 2 goede antwoorden vullen een hartje. Gok je bij een meerkeuzevraag fout, dan verlies je een hartje.";
+    $("btnMiniDone").hidden = true;
+    $("miniFeedback").textContent = "";
+    $("miniFeedback").className = "feedback";
+    renderMini();
+    $("miniOverlay").hidden = false;
+  }
+  function renderMini(lostHeart = -1) {
+    let h = "";
+    for (let i = 0; i < LIVES; i++) {
+      const filled = mini.correct - i * 2;
+      h += filled >= 2 ? heartSvg("full") : filled === 1 ? heartSvg("half") : heartSvg("empty", i === lostHeart ? "lost" : "");
+    }
+    $("miniHearts").innerHTML = h;
+    const sum = mini.sum, isMc = sum.kind === "mc";
+    $("miniQ").textContent = isMc ? sum.q : sum.q + " = ?";
+    $("miniPrompt").textContent = isMc ? sum.prompt : "Reken uit.";
+    $("miniRow").hidden = isMc;
+    const ch = $("miniChoices");
+    ch.innerHTML = "";
+    ch.hidden = !isMc;
+    if (isMc) {
+      sum.options.forEach((o) => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "btn quiet choice";
+        b.textContent = o;
+        b.onclick = () => answerMc(o, b);
+        ch.appendChild(b);
+      });
+    } else {
+      $("miniAnswer").value = "";
+      setTimeout(() => $("miniAnswer").focus(), 30);
+    }
+  }
+  function shakeMini() {
+    const card = $("miniCard");
+    card.classList.remove("shake");
+    void card.offsetWidth;
+    card.classList.add("shake");
+  }
+  function miniGood() {
+    const fb = $("miniFeedback");
+    mini.correct++;
+    if (mini.correct >= MINI_NEEDED) {
+      lives = LIVES;
+      updateHearts();
+      renderMini();
+      $("miniQ").textContent = "";
+      $("miniPrompt").textContent = "";
+      $("miniRow").hidden = true;
+      $("miniChoices").hidden = true;
+      $("miniTitle").textContent = "Je hebt weer 3 levens!";
+      $("miniIntro").textContent = "Ga verder met de poort.";
+      fb.textContent = "";
+      $("btnMiniDone").hidden = false;
+      $("btnMiniDone").focus();
+      return;
+    }
+    fb.textContent = "Goed!";
+    fb.className = "feedback good";
+    mini.sum = makeMiniSum(mini.sum);
+    renderMini();
+  }
+  function checkMini() {
+    if (!mini || mini.sum.kind !== "calc") return;
+    const inp = $("miniAnswer"), fb = $("miniFeedback");
+    const v = toNum(inp.value);
+    if (v === null) {
+      fb.textContent = "Typ eerst een getal.";
+      fb.className = "feedback bad";
+      inp.focus();
+      return;
+    }
+    if (v === mini.sum.a) miniGood();
+    else {
+      count("c");
+      fb.textContent = "Niet goed, probeer het nog eens.";
+      fb.className = "feedback bad";
+      shakeMini();
+      inp.select();
+    }
+  }
+  function answerMc(choice, btn) {
+    if (!mini || mini.locked) return;
+    const fb = $("miniFeedback"), sum = mini.sum;
+    if (choice === sum.a) {
+      miniGood();
+      return;
+    }
+    mini.locked = true;
+    count("m");
+    btn.classList.add("wrong");
+    [...$("miniChoices").children].forEach((b) => {
+      if (b.textContent === sum.a) b.classList.add("right");
+      b.disabled = true;
+    });
+    const uitleg = sum.why ? sum.why : sum.options.length === 2 ? sum.a === "termen" ? "Bij optellen heten de getallen termen." : "Bij vermenigvuldigen heten de getallen factoren." : "".concat(sum.q, " is een ").concat(sum.a, ".");
+    let lost = -1;
+    if (mini.correct > 0) {
+      const before = mini.correct;
+      mini.correct = Math.max(0, mini.correct - 2);
+      lost = Math.floor((before - 1) / 2);
+      fb.textContent = "Fout gegokt, je verliest een hartje. ".concat(uitleg);
+    } else fb.textContent = "Fout gegokt. ".concat(uitleg);
+    fb.className = "feedback bad";
+    shakeMini();
+    renderHeartsOnly(lost);
+    setTimeout(() => {
+      if (!mini) return;
+      mini.locked = false;
+      mini.sum = makeMiniSum(sum);
+      renderMini();
+    }, 2200);
+  }
+  function renderHeartsOnly(lost) {
+    let h = "";
+    for (let i = 0; i < LIVES; i++) {
+      const filled = mini.correct - i * 2;
+      h += filled >= 2 ? heartSvg("full") : filled === 1 ? heartSvg("half") : heartSvg("empty", i === lost ? "lost" : "");
+    }
+    $("miniHearts").innerHTML = h;
+  }
+  function endMini() {
+    $("miniOverlay").hidden = true;
+    mini = null;
+    if (curGate) {
+      state = "puzzle";
+      busy = false;
+      $("puzzleOverlay").hidden = false;
+      $("feedback").textContent = "";
+      $("feedback").className = "feedback";
+      updateHearts();
+      renderPuzzle();
+      if (curGate.work.sum.type === "antwoord" && !curGate.work.finished) {
+        $("answer").disabled = false;
+        $("btnCheck").disabled = false;
+      }
+      focusInput();
+    } else state = "play";
+  }
+  const iso = (x, y, z) => [(x - y) * TW / 2, (x + y) * TH / 2 - z];
+  function poly(pts, fill, stroke) {
+    ctx.beginPath();
+    pts.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]));
+    ctx.closePath();
+    ctx.fillStyle = fill;
+    ctx.fill();
+    if (stroke) {
+      ctx.strokeStyle = stroke;
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+  }
+  function diamond(x, y, z) {
+    return [iso(x, y, z), iso(x + 1, y, z), iso(x + 1, y + 1, z), iso(x, y + 1, z)];
+  }
+  function drawBlock(x, y, h, top, left, right) {
+    poly([iso(x, y + 1, 0), iso(x + 1, y + 1, 0), iso(x + 1, y + 1, h), iso(x, y + 1, h)], left);
+    poly([iso(x + 1, y, 0), iso(x + 1, y + 1, 0), iso(x + 1, y + 1, h), iso(x + 1, y, h)], right);
+    poly(diamond(x, y, h), top, "rgba(255,255,255,.18)");
+  }
+  function playerScreen() {
+    const px = player.px, py = player.py;
+    return { px, py, s: iso(px + 0.5, py + 0.5, 0) };
+  }
+  function drawPlayer(sx, sy, outlineOnly) {
+    const n = li + 3;
+    const bob = reduceMotion ? 0 : Math.sin(clock * 3.2) * 2;
+    const hop = player.moving ? Math.abs(Math.sin(clock * 11)) * 4 : 0;
+    const cy = sy - 32 - bob - hop;
+    const R = 24;
+    let pts, color = PLAYER_COLORS[look.c];
+    if (morph) pts = shapePts(morph.to, morph.from, Math.min(1, morph.t / 1.1));
+    else pts = shapePts(n);
+    const rot = reduceMotion ? 0 : Math.sin(clock * 1.6) * 0.1;
+    const squash = morph ? 1 + Math.sin(Math.min(1, morph.t / 1.1) * Math.PI) * 0.25 : 1;
+    ctx.save();
+    if (!outlineOnly) {
+      ctx.fillStyle = C.shadow;
+      ctx.beginPath();
+      ctx.ellipse(sx, sy, 18 * (player.tele ? Math.max(0.1, Math.abs(1 - 2 * player.tele.t)) : 1), 8, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    const ts = player.tele ? Math.max(0.02, Math.abs(1 - 2 * player.tele.t)) : 1;
+    ctx.translate(sx, cy);
+    ctx.rotate(rot + (player.tele ? player.tele.t * Math.PI * 2 : 0));
+    ctx.scale(squash * ts, squash * ts);
+    ctx.beginPath();
+    pts.forEach((p, i) => i ? ctx.lineTo(p[0] * R, p[1] * R) : ctx.moveTo(p[0] * R, p[1] * R));
+    ctx.closePath();
+    ctx.lineJoin = "round";
+    if (outlineOnly) {
+      ctx.globalAlpha = 0.45;
+      ctx.setLineDash([3, 3]);
+      ctx.strokeStyle = C.ink;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    } else {
+      ctx.fillStyle = color;
+      ctx.fill();
+      ctx.strokeStyle = PLAYER_INK;
+      ctx.lineWidth = 3;
+      ctx.stroke();
+      const [dx, dy] = player.dir;
+      let ex = dx - dy, ey = (dx + dy) * 0.5;
+      const m = Math.hypot(ex, ey) || 1;
+      ex = ex / m * 3.5;
+      ey = ey / m * 3.5;
+      ctx.fillStyle = PLAYER_INK;
+      for (const s of [-1, 1]) {
+        ctx.beginPath();
+        ctx.arc(s * 6.5 + ex, 3 + ey, 2.9, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+    ctx.restore();
+  }
+  function drawGate(g) {
+    const h = PED_H * (1 - g.anim);
+    if (h > 0.3) drawBlock(g.x, g.y, h, C.gold, C["gold-left"], C["gold-right"]);
+    if (g.anim >= 1) return;
+    const c = iso(g.x + 0.5, g.y + 0.5, 0);
+    const bob = reduceMotion ? 0 : Math.sin(clock * 2 + g.x) * 3;
+    const rise = g.anim * 30;
+    const R = 16 * (1 - g.anim);
+    ctx.fillStyle = C.shadow;
+    ctx.beginPath();
+    ctx.ellipse(c[0], c[1] - h, 10 * (1 - g.anim) + 1, 4, 0, 0, Math.PI * 2);
+    ctx.fill();
+    drawSolid(ctx, map.solid, c[0], c[1] - h - 36 - bob - rise, R, clock * (reduceMotion ? 0.4 : 1) + g.x, C.gold, C["gold-ink"]);
+  }
+  function drawExitFloor() {
+    const e = map.exit, pulse = reduceMotion ? 0.5 : 0.5 + 0.5 * Math.sin(clock * 3);
+    ctx.save();
+    ctx.globalAlpha = 0.25 + 0.25 * pulse;
+    poly(diamond(e.x, e.y, 0), C.exit);
+    ctx.restore();
+  }
+  function drawPortals() {
+    for (const [k, tp] of map.tele) {
+      if (tp.secret || !tp.color) continue;
+      const [x, y] = k.split(",").map(Number);
+      poly(diamond(x, y, 0), tp.color);
+      const c = iso(x + 0.5, y + 0.5, 0);
+      const pulse = reduceMotion ? 0.6 : 0.55 + 0.12 * Math.sin(clock * 3 + x + y);
+      ctx.save();
+      ctx.translate(c[0], c[1]);
+      ctx.beginPath();
+      ctx.moveTo(0, -TH / 2 * pulse);
+      ctx.lineTo(TW / 2 * pulse, 0);
+      ctx.lineTo(0, TH / 2 * pulse);
+      ctx.lineTo(-TW / 2 * pulse, 0);
+      ctx.closePath();
+      ctx.strokeStyle = "rgba(255,255,255,.85)";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.ellipse(0, 0, TW * 0.12, TH * 0.12, 0, 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(255,255,255,.75)";
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+  function drawExitShape() {
+    const e = map.exit, c = iso(e.x + 0.5, e.y + 0.5, 0);
+    const n = li + 4, R = 19, y = c[1] - 38 - (reduceMotion ? 0 : Math.sin(clock * 2) * 3);
+    const spin = reduceMotion ? 1 : Math.cos(clock * 1.4);
+    ctx.save();
+    ctx.translate(c[0], y);
+    ctx.scale(Math.abs(spin) < 0.15 ? 0.15 * Math.sign(spin || 1) : spin, 1);
+    ctx.beginPath();
+    shapePts(n).forEach((p, i) => i ? ctx.lineTo(p[0] * R, p[1] * R) : ctx.moveTo(p[0] * R, p[1] * R));
+    ctx.closePath();
+    ctx.lineJoin = "round";
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = C.exit;
+    ctx.setLineDash([5, 4]);
+    ctx.stroke();
+    ctx.restore();
+  }
+  function render() {
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.fillStyle = C.bg;
+    ctx.fillRect(0, 0, W, H);
+    if (!map) return;
+    ctx.setTransform(dpr * zoom, 0, 0, dpr * zoom, dpr * (W / 2 - cam.x * zoom), dpr * (H / 2 - cam.y * zoom));
+    for (let y = 0; y < map.h; y++) for (let x = 0; x < map.w; x++) {
+      if (map.grid[y][x] === 1 || map.grid[y][x] === 9) continue;
+      const v = map.grid[y][x];
+      if (v === 6 || v === 7) {
+        poly(diamond(x, y, 0), "#7CC4EE", C["floor-edge"]);
+        const m = v === 7 && mechAt(x, y);
+        if (m && (m.type === "wip" || m.type === "brug" && m.anim > 0.5)) poly(diamond(x, y, 2), "#B07A45", "#8A5A2E");
+        continue;
+      }
+      poly(diamond(x, y, 0), (x + y) % 2 ? C["floor-a"] : C["floor-b"], C["floor-edge"]);
+    }
+    for (const m of map.mechs || []) {
+      if (m.type === "vlot") {
+        const i = Math.min(m.route.length - 2, Math.floor(m.pos)), f = m.pos - i, a = m.route[i], b = m.route[i + 1];
+        poly(diamond(a.x + (b.x - a.x) * f, a.y + (b.y - a.y) * f, 3), "#B07A45", "#8A5A2E");
+      }
+      if (m.type === "brug") poly(diamond(m.button.x, m.button.y, 1), m.up ? "#3C9A52" : "#E5486B");
+    }
+    if (map.exit) drawExitFloor();
+    drawPortals();
+    const items = [];
+    for (let y = 0; y < map.h; y++) for (let x = 0; x < map.w; x++) {
+      const v = map.grid[y][x];
+      if (v === 1) items.push({ d: x + y, f: () => drawBlock(x, y, WALL_H, C["wall-top"], C["wall-left"], C["wall-right"]) });
+      else if (v === 2) items.push({ d: x + y, f: () => drawBlock(x, y, PILLAR_H, C["pillar-top"], C["pillar-left"], C["pillar-right"]) });
+      else if (v === 5) items.push({ d: x + y, f: () => drawBlock(x, y, WALL_H, map.door.open ? C.exit : C["pillar-top"], C["wall-left"], C["wall-right"]) });
+      else if (v === 4) items.push({ d: x + y, f: () => {
+        drawBlock(x, y, PED_H, C["pillar-top"], C["pillar-left"], C["pillar-right"]);
+        const sl = map.slots.find((s) => s.x === x && s.y === y), c = iso(x + 0.5, y + 0.5, 0);
+        if (sl.i < li) drawSolid(ctx, sl.solid, c[0], c[1] - PED_H - 30, 15, clock + sl.i, C.gold, C["gold-ink"]);
+        else {
+          ctx.fillStyle = C["ink"];
+          ctx.globalAlpha = 0.45;
+          ctx.font = '800 22px "Baloo 2",sans-serif';
+          ctx.textAlign = "center";
+          ctx.fillText("?", c[0], c[1] - PED_H - 20);
+          ctx.globalAlpha = 1;
+        }
+      } });
+    }
+    for (const g of map.gates) items.push({ d: g.x + g.y, f: () => drawGate(g) });
+    if (map.kind !== "museum") items.push({ d: map.exit.x + map.exit.y, f: drawExitShape });
+    const ps = playerScreen();
+    items.push({ d: ps.px + ps.py + 0.25, f: () => drawPlayer(ps.s[0], ps.s[1], false) });
+    items.sort((a, b) => a.d - b.d);
+    for (const it of items) it.f();
+    drawPlayer(ps.s[0], ps.s[1], true);
+  }
+  function renderSolidPanel() {
+    const size = 84;
+    sctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    sctx.clearRect(0, 0, size, size);
+    const R = 30 * (1 - puzzleSpin * 0.2);
+    drawSolid(sctx, map.solid, size / 2, size / 2, R, clock * (reduceMotion ? 0.3 : 0.8) + puzzleSpin * clock * 3, C.gold, C["gold-ink"]);
+  }
+  const G3 = (() => {
+    const T = window.THREE;
+    if (!T) return null;
+    const cv = $("world3d");
+    let renderer;
+    try {
+      renderer = new T.WebGLRenderer({ canvas: cv, antialias: true });
+      if (!renderer.getContext()) return null;
+    } catch (e) {
+      return null;
+    }
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = T.PCFSoftShadowMap;
+    cv.hidden = false;
+    $("world").hidden = true;
+    const WALL3 = 1.1, PIL3 = 0.6, PED3 = 0.72, GATE3 = 1.1;
+    const scene = new T.Scene();
+    const camera = new T.PerspectiveCamera(44, 1, 0.1, 80);
+    const hemi = new T.HemisphereLight(16777215, 9476280, 0.5);
+    const sun = new T.DirectionalLight(16777215, 0.52);
+    sun.castShadow = true;
+    sun.shadow.mapSize.set(1024, 1024);
+    Object.assign(sun.shadow.camera, { left: -10, right: 10, top: 10, bottom: -10, near: 1, far: 40 });
+    sun.shadow.bias = -6e-4;
+    scene.add(hemi, sun, sun.target);
+    const lam = (o) => new T.MeshLambertMaterial(o || {});
+    const M = {
+      floorA: lam(),
+      floorB: lam(),
+      wallTop: lam(),
+      wallSide: lam(),
+      wallTopF: lam({ transparent: true, opacity: 0.2, depthWrite: false }),
+      wallSideF: lam({ transparent: true, opacity: 0.2, depthWrite: false }),
+      pilTop: lam(),
+      pilSide: lam(),
+      gold: lam(),
+      goldSide: lam(),
+      solid: lam(),
+      unknown: lam({ transparent: true, opacity: 0.35 }),
+      edge: new T.LineBasicMaterial(),
+      ink: new T.LineBasicMaterial({ color: PLAYER_INK }),
+      exitTile: new T.MeshBasicMaterial({ transparent: true, opacity: 0.45 }),
+      exitRing: lam({ emissiveIntensity: 0.45 }),
+      glow: new T.MeshBasicMaterial({ transparent: true, opacity: 0.16, depthWrite: false, side: T.DoubleSide }),
+      doorOpen: new T.MeshBasicMaterial({ transparent: true, opacity: 0.55, side: T.DoubleSide }),
+      doorShut: new T.MeshBasicMaterial({ transparent: true, opacity: 0.5, side: T.DoubleSide }),
+      white: lam({ color: 16777215, emissive: 16777215, emissiveIntensity: 0.5 })
+    };
+    function recolor() {
+      M.floorA.color.set(C["floor-a"]);
+      M.floorB.color.set(C["floor-b"]);
+      M.wallTop.color.set(C["wall-top"]);
+      M.wallSide.color.set(C["wall-left"]);
+      M.wallTopF.color.set(C["wall-top"]);
+      M.wallSideF.color.set(C["wall-left"]);
+      M.pilTop.color.set(C["pillar-top"]);
+      M.pilSide.color.set(C["pillar-left"]);
+      M.gold.color.set(C.gold);
+      M.goldSide.color.set(C["gold-left"]);
+      M.solid.color.set(C.gold);
+      M.edge.color.set(C["gold-ink"]);
+      M.unknown.color.set(C["pillar-left"]);
+      M.exitTile.color.set(C.exit);
+      M.exitRing.color.set(C.exit);
+      M.exitRing.emissive.set(C.exit);
+      M.doorOpen.color.set(C.exit);
+      M.doorShut.color.set(C["pillar-left"]);
+      scene.background = new T.Color(C.bg);
+      scene.fog = new T.Fog(C.bg, 13, 26);
+    }
+    recolor();
+    window.__recolor3d = () => {
+      recolor();
+      for (const k in matCache) delete matCache[k];
+      if (mapRef) {
+        const f = mapRef.fresh;
+        mapRef.fresh = -1;
+        build(mapRef, false);
+        mapRef.fresh = f;
+      }
+    };
+    const boxMats = (top, side) => [side, side, top, side, side, side];
+    const WALL_M = boxMats(M.wallTop, M.wallSide);
+    const PIL_M = boxMats(M.pilTop, M.pilSide), GOLD_M = boxMats(M.gold, M.goldSide);
+    const box = (w, h, d) => {
+      const g = new T.BoxGeometry(w, h, d);
+      g.translate(0, h / 2, 0);
+      return g;
+    };
+    const floorGeo = new T.PlaneGeometry(1, 1);
+    floorGeo.rotateX(-Math.PI / 2);
+    const wallGeo = box(1, WALL3, 1), pilGeo = box(0.86, PIL3, 0.86), gateGeo = box(1, GATE3, 1);
+    const pedBase = box(0.78, 0.12, 0.78), pedCol = box(0.5, PED3 - 0.2, 0.5), pedTop = box(0.74, 0.1, 0.74);
+    const solidCache = {};
+    function solidGeo(S) {
+      if (solidCache[S.name]) return solidCache[S.name];
+      const pos = [];
+      for (const f of S.faces) {
+        const a = S.v[f.idx[0]];
+        for (let k = 1; k < f.idx.length - 1; k++) {
+          const b = S.v[f.idx[k]], c = S.v[f.idx[k + 1]];
+          pos.push(a[0], a[1], a[2], b[0], b[1], b[2], c[0], c[1], c[2]);
+        }
+      }
+      const g = new T.BufferGeometry();
+      g.setAttribute("position", new T.Float32BufferAttribute(pos, 3));
+      g.computeVertexNormals();
+      return solidCache[S.name] = { geo: g, edges: new T.EdgesGeometry(g, 1) };
+    }
+    function solidMesh(S, r, known) {
+      const sg = solidGeo(S), grp = new T.Group();
+      const m = new T.Mesh(sg.geo, known ? M.solid : M.unknown);
+      m.castShadow = known;
+      grp.add(m);
+      if (known) grp.add(new T.LineSegments(sg.edges, M.edge));
+      grp.scale.setScalar(r);
+      return grp;
+    }
+    function ringGeo(n) {
+      const outer = shapePts(n), sh = new T.Shape(), hole = new T.Path();
+      outer.forEach((p, i) => i ? sh.lineTo(p[0] * 0.42, -p[1] * 0.42) : sh.moveTo(p[0] * 0.42, -p[1] * 0.42));
+      outer.slice().reverse().forEach((p, i) => i ? hole.lineTo(p[0] * 0.33, -p[1] * 0.33) : hole.moveTo(p[0] * 0.33, -p[1] * 0.33));
+      sh.holes.push(hole);
+      const g = new T.ExtrudeGeometry(sh, { depth: 0.05, bevelEnabled: false, curveSegments: 1 });
+      g.translate(0, 0, -0.025);
+      return g;
+    }
+    const AV_R = 0.36, AV_H = 0.72, BEV = 0.05;
+    function prismGeo(pts) {
+      const sh = new T.Shape();
+      pts.forEach((p, i) => i ? sh.lineTo(p[0] * AV_R, p[1] * AV_R) : sh.moveTo(p[0] * AV_R, p[1] * AV_R));
+      const g = new T.ExtrudeGeometry(sh, { depth: AV_H - 2 * BEV, bevelEnabled: true, bevelThickness: BEV, bevelSize: BEV, bevelSegments: 1, curveSegments: 1 });
+      g.rotateX(Math.PI / 2);
+      g.translate(0, AV_H - BEV, 0);
+      return g;
+    }
+    function makeHat(id) {
+      const g = new T.Group();
+      g.position.y = AV_H - 0.01;
+      const m = (geo, color, y, extra) => {
+        const o = new T.Mesh(geo, lam(Object.assign({ color }, extra || {})));
+        o.position.y = y;
+        o.castShadow = true;
+        g.add(o);
+        return o;
+      };
+      if (id === "pet") {
+        m(new T.SphereGeometry(0.19, 18, 8, 0, Math.PI * 2, 0, Math.PI / 2), "#3F7FD9", 0);
+        const brim = m(new T.CylinderGeometry(0.13, 0.13, 0.03, 18, 1, false, -Math.PI / 2, Math.PI), "#2A5BA8", 0.015);
+        brim.position.z = -0.12;
+        brim.scale.set(1.25, 1, 1.4);
+      } else if (id === "hoed") {
+        m(new T.CylinderGeometry(0.26, 0.26, 0.03, 20), "#24274F", 0.015);
+        m(new T.CylinderGeometry(0.16, 0.17, 0.34, 20), "#24274F", 0.19);
+        m(new T.CylinderGeometry(0.175, 0.175, 0.07, 20), "#E5486B", 0.07);
+      } else if (id === "muts") {
+        const c = m(new T.ConeGeometry(0.17, 0.4, 18), "#F5B83A", 0.2);
+        c.rotation.z = 0.12;
+        const p = m(new T.SphereGeometry(0.055, 12, 8), "#FFFFFF", 0.41);
+        p.position.x = -0.05;
+        m(new T.TorusGeometry(0.16, 0.03, 8, 20), "#E5486B", 0.02).rotation.x = Math.PI / 2;
+      } else if (id === "kroon") {
+        m(new T.CylinderGeometry(0.18, 0.18, 0.11, 16, 1, true), "#F5B83A", 0.055, { side: T.DoubleSide });
+        for (let k = 0; k < 6; k++) {
+          const a = k / 6 * Math.PI * 2, p = m(new T.ConeGeometry(0.045, 0.12, 8), "#F5B83A", 0.17);
+          p.position.x = Math.sin(a) * 0.17;
+          p.position.z = Math.cos(a) * 0.17;
+        }
+        const gem = m(new T.OctahedronGeometry(0.04), "#E5486B", 0.06);
+        gem.position.z = -0.18;
+      }
+      return g;
+    }
+    function makeAvatar() {
+      const root = new T.Group(), body = new T.Group(), inner = new T.Group(), eyes = new T.Group();
+      root.add(body);
+      body.add(inner, eyes);
+      const mat = lam({ color: PLAYER_COLORS[look.c] });
+      let mesh = null, edges = null, hat = null, hatId = null;
+      const white = lam({ color: 16777215 }), dark = lam({ color: PLAYER_INK });
+      const eyeGeo = new T.SphereGeometry(0.075, 14, 10), pupGeo = new T.SphereGeometry(0.043, 12, 8);
+      const pupils = [];
+      for (const s of [-1, 1]) {
+        const e = new T.Mesh(eyeGeo, white);
+        e.position.set(s * 0.11, 0.5, 0);
+        eyes.add(e);
+        const p = new T.Mesh(pupGeo, dark);
+        p.position.set(s * 0.11, 0.5, -0.045);
+        eyes.add(p);
+        pupils.push(p);
+      }
+      const A = {
+        root,
+        body,
+        n: -1,
+        setShape(pts, nEff) {
+          if (mesh) {
+            inner.remove(mesh, edges);
+            mesh.geometry.dispose();
+            edges.geometry.dispose();
+          }
+          const g = prismGeo(pts);
+          mesh = new T.Mesh(g, mat);
+          mesh.castShadow = true;
+          edges = new T.LineSegments(new T.EdgesGeometry(g, 30), M.ink);
+          inner.add(mesh, edges);
+          inner.rotation.y = Math.PI / nEff;
+          eyes.position.z = -(AV_R * Math.cos(Math.PI / nEff) + BEV + 0.015);
+        },
+        setLook() {
+          mat.color.set(PLAYER_COLORS[look.c]);
+          if (hatId !== look.h) {
+            if (hat) body.remove(hat);
+            hat = makeHat(look.h);
+            body.add(hat);
+            hatId = look.h;
+          }
+        }
+      };
+      A.setLook();
+      return A;
+    }
+    const av = makeAvatar();
+    scene.add(av.root);
+    let prev = null;
+    try {
+      const pc = $("avatarPrev");
+      const pr = new T.WebGLRenderer({ canvas: pc, antialias: true, alpha: true });
+      const ps = new T.Scene(), pcam = new T.PerspectiveCamera(32, 1, 0.1, 20);
+      pcam.position.set(0, 1.25, 2.3);
+      pcam.lookAt(0, 0.45, 0);
+      const pl = new T.DirectionalLight(16777215, 0.65);
+      pl.position.set(-1.5, 3, 2.5);
+      ps.add(new T.HemisphereLight(16777215, 8949928, 0.8), pl);
+      const pa = makeAvatar();
+      pa.setShape(shapePts(3), 3);
+      ps.add(pa.root);
+      prev = { pr, ps, pcam, pa, size: 0 };
+    } catch (e) {
+      prev = null;
+    }
+    const isDark = () => {
+      const t = document.documentElement.dataset.theme;
+      return t === "dark" || t !== "light" && matchMedia("(prefers-color-scheme: dark)").matches;
+    };
+    const DARK = new T.Color("#1B1F3D");
+    const dk = (hex, k) => {
+      const c = new T.Color(hex);
+      return isDark() ? c.lerp(DARK, k) : c;
+    };
+    const matCache = {};
+    const mc = (hex, o) => {
+      const key = hex + JSON.stringify(o || {}) + isDark();
+      return matCache[key] || (matCache[key] = lam(Object.assign({ color: dk(hex, 0.25) }, o || {})));
+    };
+    const texCache = {};
+    function canvasTex(key, w, h, draw) {
+      if (texCache[key]) return texCache[key];
+      const c = document.createElement("canvas");
+      c.width = w;
+      c.height = h;
+      draw(c.getContext("2d"), w, h);
+      const t = new T.CanvasTexture(c);
+      t.anisotropy = 4;
+      return texCache[key] = t;
+    }
+    const FONT = '"Baloo 2", ui-rounded, "Segoe UI", sans-serif';
+    const gridTex = (bg, line) => canvasTex("grid" + bg + line, 128, 128, (g, s) => {
+      g.fillStyle = bg;
+      g.fillRect(0, 0, s, s);
+      g.strokeStyle = line;
+      g.lineWidth = 2;
+      for (let i = 0; i <= 4; i++) {
+        const q = i * s / 4;
+        g.beginPath();
+        g.moveTo(q, 0);
+        g.lineTo(q, s);
+        g.stroke();
+        g.beginPath();
+        g.moveTo(0, q);
+        g.lineTo(s, q);
+        g.stroke();
+      }
+    });
+    const circleTex = (bg, line) => canvasTex("circ" + bg, 128, 128, (g, s) => {
+      g.fillStyle = bg;
+      g.fillRect(0, 0, s, s);
+      g.strokeStyle = line;
+      g.lineWidth = 3;
+      g.beginPath();
+      g.arc(s / 2, s / 2, s * 0.36, 0, Math.PI * 2);
+      g.stroke();
+      g.beginPath();
+      g.moveTo(s / 2, s / 2);
+      g.lineTo(s / 2 + s * 0.36, s / 2);
+      g.stroke();
+      g.fillStyle = line;
+      g.beginPath();
+      g.arc(s / 2, s / 2, 4, 0, Math.PI * 2);
+      g.fill();
+    });
+    const digitTex = (d, bg) => canvasTex("dg" + d + bg, 128, 128, (g, s) => {
+      g.fillStyle = bg;
+      g.fillRect(0, 0, s, s);
+      g.fillStyle = "#fff";
+      g.font = "800 ".concat(s * 0.68, "px ").concat(FONT);
+      g.textAlign = "center";
+      g.textBaseline = "middle";
+      g.fillText(d, s / 2, s / 2 + s * 0.06);
+    });
+    function labelSprite(text, fg, bg, h) {
+      const tex = canvasTex("lb" + text + fg + bg, 256, 96, (g, w, hh) => {
+        g.font = "800 60px ".concat(FONT);
+        const tw = Math.min(w - 8, g.measureText(text).width + 34);
+        if (bg) {
+          g.fillStyle = bg;
+          g.beginPath();
+          const x0 = (w - tw) / 2;
+          g.moveTo(x0 + 24, 8);
+          g.arcTo(x0 + tw, 8, x0 + tw, hh - 8, 24);
+          g.arcTo(x0 + tw, hh - 8, x0, hh - 8, 24);
+          g.arcTo(x0, hh - 8, x0, 8, 24);
+          g.arcTo(x0, 8, x0 + tw, 8, 24);
+          g.fill();
+        }
+        g.fillStyle = fg;
+        g.textAlign = "center";
+        g.textBaseline = "middle";
+        g.fillText(text, w / 2, hh / 2 + 4);
+      });
+      const sp = new T.Sprite(new T.SpriteMaterial({ map: tex, transparent: true, depthWrite: false }));
+      sp.scale.set(h * 256 / 96, h, 1);
+      return sp;
+    }
+    const pick = (a) => a[Math.floor(Math.random() * a.length)];
+    const G = () => new T.Group();
+    const put = (grp, geo, mat, x, y, z) => {
+      const o = new T.Mesh(geo, mat);
+      o.position.set(x || 0, y || 0, z || 0);
+      o.castShadow = true;
+      o.receiveShadow = true;
+      grp.add(o);
+      return o;
+    };
+    const BRIGHT = ["#E5486B", "#F08A24", "#2BA6A0", "#7A5BD6", "#3C9A52", "#D94FB0", "#3F7FD9", "#C9A227"];
+    function pencil(col) {
+      const g = G();
+      put(g, new T.CylinderGeometry(0.075, 0.075, 0.55, 6), mc(col), 0, 0.335);
+      put(g, new T.ConeGeometry(0.075, 0.14, 6), mc("#F1D3A4"), 0, 0.68);
+      put(g, new T.ConeGeometry(0.026, 0.05, 6), mc("#33363F"), 0, 0.74);
+      put(g, new T.CylinderGeometry(0.075, 0.075, 0.06, 12), mc("#B9BCC6"), 0, 0.03 + 0.02);
+      put(g, new T.CylinderGeometry(0.075, 0.075, 0.05, 12), mc("#F4A3B5"), 0, 0 + 0.025).position.y = 0.025;
+      return g;
+    }
+    function setSquare() {
+      const sh = new T.Shape();
+      sh.moveTo(-0.4, 0);
+      sh.lineTo(0.4, 0);
+      sh.lineTo(0, 0.4);
+      sh.lineTo(-0.4, 0);
+      const hole = new T.Path();
+      hole.moveTo(-0.22, 0.06);
+      hole.lineTo(0, 0.28);
+      hole.lineTo(0.22, 0.06);
+      hole.lineTo(-0.22, 0.06);
+      sh.holes.push(hole);
+      const geo = new T.ExtrudeGeometry(sh, { depth: 0.03, bevelEnabled: false });
+      const g = G();
+      put(g, geo, mc("#9FD3F5", { transparent: true, opacity: 0.8 }), 0, 0, -0.015).rotation.y = Math.random() * 0.8 - 0.4;
+      return g;
+    }
+    function eraser() {
+      const g = G();
+      put(g, box(0.62, 0.34, 0.4), mc("#F4A3B5"));
+      put(g, box(0.34, 0.36, 0.42), mc("#3F6FD0"), 0.16, -0.01);
+      g.rotation.y = Math.random() * 0.6 - 0.3;
+      return g;
+    }
+    function numberCube(s, d, col) {
+      const tex = digitTex(String(d), col), m = new T.MeshLambertMaterial({ map: tex, color: dk("#ffffff", 0.3) });
+      const g = G();
+      put(g, box(s, s, s), m);
+      return g;
+    }
+    function numberStack() {
+      const g = G();
+      g.add(numberCube(0.64, Math.floor(Math.random() * 10), pick(BRIGHT)));
+      const top = numberCube(0.4, Math.floor(Math.random() * 10), pick(BRIGHT));
+      top.position.y = 0.64;
+      top.rotation.y = Math.random() * 0.8 - 0.4;
+      g.add(top);
+      return g;
+    }
+    function pie(frac, r) {
+      const sh = new T.Shape();
+      sh.moveTo(0, 0);
+      sh.absarc(0, 0, r, 0, Math.PI * 2 * frac, false);
+      sh.lineTo(0, 0);
+      const geo = new T.ExtrudeGeometry(sh, { depth: 0.2, bevelEnabled: true, bevelThickness: 0.03, bevelSize: 0.03, bevelSegments: 2, curveSegments: 24 });
+      geo.rotateX(-Math.PI / 2);
+      const g = G();
+      put(g, geo, mc("#E8B865"), 0, 0.03);
+      const cream = new T.ExtrudeGeometry(sh, { depth: 0.03, bevelEnabled: false, curveSegments: 24 });
+      cream.rotateX(-Math.PI / 2);
+      cream.scale(0.96, 1, 0.96);
+      put(g, cream, mc("#FFF3F6"), 0, 0.25);
+      const n = Math.round(frac * 8);
+      for (let k = 0; k < n; k++) {
+        const a = (k + 0.5) / 8 * Math.PI * 2;
+        put(g, new T.SphereGeometry(0.045, 10, 8), mc("#D9303F"), Math.cos(a) * r * 0.68, 0.31, -Math.sin(a) * r * 0.68);
+      }
+      g.rotation.y = Math.random() * Math.PI * 2;
+      return g;
+    }
+    function cakeStand() {
+      const g = G();
+      put(g, new T.CylinderGeometry(0.1, 0.18, 0.22, 16), mc("#F5F0EA"));
+      put(g, new T.CylinderGeometry(0.42, 0.42, 0.04, 24), mc("#F5F0EA"), 0, 0.24);
+      const p = pie(pick([3 / 4, 7 / 8, 5 / 8, 2 / 3]), 0.38);
+      p.position.y = 0.24;
+      g.add(p);
+      return g;
+    }
+    function shapeObj(sz) {
+      const col = mc(pick(BRIGHT)), k = Math.floor(Math.random() * 5), g = G();
+      if (k === 0) put(g, new T.ConeGeometry(0.34 * sz, 0.8 * sz, 24), col, 0, 0.4 * sz);
+      else if (k === 1) put(g, new T.CylinderGeometry(0.3 * sz, 0.3 * sz, 0.7 * sz, 24), col, 0, 0.35 * sz);
+      else if (k === 2) put(g, new T.SphereGeometry(0.34 * sz, 24, 16), col, 0, 0.34 * sz);
+      else if (k === 3) {
+        const o = put(g, box(0.56 * sz, 0.56 * sz, 0.56 * sz), col);
+        o.rotation.y = 0.5;
+      } else put(g, new T.OctahedronGeometry(0.36 * sz), col, 0, 0.36 * sz);
+      return g;
+    }
+    function wheel() {
+      const g = G();
+      put(g, box(0.5, 0.12, 0.3), mc("#C9C2E8"));
+      const t = put(g, new T.TorusGeometry(0.3, 0.07, 10, 32), mc(pick(["#8C72D6", "#3F7FD9", "#E5486B"])), 0, 0.42);
+      put(g, new T.CylinderGeometry(0.035, 0.035, 0.6, 8), mc("#6A52B5"), 0, 0.42).rotation.z = Math.PI / 2;
+      t.rotation.y = Math.random() * Math.PI;
+      if (Math.random() < 0.5) {
+        const sp = labelSprite("π", "#4A3A99", "#FFFFFF", 0.28);
+        sp.position.y = 0.95;
+        g.add(sp);
+      }
+      return g;
+    }
+    const seedTex = () => canvasTex("seeds", 128, 128, (g, s) => {
+      g.fillStyle = "#7A4A1E";
+      g.beginPath();
+      g.arc(s / 2, s / 2, s / 2, 0, Math.PI * 2);
+      g.fill();
+      const ga = Math.PI * (3 - Math.sqrt(5));
+      for (let i = 1; i < 170; i++) {
+        const r = Math.sqrt(i / 170) * s * 0.47, a = i * ga;
+        g.fillStyle = i % 2 ? "#3E2410" : "#5A3416";
+        g.beginPath();
+        g.arc(s / 2 + r * Math.cos(a), s / 2 + r * Math.sin(a), 2.6, 0, Math.PI * 2);
+        g.fill();
+      }
+    });
+    function sunflower(h) {
+      const g = G(), top = G();
+      put(g, new T.CylinderGeometry(0.03, 0.04, h, 8), mc("#3D8B37"), 0, h / 2);
+      put(g, new T.SphereGeometry(0.09, 10, 6), mc("#4FA046"), 0.08, h * 0.45).scale.set(1.3, 0.4, 0.7);
+      top.position.y = h;
+      top.rotation.x = 0.9;
+      g.add(top);
+      const disc = new T.Mesh(new T.CircleGeometry(0.17, 32), new T.MeshLambertMaterial({ map: seedTex(), color: dk("#ffffff", 0.3) }));
+      disc.position.z = 0.025;
+      top.add(disc);
+      for (let k = 0; k < 13; k++) {
+        const pt = new T.Mesh(new T.SphereGeometry(0.07, 8, 6), mc("#F6C224"));
+        const a = k / 13 * Math.PI * 2;
+        pt.scale.set(1.5, 0.55, 0.2);
+        pt.position.set(Math.cos(a) * 0.24, Math.sin(a) * 0.24, 0);
+        pt.rotation.z = a;
+        top.add(pt);
+      }
+      put(top, new T.CylinderGeometry(0.19, 0.17, 0.05, 20), mc("#5E9E4A")).rotation.x = Math.PI / 2;
+      g.rotation.y = Math.PI + (Math.random() * 0.6 - 0.3);
+      return g;
+    }
+    function point() {
+      const g = G(), x = Math.floor(Math.random() * 9) - 4, y = Math.floor(Math.random() * 9) - 4, L = pick("ABCDEFGHKLMPQ".split(""));
+      put(g, new T.CylinderGeometry(0.025, 0.025, 0.62, 8), mc("#5C6987"), 0, 0.31);
+      put(g, new T.SphereGeometry(0.13, 18, 12), mc("#E5486B"), 0, 0.7);
+      const sp = labelSprite("".concat(L, "(").concat(x, ",").concat(y, ")"), "#24274F", "#FFFFFF", 0.22);
+      sp.position.y = 1.02;
+      g.add(sp);
+      return g;
+    }
+    function sierpinski(depth, s) {
+      const g = G(), geo = new T.TetrahedronGeometry(s * Math.sqrt(3)), mat = mc(pick(["#F5B83A", "#4FD6CB", "#B6BEEF"]));
+      const V = [[1, 1, 1], [-1, -1, 1], [-1, 1, -1], [1, -1, -1]];
+      const rec = (c, sc, d) => {
+        if (d === 0) {
+          const o = put(g, geo, mat, c[0], c[1], c[2]);
+          o.scale.setScalar(sc);
+          return;
+        }
+        for (const v of V) rec([c[0] + v[0] * sc * s * 0.5, c[1] + v[1] * sc * s * 0.5, c[2] + v[2] * sc * s * 0.5], sc / 2, d - 1);
+      };
+      rec([0, 0, 0], 1, depth);
+      g.rotation.set(Math.atan(Math.SQRT1_2), 0, Math.PI / 4);
+      const w = G();
+      w.add(g);
+      g.position.y = s * 0.95;
+      return w;
+    }
+    function planet() {
+      const g = G(), col = pick(["#E5486B", "#F08A24", "#4FD6CB", "#7A5BD6"]);
+      put(g, new T.SphereGeometry(0.22, 20, 14), mc(col), 0, 0.32);
+      const r = put(g, new T.TorusGeometry(0.33, 0.025, 6, 36), mc("#F5E6B8"), 0, 0.32);
+      r.rotation.x = 1.2;
+      r.rotation.y = 0.3;
+      return g;
+    }
+    function bush() {
+      const g = G();
+      put(g, new T.SphereGeometry(0.3, 14, 10), mc("#5E9E4A"), 0, 0.26).scale.set(1, 0.85, 1);
+      return g;
+    }
+    const THEMES = [
+      {
+        bg: "#CFE0F5",
+        fa: "#FFFFFF",
+        fb: "#F1F6FF",
+        tex: () => gridTex("#FBFCFF", "#BFD3F0"),
+        wt: "#7FA3E0",
+        ws: "#5B7FC4",
+        water: "#7CC4EE",
+        pillar: () => pick([eraser, () => {
+          const g = G();
+          for (const [x, z, c] of [[-0.15, -0.1, "#F5B83A"], [0.14, 0.05, "#E5486B"], [-0.02, 0.17, "#3F7FD9"]]) {
+            const p = pencil(c);
+            p.position.set(x, 0, z);
+            g.add(p);
+          }
+          return g;
+        }])(),
+        deco: () => pick([() => pencil(pick(["#F5B83A", "#E5486B", "#3C9A52"])), setSquare])()
+      },
+      {
+        bg: "#FCE3B0",
+        fa: "#FFF4D6",
+        fb: "#FCE9B8",
+        wt: "#F0A04B",
+        ws: "#C97B2C",
+        water: "#6EC1E4",
+        pillar: numberStack,
+        deco: () => numberCube(0.36, Math.floor(Math.random() * 10), pick(BRIGHT))
+      },
+      {
+        bg: "#F6D3C8",
+        fa: "#FBE8E1",
+        fb: "#F5D9CF",
+        wt: "#C9826B",
+        ws: "#A2614D",
+        water: "#8FD0E6",
+        pillar: cakeStand,
+        deco: () => pie(1 / 8, 0.3)
+      },
+      {
+        bg: "#C9EBDD",
+        fa: "#E3F5EC",
+        fb: "#D2EDDF",
+        wt: "#3FA892",
+        ws: "#2C8573",
+        water: "#7BC8EA",
+        pillar: () => shapeObj(1.05),
+        deco: () => shapeObj(0.55)
+      },
+      {
+        bg: "#DCD3F5",
+        fa: "#F3EFFD",
+        fb: "#E7E0F9",
+        tex: () => circleTex("#F3EFFD", "#D4CAF2"),
+        wt: "#8C72D6",
+        ws: "#6A52B5",
+        water: "#79C3EC",
+        pillar: wheel,
+        deco: () => {
+          const g = G();
+          const sp = labelSprite(pick(["π", "3,14", "2πr", "πr²"]), "#4A3A99", "#FFFFFF", 0.26);
+          sp.position.y = 0.25;
+          g.add(sp);
+          return g;
+        }
+      },
+      {
+        bg: "#BFE3F2",
+        fa: "#CDE8B0",
+        fb: "#BEDF9C",
+        wt: "#6BAE55",
+        ws: "#4C8A3A",
+        water: "#6CBCE4",
+        pillar: () => sunflower(0.85),
+        deco: () => Math.random() < 0.5 ? sunflower(0.45) : bush()
+      },
+      {
+        bg: "#D9E0EC",
+        fa: "#FFFFFF",
+        fb: "#F6F8FC",
+        tex: () => gridTex("#FFFFFF", "#D5DBE8"),
+        wt: "#7C8AA8",
+        ws: "#5C6987",
+        water: "#79C2EA",
+        pillar: point,
+        deco: () => {
+          const g = G();
+          put(g, new T.SphereGeometry(0.09, 14, 10), mc("#3F7FD9"), 0, 0.1);
+          return g;
+        }
+      },
+      {
+        bg: "#20244F",
+        fa: "#353D7A",
+        fb: "#2E356E",
+        wt: "#6A5CC2",
+        ws: "#4A3F98",
+        water: "#3F7FD9",
+        stars: true,
+        pillar: () => sierpinski(2, 0.3),
+        deco: planet
+      }
+    ];
+    function decorate(m, th, at) {
+      for (let y = 1; y < m.h - 1; y++) for (const x of [0, m.w - 1]) {
+        if (m.grid[y][x] !== 1 || y % 5 === 0 || Math.random() > 0.42) continue;
+        at(th.deco(), x, y, WALL3);
+      }
+    }
+    let stars = null;
+    function starField() {
+      if (stars) return stars;
+      const pos = [];
+      for (let i = 0; i < 500; i++) {
+        const a = Math.random() * Math.PI * 2, e = Math.random() * 0.9 + 0.1, r = 40;
+        pos.push(Math.cos(a) * Math.cos(e) * r, Math.sin(e) * r - 4, Math.sin(a) * Math.cos(e) * r);
+      }
+      const g = new T.BufferGeometry();
+      g.setAttribute("position", new T.Float32BufferAttribute(pos, 3));
+      return stars = new T.Points(g, new T.PointsMaterial({ color: 16777215, size: 0.22, fog: false }));
+    }
+    const WOOD = () => mc("#B07A45"), WOOD2 = () => mc("#8A5A2E");
+    function duck() {
+      const g = G();
+      put(g, new T.SphereGeometry(0.14, 14, 10), mc("#F7D046"), 0, 0.1).scale.set(1, 0.8, 1.35);
+      put(g, new T.SphereGeometry(0.085, 12, 10), mc("#F7D046"), 0, 0.27, -0.13);
+      put(g, new T.ConeGeometry(0.04, 0.1, 8), mc("#F08A24"), 0, 0.26, -0.24).rotation.x = -Math.PI / 2;
+      for (const s of [-1, 1]) put(g, new T.SphereGeometry(0.018, 8, 6), mc("#1E2147"), s * 0.05, 0.3, -0.19);
+      return g;
+    }
+    const world = new T.Group();
+    scene.add(world);
+    let walls = [], gates3 = [], spinners = [], pulses = [], labels = [], exitRing = null, fresh = null, mapRef = null, mech3 = [], ducks = [];
+    function build(m, snap) {
+      mapRef = m;
+      while (world.children.length) world.remove(world.children[0]);
+      walls = [];
+      gates3 = [];
+      spinners = [];
+      pulses = [];
+      labels = [];
+      exitRing = null;
+      fresh = null;
+      mech3 = [];
+      ducks = [];
+      $("labels").innerHTML = "";
+      const th = m.kind === "level" ? THEMES[m.theme % THEMES.length] : null;
+      if (th) {
+        scene.background = dk(th.bg, 0.78);
+        scene.fog = new T.Fog(scene.background.getHex(), 13, 26);
+        if (th.stars) world.add(starField());
+      } else recolor();
+      const floorMats = th ? [th.fa, th.fb].map((c) => new T.MeshLambertMaterial({ color: dk(c, 0.5), map: th.tex ? th.tex() : null })) : [M.floorA, M.floorB];
+      const wallM = th ? boxMats(mc(th.wt), mc(th.ws)) : WALL_M;
+      const tiles = [[], []];
+      for (let y = 0; y < m.h; y++) for (let x = 0; x < m.w; x++) if (m.grid[y][x] !== 9) tiles[(x + y) % 2].push([x, y]);
+      const ground = new T.Mesh(new T.PlaneGeometry(m.w + 60, m.h + 60), new T.MeshLambertMaterial({ color: th ? dk(th.bg, 0.78).clone().lerp(new T.Color(th.ws), 0.22) : new T.Color(C.bg).lerp(new T.Color(C["wall-left"]), 0.2) }));
+      ground.rotation.x = -Math.PI / 2;
+      ground.position.set(m.w / 2, -0.02, m.h / 2);
+      ground.receiveShadow = true;
+      world.add(ground);
+      floorMats.forEach((mat, k) => {
+        const list = tiles[k], im = new T.InstancedMesh(floorGeo, mat, list.length), mx = new T.Matrix4();
+        list.forEach(([x, y], i) => {
+          mx.makeTranslation(x + 0.5, 0, y + 0.5);
+          im.setMatrixAt(i, mx);
+        });
+        im.receiveShadow = true;
+        world.add(im);
+      });
+      const at = (o, x, y, h) => {
+        o.position.set(x + 0.5, h || 0, y + 0.5);
+        world.add(o);
+        return o;
+      };
+      for (let y = 0; y < m.h; y++) for (let x = 0; x < m.w; x++) {
+        const v = m.grid[y][x];
+        if (v === 1) {
+          const w = at(new T.Mesh(wallGeo, wallM), x, y);
+          w.castShadow = w.receiveShadow = true;
+          walls.push({ o: w, x, y, f: false });
+        } else if (v === 2) {
+          if (th) {
+            const o = at(th.pillar(), x, y);
+            o.rotation.y += (Math.random() - 0.5) * 0.5;
+          } else {
+            const p = at(new T.Mesh(pilGeo, PIL_M), x, y);
+            p.castShadow = p.receiveShadow = true;
+          }
+        } else if (v === 6 || v === 7) {
+          const wm = mc(th ? th.water : "#7CC4EE", { transparent: true, opacity: 0.9 });
+          const wt = at(new T.Mesh(floorGeo, wm), x, y, 0.025);
+          wt.receiveShadow = true;
+          for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+            const n = m.grid[y + dy] && m.grid[y + dy][x + dx];
+            if (n === 6 || n === 7 || n === 1 || n === void 0) continue;
+            const k = at(new T.Mesh(dx ? box(0.08, 0.07, 1) : box(1, 0.07, 0.08), mc("#E9E2D0")), x, y);
+            k.position.x += dx * 0.46;
+            k.position.z += dy * 0.46;
+          }
+        } else if (v === 3) {
+          const g = m.gates.find((g2) => g2.x === x && g2.y === y);
+          const b = at(new T.Mesh(gateGeo, GOLD_M), x, y);
+          b.castShadow = b.receiveShadow = true;
+          const s = at(solidMesh(m.solid, 0.34, true), x, y, GATE3 + 0.6);
+          gates3.push({ g, b, s, phase: x });
+        } else if (v === 4) {
+          const sl = m.slots.find((s2) => s2.x === x && s2.y === y), known = sl.i < li;
+          for (const [g, h] of [[pedBase, 0], [pedCol, 0.12], [pedTop, PED3 - 0.1]]) {
+            const p = at(new T.Mesh(g, PIL_M), x, y, h);
+            p.castShadow = p.receiveShadow = true;
+          }
+          const s = at(solidMesh(sl.solid, 0.33, known), x, y, PED3 + 0.5);
+          spinners.push({ o: s, phase: sl.i, base: PED3 + 0.5 });
+          if (sl.i === m.fresh) fresh = { o: s, t: 0, base: PED3 + 0.5 };
+          const el = document.createElement("div");
+          el.className = "lbl" + (known ? "" : " unknown");
+          el.textContent = known ? sl.solid.name : "?";
+          $("labels").appendChild(el);
+          labels.push({ el, v: new T.Vector3(x + 0.5, PED3 + 1.02, y + 0.5) });
+        } else if (v === 5) {
+          for (const s of [-1, 1]) {
+            const post = at(new T.Mesh(box(0.18, WALL3, 1), WALL_M), x, y);
+            post.position.x += s * 0.41;
+            post.castShadow = true;
+          }
+          const lintel = at(new T.Mesh(box(1, 0.2, 1), WALL_M), x, y, WALL3 - 0.2);
+          const plane = at(new T.Mesh(new T.PlaneGeometry(0.64, WALL3 - 0.2), m.door.open ? M.doorOpen : M.doorShut), x, y, (WALL3 - 0.2) / 2);
+          if (m.door.open) pulses.push({ mat: M.doorOpen, lo: 0.35, hi: 0.7 });
+        }
+      }
+      for (const [k, tp] of m.tele) {
+        if (tp.secret || !tp.color) continue;
+        const [x, y] = k.split(",").map(Number);
+        const tile = at(new T.Mesh(floorGeo, new T.MeshLambertMaterial({ color: tp.color })), x, y, 5e-3);
+        tile.receiveShadow = true;
+        const ring = at(new T.Mesh(new T.TorusGeometry(0.3, 0.035, 8, 28), M.white), x, y, 0.08);
+        ring.rotation.x = Math.PI / 2;
+        spinners.push({ o: ring, phase: x + y, base: 0.08, bob: 0.05, flat: true });
+        const col = new T.MeshBasicMaterial({ color: tp.color, transparent: true, opacity: 0.2, depthWrite: false, side: T.DoubleSide });
+        at(new T.Mesh(new T.CylinderGeometry(0.4, 0.4, 1.5, 22, 1, true), col), x, y, 0.75);
+      }
+      if (m.exit) {
+        at(new T.Mesh(floorGeo, M.exitTile), m.exit.x, m.exit.y, 6e-3);
+        pulses.push({ mat: M.exitTile, lo: 0.3, hi: 0.7 });
+        if (m.kind !== "museum") {
+          exitRing = at(new T.Mesh(ringGeo(li + 4), M.exitRing), m.exit.x, m.exit.y, 1.05);
+          exitRing.castShadow = true;
+          const glow = new T.MeshBasicMaterial({ color: C.exit, transparent: true, opacity: 0.16, depthWrite: false, side: T.DoubleSide });
+          at(new T.Mesh(new T.CylinderGeometry(0.45, 0.45, 2, 24, 1, true), glow), m.exit.x, m.exit.y, 1);
+        }
+      }
+      for (const mm of m.mechs || []) {
+        if (mm.type === "wip" || mm.type === "brug") {
+          const yaw2 = Math.atan2(-mm.fwd[0], -mm.fwd[1]);
+          const mid = [(mm.near.x + mm.far.x) / 2 + 0.5, (mm.near.y + mm.far.y) / 2 + 0.5];
+          if (mm.type === "wip") {
+            const base = G();
+            base.position.set(mid[0], 0, mid[1]);
+            base.rotation.y = yaw2;
+            world.add(base);
+            const ful = put(base, new T.CylinderGeometry(0.17, 0.17, 0.5, 3), WOOD2(), 0, 0.08);
+            ful.rotation.z = Math.PI / 2;
+            const piv = G();
+            piv.position.y = 0.17;
+            base.add(piv);
+            put(piv, new T.BoxGeometry(0.56, 0.08, 1.9), WOOD());
+            for (const zz of [-0.6, 0, 0.6]) put(piv, new T.BoxGeometry(0.58, 0.085, 0.04), WOOD2(), 0, 2e-3, zz);
+            mech3.push({ m: mm, piv, mid });
+          } else {
+            const base = G();
+            base.position.set(mm.far.x + 0.5 + mm.fwd[0] * 0.5, 0.07, mm.far.y + 0.5 + mm.fwd[1] * 0.5);
+            base.rotation.y = yaw2;
+            world.add(base);
+            const hinge = G();
+            base.add(hinge);
+            put(hinge, new T.BoxGeometry(0.9, 0.08, 2), WOOD(), 0, 0, 1);
+            for (const sx of [-0.42, 0.42]) put(hinge, new T.BoxGeometry(0.05, 0.16, 2), WOOD2(), sx, 0.1, 1);
+            for (const sx of [-0.42, 0.42]) put(base, box(0.12, 0.5, 0.12), WOOD2(), sx, -0.07, -0.06);
+            const btn = G();
+            btn.position.set(mm.button.x + 0.5, 0, mm.button.y + 0.5);
+            world.add(btn);
+            put(btn, new T.CylinderGeometry(0.32, 0.34, 0.06, 24), mc("#C9CCD6"), 0, 0.03);
+            const cap = put(btn, new T.CylinderGeometry(0.22, 0.22, 0.09, 24), lam({ color: mm.up ? "#3C9A52" : "#E5486B" }), 0, 0.1);
+            mech3.push({ m: mm, hinge, cap, mid });
+          }
+        } else {
+          const raft = G();
+          world.add(raft);
+          for (const xx of [-0.27, 0, 0.27]) put(raft, new T.BoxGeometry(0.25, 0.12, 0.84), WOOD(), xx, 0.06);
+          for (const zz of [-0.3, 0.3]) put(raft, new T.BoxGeometry(0.84, 0.05, 0.1), WOOD2(), 0, 0.13, zz);
+          mech3.push({ m: mm, raft });
+        }
+        let best = null;
+        const isW = (x, y) => m.grid[y] && m.grid[y][x] === 6 && m.roomOf[y][x] === mm.k;
+        for (let y = 0; y < m.h; y++) for (let x = 0; x < m.w; x++) {
+          if (!isW(x, y)) continue;
+          if (!isW(x - 1, y)) {
+            let e = x;
+            while (isW(e + 1, y)) e++;
+            if (!best || e - x > best.len) best = { len: e - x, a: [x, y], b: [e, y] };
+          }
+          if (!isW(x, y - 1)) {
+            let e = y;
+            while (isW(x, e + 1)) e++;
+            if (!best || e - y > best.len) best = { len: e - y, a: [x, y], b: [x, e] };
+          }
+        }
+        if (best && best.len >= 2) {
+          const d = duck();
+          world.add(d);
+          ducks.push({ o: d, a: best.a, b: best.b, ph: Math.random() * 6 });
+        }
+      }
+      if (th) decorate(m, th, at);
+      av.n = -1;
+      if (snap) camSnap = true;
+    }
+    function standY(px, py) {
+      for (const q of mech3) {
+        const mm = q.m;
+        if (mm.type === "vlot") {
+          if (player.ride || mechAt(player.x, player.y) === mm) return 0.15;
+          continue;
+        }
+        const rx = px + 0.5 - q.mid[0], ry = py + 0.5 - q.mid[1];
+        const along = rx * mm.fwd[0] + ry * mm.fwd[1], perp = Math.abs(rx * mm.fwd[1] - ry * mm.fwd[0]);
+        if (perp > 0.45 || Math.abs(along) > 1) continue;
+        if (mm.type === "wip") return Math.max(0, 0.21 + along * Math.sin(mm.show * 0.22));
+        return mm.anim > 0.5 ? 0.11 : 0;
+      }
+      return 0;
+    }
+    function animMechs() {
+      for (const q of mech3) {
+        const mm = q.m;
+        if (mm.type === "wip") q.piv.rotation.x = mm.show * 0.22;
+        else if (mm.type === "brug") {
+          const e = mm.anim, k = e < 1 ? 1 - Math.pow(1 - e, 3) : 1;
+          q.hinge.rotation.x = -Math.PI / 2 * 0.62 * (1 - k);
+          q.cap.material.color.set(mm.up ? "#3C9A52" : "#E5486B");
+          q.cap.position.y = mm.up ? 0.06 : 0.1;
+        } else {
+          const L = mm.route.length - 1, i = Math.min(L - 1, Math.floor(mm.pos)), f = mm.pos - i, a = mm.route[i], b = mm.route[i + 1];
+          q.raft.position.set(a.x + (b.x - a.x) * f + 0.5, 0.02 + (reduceMotion ? 0 : Math.sin(clock * 2.2) * 0.015), a.y + (b.y - a.y) * f + 0.5);
+        }
+      }
+      for (const d of ducks) {
+        const u = 0.5 + 0.5 * Math.sin(clock * 0.35 + d.ph), du = Math.cos(clock * 0.35 + d.ph);
+        const vx = d.b[0] - d.a[0], vy = d.b[1] - d.a[1], sg = du > 0 ? 1 : -1;
+        d.o.position.set(d.a[0] + vx * u + 0.5, 0.03 + Math.sin(clock * 2 + d.ph) * 0.01, d.a[1] + vy * u + 0.5);
+        d.o.rotation.y = Math.atan2(-vx * sg, -vy * sg);
+      }
+    }
+    const camPos = new T.Vector3(), camAt = new T.Vector3(), tmp = new T.Vector3();
+    let camSnap = true, yaw = 0, W3 = 1, H3 = 1, idle = 0, overview = false;
+    function frame2(dt) {
+      const m = mapRef;
+      if (!m) return;
+      if (morph) {
+        const e = Math.min(1, morph.t / 1.1), ee = e < 0.5 ? 2 * e * e : 1 - Math.pow(-2 * e + 2, 2) / 2;
+        av.setShape(shapePts(morph.to, morph.from, e), morph.from + (morph.to - morph.from) * ee);
+        av.n = -2;
+      } else if (av.n !== li + 3) {
+        av.setShape(shapePts(li + 3), li + 3);
+        av.n = li + 3;
+      }
+      const px = player.px, py = player.py;
+      animMechs();
+      av.root.position.set(px + 0.5, standY(px, py), py + 0.5);
+      idle = player.moving || held.size || player.ride || state !== "play" ? 0 : idle + dt;
+      const want = idle > 1.4 ? Math.PI : Math.atan2(-player.dir[0], -player.dir[1]);
+      let d = want - yaw;
+      d = Math.atan2(Math.sin(d), Math.cos(d));
+      yaw += d * (1 - Math.exp(-dt * (idle > 1.4 ? 5 : 14)));
+      av.root.rotation.y = yaw;
+      const hop = player.moving ? Math.abs(Math.sin(clock * 11)) * 0.06 : 0;
+      const bob = reduceMotion ? 0 : Math.sin(clock * 3.2) * 0.025;
+      av.body.position.y = hop + bob + 0.012;
+      let sq = 1, spin = 0, ts = 1;
+      if (morph) sq = 1 + Math.sin(Math.min(1, morph.t / 1.1) * Math.PI) * 0.25;
+      if (player.tele) {
+        ts = Math.max(0.02, Math.abs(1 - 2 * player.tele.t));
+        spin = player.tele.t * Math.PI * 2;
+      }
+      av.body.scale.set(sq * ts, ts / Math.sqrt(sq), sq * ts);
+      av.body.rotation.y = spin;
+      for (const q of gates3) {
+        const a = q.g.anim;
+        q.b.scale.y = Math.max(1e-3, 1 - a);
+        q.b.visible = a < 1;
+        q.s.visible = a < 1;
+        q.s.position.y = GATE3 + 0.6 + (reduceMotion ? 0 : Math.sin(clock * 2 + q.phase) * 0.08) + a * a * 3;
+        q.s.rotation.y = clock * (reduceMotion ? 0.3 : 0.9) + q.phase;
+        q.s.rotation.x = 0.5 + Math.sin(clock * 0.4) * 0.3;
+        q.s.scale.setScalar(0.34 * (1 - a * 0.7));
+      }
+      for (const s of spinners) {
+        if (s.flat) {
+          s.o.position.y = s.base + (reduceMotion ? 0 : Math.sin(clock * 3 + s.phase) * s.bob);
+          s.o.rotation.z = clock;
+          continue;
+        }
+        s.o.rotation.y = clock * (reduceMotion ? 0.3 : 0.8) + s.phase;
+        s.o.rotation.x = 0.45 + Math.sin(clock * 0.5 + s.phase) * 0.25;
+        s.o.position.y = s.base + (reduceMotion ? 0 : Math.sin(clock * 1.8 + s.phase) * 0.06);
+      }
+      if (fresh) {
+        fresh.t = Math.min(1, fresh.t + dt / 1.6);
+        const k2 = 1 - Math.pow(1 - fresh.t, 3);
+        fresh.o.position.y = fresh.base + (1 - k2) * 4;
+        fresh.o.rotation.y += (1 - k2) * dt * 18;
+        if (fresh.t >= 1) fresh = null;
+      }
+      const pulse = reduceMotion ? 0.5 : 0.5 + 0.5 * Math.sin(clock * 3);
+      for (const p of pulses) p.mat.opacity = p.lo + (p.hi - p.lo) * pulse;
+      if (exitRing) {
+        exitRing.rotation.y = clock * 1.4;
+        exitRing.position.y = 1.05 + (reduceMotion ? 0 : Math.sin(clock * 2) * 0.08);
+      }
+      const aspect = W3 / H3, far = aspect < 1.2 ? Math.min(1.7, 1.2 / aspect) : 1;
+      let tx = px + 0.5, tz = py + 0.5;
+      if (overview) {
+        tx = m.w / 2;
+        tz = m.h / 2 + 1;
+        const H2 = Math.max(m.w / Math.max(aspect, 0.6), m.h) * 1.32;
+        tmp.set(tx, H2, tz + H2 * 0.32);
+      } else tmp.set(tx, 5.6 * far, tz + 6.1 * far);
+      const k = camSnap ? 1 : 1 - Math.exp(-dt * 5);
+      camPos.lerp(tmp, k);
+      camAt.lerp(tmp.set(tx, 0.25, overview ? tz - 0.6 : tz - 1.1), k);
+      camSnap = false;
+      camera.position.copy(camPos);
+      camera.lookAt(camAt);
+      if (scene.fog) {
+        scene.fog.near = overview ? 300 : 13;
+        scene.fog.far = overview ? 600 : 26;
+      }
+      camera.far = overview ? 200 : 80;
+      camera.updateProjectionMatrix();
+      sun.position.set(tx - 4, 11, tz + 5);
+      sun.target.position.set(tx, 0, tz - 1);
+      for (const w of walls) {
+        const f = !overview && w.y > py + 0.2 && w.y < py + 1.9 && Math.abs(w.x + 0.5 - (px + 0.5)) < 3.6;
+        const target = f ? 0.18 : 1;
+        w.o.scale.y += (target - w.o.scale.y) * (1 - Math.exp(-dt * 10));
+      }
+      renderer.render(scene, camera);
+      for (const l of labels) {
+        tmp.copy(l.v).project(camera);
+        const vis = tmp.z < 1 && Math.abs(tmp.x) < 1.1 && Math.abs(tmp.y) < 1.1;
+        l.el.style.display = vis ? "" : "none";
+        if (vis) {
+          l.el.style.left = ((tmp.x + 1) / 2 * W3).toFixed(1) + "px";
+          l.el.style.top = ((1 - tmp.y) / 2 * H3).toFixed(1) + "px";
+        }
+      }
+      $("labels").style.visibility = state === "start" ? "hidden" : "";
+      if (prev && !$("startOverlay").hidden) {
+        const r = prev.pr.domElement.getBoundingClientRect();
+        if (r.width && r.width !== prev.size) {
+          prev.size = r.width;
+          prev.pr.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+          prev.pr.setSize(r.width, r.height, false);
+        }
+        prev.pa.root.rotation.y = reduceMotion ? -0.5 : Math.sin(clock * 0.8) * 0.9;
+        prev.pa.body.position.y = reduceMotion ? 0 : Math.sin(clock * 3.2) * 0.025;
+        prev.pr.render(prev.ps, prev.pcam);
+      }
+    }
+    function resize2(w, h) {
+      W3 = w;
+      H3 = h;
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
+      renderer.setSize(w, h, false);
+      camera.aspect = w / h;
+      camera.fov = w / h < 1 ? 52 : 44;
+      camera.updateProjectionMatrix();
+    }
+    function lookChanged() {
+      av.setLook();
+      if (prev) prev.pa.setLook();
+    }
+    return { build, frame: frame2, resize: resize2, lookChanged, setOverview(v) {
+      overview = v;
+    } };
+  })();
+  let lastT = performance.now();
+  function frame(now) {
+    const dt = Math.min(0.05, (now - lastT) / 1e3);
+    lastT = now;
+    clock += dt;
+    if (map) {
+      if (player.tele) {
+        const tl = player.tele;
+        tl.t += dt / 0.5;
+        if (tl.t >= 0.5 && !tl.moved) {
+          tl.moved = true;
+          setPlayerTile(tl.to.x, tl.to.y);
+        }
+        if (tl.t >= 1) player.tele = null;
+      }
+      if (map.mechs) updateMechs(dt);
+      walk(dt);
+      for (const g of map.gates) if (g.open && g.anim < 1) g.anim = Math.min(1, g.anim + dt / 0.6);
+      if (morph) {
+        morph.t += dt;
+        if (morph.t > 1.9) finishLevelUp();
+      }
+      const p = playerScreen().s, k = 1 - Math.exp(-dt * 6);
+      cam.x += (p[0] - cam.x) * k;
+      cam.y += (p[1] - 40 - cam.y) * k;
+    }
+    if (G3) G3.frame(dt);
+    else render();
+    updateInfo();
+    if (state === "puzzle") renderSolidPanel();
+    requestAnimationFrame(frame);
+  }
+  function resize() {
+    const r = $("game").getBoundingClientRect();
+    W = r.width;
+    H = r.height;
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    canvas.width = Math.round(W * dpr);
+    canvas.height = Math.round(H * dpr);
+    zoom = Math.max(1, Math.min(1.6, Math.min(W, H) / 480));
+    sCanvas.width = 84 * dpr;
+    sCanvas.height = 84 * dpr;
+    if (G3) G3.resize(W, H);
+  }
+  addEventListener("resize", () => {
+    resize();
+    if (state === "puzzle") fitExpr();
+  });
+  const KEYMAP = { ArrowUp: "up", KeyW: "up", ArrowDown: "down", KeyS: "down", ArrowLeft: "left", KeyA: "left", ArrowRight: "right", KeyD: "right" };
+  addEventListener("keydown", (e) => {
+    if (state === "puzzle") {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        if (!busy) closePuzzle();
+      }
+      return;
+    }
+    if (state === "edit") {
+      if (e.key === "Escape") closeEdit();
+      return;
+    }
+    if (state !== "play") return;
+    const d = KEYMAP[e.code];
+    if (!d) return;
+    e.preventDefault();
+    held.add(d);
+  });
+  addEventListener("keyup", (e) => {
+    const d = KEYMAP[e.code];
+    if (d) held.delete(d);
+  });
+  addEventListener("blur", () => held.clear());
+  const HAS_PE = !!window.PointerEvent;
+  for (const b of document.querySelectorAll(".dpad button")) {
+    if (!HAS_PE) {
+      b.addEventListener("touchstart", (e) => {
+        e.preventDefault();
+        if (state === "play") held.add(b.dataset.dir);
+      }, { passive: false });
+      b.addEventListener("touchend", () => held.delete(b.dataset.dir));
+      continue;
+    }
+    b.addEventListener("pointerdown", (e) => {
+      e.preventDefault();
+      if (state === "play") held.add(b.dataset.dir);
+      if (b.setPointerCapture) b.setPointerCapture(e.pointerId);
+    });
+    const up = () => held.delete(b.dataset.dir);
+    b.addEventListener("pointerup", up);
+    b.addEventListener("pointercancel", up);
+    b.addEventListener("pointerleave", up);
+  }
+  $("btnStart").onclick = beginGame;
+  $("inName").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      beginGame();
+    }
+  });
+  $("btnResume").onclick = () => {
+    $("startOverlay").hidden = true;
+    state = stateBeforeOverlay === "start" ? "play" : stateBeforeOverlay;
+  };
+  $("btnOldCode").onclick = () => {
+    $("startOverlay").hidden = true;
+    showQr("old");
+  };
+  $("btnMyCode").onclick = () => {
+    if (session && state === "play") showQr("view");
+  };
+  $("btnQrNext").onclick = () => {
+    const m = $("qrOverlay").dataset.mode;
+    closeQr();
+    if (m === "old") $("startOverlay").hidden = false;
+  };
+  $("btnRestart").onclick = () => {
+    if (state === "play") openStart(!!session);
+  };
+  $("btnCheck").onclick = checkAnswer;
+  $("btnStep").onclick = checkStep;
+  $("answer").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      checkAnswer();
+    }
+  });
+  $("answer").addEventListener("input", updatePreview);
+  $("answer").addEventListener("focus", () => lastInput = $("answer"));
+  $("btnSel").onclick = checkSelection;
+  for (const b of document.querySelectorAll("#kbd [data-ins]")) {
+    b.addEventListener("pointerdown", (e) => {
+      e.preventDefault();
+      insertText(b.dataset.ins);
+    });
+    b.addEventListener("click", (e) => {
+      if (!window.PointerEvent) insertText(b.dataset.ins);
+    });
+  }
+  $("btnKn").onclick = () => {
+    $("answer").value = "kan niet";
+    updatePreview();
+    checkAnswer();
+  };
+  $("btnLater").onclick = () => {
+    if (!busy) closePuzzle();
+  };
+  $("btnMiniCheck").onclick = checkMini;
+  $("miniAnswer").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      checkMini();
+    }
+  });
+  $("btnMiniDone").onclick = endMini;
+  let stateBeforeEdit = "play";
+  function openEdit() {
+    if (state === "edit" || state === "mini" || state === "levelup") return;
+    stateBeforeEdit = state;
+    state = "edit";
+    held.clear();
+    $("editText").value = sommenText;
+    $("editError").hidden = true;
+    $("editOverlay").hidden = false;
+    $("editText").focus();
+  }
+  function closeEdit() {
+    $("editOverlay").hidden = true;
+    state = stateBeforeEdit;
+  }
+  $("btnEdit").onclick = openEdit;
+  $("btnCancel").onclick = closeEdit;
+  $("btnDefault").onclick = () => {
+    $("editText").value = VOORBEELD;
+    $("editError").hidden = true;
+  };
+  $("btnSave").onclick = () => {
+    const t = $("editText").value, parsed = parseSommen(t), er = $("editError");
+    if (parsed.errors.length) {
+      er.textContent = parsed.errors.slice(0, 4).join(" ");
+      er.hidden = false;
+      return;
+    }
+    if (!parsed.levels.length) {
+      er.textContent = "Geen sommen gevonden. Zet elke som op een eigen regel, bijvoorbeeld: 6a * 7b";
+      er.hidden = false;
+      return;
+    }
+    sommenText = t;
+    levels = parsed.levels;
+    saveText(t);
+    session = null;
+    restart();
+    openStart(false);
+  };
+  renderLookPicker();
+  if (!G3) $("avatarPrev").hidden = true;
+  else $("dpad").classList.add("flat");
+  resize();
+  buildMuseum(false);
+  openStart(false);
+  requestAnimationFrame(frame);
+  window.__hoekOK = true;
+})();
+</script>
+</body>
+</html>
