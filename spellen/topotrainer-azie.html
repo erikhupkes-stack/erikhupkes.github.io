@@ -307,6 +307,7 @@ function rescale(){
     .attr('dx',function(){return (+this.getAttribute('data-dx'))/Math.pow(k,.8)})
     .style('stroke-width',(3/Math.pow(k,.8))+'px');
 }
+function resetZoom(){if(d3.zoomTransform(svg.node()).k===1&&!d3.zoomTransform(svg.node()).x)return; svg.transition().duration(matchMedia('(prefers-reduced-motion: reduce)').matches?0:450).call(zoom.transform,d3.zoomIdentity)}
 const zb=(f)=>svg.transition().duration(300).call(zoom.scaleBy,f);
 document.getElementById('zin').onclick=()=>zb(1.8);
 document.getElementById('zout').onclick=()=>zb(1/1.8);
@@ -417,6 +418,7 @@ function progress(){
 }
 function ask(){
   const r=round; clearHL(); r.locked=false; $('qbar').className='qbar';
+  resetZoom();
   if(r.idx>=r.q.length) return finish();
   const i=r.q[r.idx]; progress();
   if(mode==='wijs'){
