@@ -123,49 +123,47 @@ th{font-family:"Barlow Condensed",sans-serif;font-size:1.05rem;color:var(--court
 .legend span{display:inline-flex;align-items:center;gap:6px}
 .legend .dot{width:16px;height:16px}
 
-/* Live: service en rotatie */
-.live{border:2px solid var(--floor)}
-.live-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px}
-.live-head h2{margin:0}
-.live-head .nav{display:flex;gap:6px}
-.live-head .nav button{min-width:48px;padding:8px 12px}
-.plan{background:var(--floor-soft);border-radius:10px;padding:10px 12px;margin:6px 0 10px;display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px}
-.plan p{margin:0;flex:1 1 200px;font-weight:600}
-.server{text-align:center;padding:6px 0 10px}
-.sname{font-family:"Barlow Condensed",sans-serif;font-size:2.2rem;font-weight:800;line-height:1.05;overflow-wrap:anywhere}
-.sline{color:var(--muted);font-size:.92rem}
-.rate{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
-.rate button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:76px;padding:8px 4px;border-radius:14px;line-height:1.1}
-.rate b{font-size:1.7rem;font-family:"Barlow Condensed",sans-serif}
-.rate span{font-size:.85rem;font-weight:600}
+/* Veld per set: rotatie en service */
+.set-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px}
+.set-head h3{margin:0}
+.rate4{display:flex;gap:5px}
+.rate4 button{min-width:44px;min-height:44px;padding:0;font-family:"Barlow Condensed",sans-serif;font-size:1.35rem;font-weight:800;border-radius:10px}
 .r0{background:var(--bad);color:#fff}
-.r1{background:var(--court-soft);color:var(--ink);border:2px solid var(--court)!important}
+.r1{background:var(--court-soft);color:var(--ink);box-shadow:inset 0 0 0 2px var(--court)}
 .r2{background:var(--court);color:var(--surface)}
 .r3{background:var(--floor);color:#fff}
-.row2{display:flex;gap:8px;margin-top:10px}
-.row2 button{flex:1}
-.flash{color:var(--muted);font-size:.9rem;text-align:center;min-height:1.4em;margin:8px 0 0}
-.rot{list-style:none;padding:0;margin:6px 0 0;counter-reset:pos}
-.rot li{border-top:1px solid var(--line)}
-.rot .r{display:flex;align-items:center;gap:8px;min-height:52px}
-.rot .r::before{counter-increment:pos;content:counter(pos);width:24px;text-align:center;color:var(--muted);font-weight:700;flex:none}
-.rot .who{flex:1;min-width:0;text-align:left;background:transparent;color:var(--ink);padding:8px 6px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.rot li.on .who{color:var(--floor-dark);font-weight:800}
-.rot li.on .who::before{content:"● ";color:var(--floor)}
-.rot .mini{color:var(--muted);font-size:.85rem;white-space:nowrap}
-.rot .up{min-width:44px;padding:8px}
-.pick{display:flex;flex-wrap:wrap;gap:6px;padding:4px 0 12px 32px}
-.pick button{min-height:44px;padding:8px 12px;background:var(--court-soft);color:var(--ink);border:2px solid var(--court)}
-.pick .cancel{background:transparent;border-color:var(--line);color:var(--muted)}
+.court{border:3px solid var(--court);border-radius:16px;overflow:hidden;background:var(--floor-soft)}
+.net{background:var(--court);color:var(--surface);text-align:center;font-weight:800;letter-spacing:.08em;font-size:.9rem;padding:6px 0}
+.grid6{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:10px}
+.pos{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:84px;padding:20px 4px 8px;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:12px;font-weight:700;line-height:1.1}
+.pos .pn{position:absolute;top:5px;left:8px;font-size:.85rem;color:var(--muted);font-weight:700}
+.pos .pname{font-size:1.08rem;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pos .ds{display:flex;flex-wrap:wrap;justify-content:center;gap:3px;min-height:18px}
+.pos .srv{font-size:.78rem;font-weight:600;color:var(--muted)}
+.pos.on{border:2px solid var(--court);box-shadow:inset 0 -5px 0 var(--court)}
+.pos.sel{outline:3px solid var(--floor);outline-offset:1px}
+.d{font-style:normal;font-size:.75rem;font-weight:800;min-width:17px;height:17px;line-height:17px;border-radius:5px;text-align:center}
+.d0{background:var(--bad);color:#fff}.d1{background:var(--court-soft);color:var(--ink)}.d2{background:var(--court);color:var(--surface)}.d3{background:var(--floor);color:#fff}
+.phase{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--line);border-radius:12px;overflow:hidden;margin-top:10px}
+.phase button{border-radius:0;background:var(--surface);color:var(--ink);font-weight:600}
+.phase button[aria-pressed="true"]{background:var(--court);color:var(--surface)}
+.turnrow{display:grid;grid-template-columns:2fr 3fr;gap:8px;margin-top:8px}
+.status{color:var(--muted);text-align:center;margin:8px 0 4px;font-size:.95rem;min-height:1.4em}
+.status button.link{min-height:32px;padding:2px 4px;font-size:.92rem}
+.pick{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 10px;padding:10px;border-radius:10px;background:var(--court-soft)}
+.pick .label{width:100%;margin:0 0 2px}
+.pick button{min-height:44px;padding:8px 12px;background:var(--surface);color:var(--ink);border:2px solid var(--court)}
+.pick .cancel{border-color:var(--line);color:var(--muted)}
 button.link{background:transparent;color:var(--court);padding:8px 4px;min-height:44px;font-weight:600;text-decoration:underline}
 .stats td,.stats th{padding:8px 3px}
 .stats td.n0{color:var(--bad);font-weight:700}
 .stats td.n3{color:var(--floor-dark);font-weight:700}
 .stats td.avg{font-weight:800}
 .stats .zero{color:var(--bench)}
-.sublog{color:var(--muted);font-size:.9rem;margin:10px 0 0;padding-left:18px}
+.row2{display:flex;gap:8px;margin-top:12px}
+.row2 button{flex:1}
 .danger{background:transparent;color:var(--bad);border:2px solid var(--bad)}
-.seg button:disabled{opacity:.55;cursor:not-allowed}
+@media (max-width:360px){ .rate4 button{min-width:40px} .pos .pname{font-size:.98rem} }
 
 /* Actiebalk onderaan, binnen bereik van je duim */
 .actionbar{position:fixed;left:0;right:0;bottom:0;z-index:6;background:var(--surface);border-top:1px solid var(--line);padding:10px 14px calc(10px + env(safe-area-inset-bottom,0px))}
@@ -198,7 +196,6 @@ button.link{background:transparent;color:var(--court);padding:8px 4px;min-height
 <nav class="setnav noprint" id="setnav" aria-label="Ga naar set"></nav>
 
 <main>
-  <div id="liveBox" class="noprint"></div>
   <section class="noprint" id="presence">
     <div class="presence-head"><h2>Wie is er?</h2><span class="count" id="count"></span></div>
     <div class="players" id="players"></div>
@@ -216,14 +213,13 @@ button.link{background:transparent;color:var(--court);padding:8px 4px;min-height
   </details>
 
   <div id="output"></div>
+  <div id="statsBox" class="noprint"></div>
   <div id="seasonBox" class="noprint"></div>
 </main>
 
 <div class="actionbar noprint">
   <div class="actionbar-inner">
     <button type="button" class="ghost" id="shuffleBtn">Andere indeling</button>
-    <button type="button" id="startBtn">Start wedstrijd</button>
-    <button type="button" class="ghost" id="toLiveBtn" hidden>Naar service</button>
     <button type="button" class="ghost" id="printBtn">Printen</button>
   </div>
 </div>
@@ -237,16 +233,20 @@ button.link{background:transparent;color:var(--court);padding:8px 4px;min-height
     var saved = JSON.parse(localStorage.getItem(KEY) || 'null');
     if (saved && Array.isArray(saved.players)) state.players = saved.players;
     if (saved && saved.mode === 'full') state.mode = 'full';
+    if (saved && saved.seed) state.seed = saved.seed;
   } catch(e) {}
-  function save(){ try { localStorage.setItem(KEY, JSON.stringify({players: state.players, mode: state.mode})); } catch(e) {} }
+  function save(){ try { localStorage.setItem(KEY, JSON.stringify({players: state.players, mode: state.mode, seed: state.seed})); } catch(e) {} }
 
-  // Lopende wedstrijd: schema ligt vast (namen, speelwijze, indeling) zodat herladen niets verschuift.
-  var MKEY = 'invalschema-wedstrijd-v1', SKEY = 'invalschema-seizoen-v1';
-  var match = null, season = [], undo = [], ui = { pick: null, reorder: false, flash: '' };
-  try { match = JSON.parse(localStorage.getItem(MKEY) || 'null'); } catch(e) {}
+  // Wedstrijdstand: per set de rotatie (hoe vaak doorgedraaid), voor/na wissel en wissels bij blessure,
+  // plus alle servicecijfers (op naam, zodat ze blijven kloppen als de indeling verandert).
+  var GKEY = 'invalschema-wedstrijd-v2', SKEY = 'invalschema-seizoen-v1';
+  var game = { sig: '', sets: {}, serves: [] }, season = [], ui = { pick: null, flash: {} };
+  try { var g0 = JSON.parse(localStorage.getItem(GKEY) || 'null'); if (g0 && g0.sets && g0.serves) game = g0; } catch(e) {}
   try { season = JSON.parse(localStorage.getItem(SKEY) || '[]') || []; } catch(e) {}
-  function saveMatch(){ try { if (match) localStorage.setItem(MKEY, JSON.stringify(match)); else localStorage.removeItem(MKEY); } catch(e) {} }
+  try { localStorage.removeItem('invalschema-wedstrijd-v1'); } catch(e) {}
+  function saveGame(){ try { localStorage.setItem(GKEY, JSON.stringify(game)); } catch(e) {} }
   function saveSeason(){ try { localStorage.setItem(SKEY, JSON.stringify(season)); } catch(e) {} }
+  function setState(s){ return game.sets[s] || (game.sets[s] = { t: 0, after: false, swaps: { b: {}, a: {} } }); }
   var RATING = ['fout', 'simpel', 'lastig', 'ace'];
 
   var $ = function(id){ return document.getElementById(id); };
@@ -304,8 +304,7 @@ button.link{background:transparent;color:var(--court);padding:8px 4px;min-height
 
   function renderMode(){
     var full = state.mode === 'full';
-    if (match) { state.mode = match.mode; full = state.mode === 'full'; }
-    document.querySelectorAll('[data-mode]').forEach(function(b){ b.setAttribute('aria-pressed', String(b.dataset.mode === state.mode)); b.disabled = !!match; });
+    document.querySelectorAll('[data-mode]').forEach(function(b){ b.setAttribute('aria-pressed', String(b.dataset.mode === state.mode)); });
     $('sub').textContent = full ? '4 sets, geen wissels in een set' : '4 sets, iedereen speelt elke set';
   }
 
@@ -325,12 +324,11 @@ button.link{background:transparent;color:var(--court);padding:8px 4px;min-height
 
   function renderOutput(){
     var out = $('output'), nav = $('setnav');
-    var present = match ? match.names : state.players.filter(function(p){ return p.present; }).map(function(p){ return p.name; });
-    var full = (match ? match.mode : state.mode) === 'full';
-    var seed = match ? match.seed : state.seed;
-    $('startBtn').disabled = !match && (present.length < 6 || (!full && present.length > 12));
+    var present = state.players.filter(function(p){ return p.present; }).map(function(p){ return p.name; });
+    var full = state.mode === 'full';
+    var seed = state.seed;
     if (present.length < 6 || (!full && present.length > 12)) {
-      nav.innerHTML = '';
+      nav.innerHTML = ''; $('statsBox').innerHTML = '';
       out.innerHTML = state.players.length ? '<section><p class="msg">' + (present.length < 6
         ? 'Er zijn ' + present.length + ' spelers aanwezig. Je hebt er minstens 6 nodig voor een schema.'
         : 'Met ' + present.length + ' spelers lukt het niet binnen zes wissels per set. Zet er maximaal 12 op aanwezig, of kies "Alleen hele sets".') + '</p></section>'
@@ -346,7 +344,10 @@ button.link{background:transparent;color:var(--court);padding:8px 4px;min-height
       sch.sets.slice(0, shown).forEach(function(st){ if (st.first.indexOf(i) >= 0) c++; if (st.second.indexOf(i) >= 0) c++; });
       return c;
     });
-    var navHtml = '<div class="setnav-inner">' + (match ? '<a class="wide" href="#live">Live</a>' : '');
+    // Andere aanwezigen, speelwijze of indeling: rotatiestand per set opnieuw beginnen (cijfers blijven).
+    var sig = present.join('|') + '#' + state.mode + '#' + seed;
+    if (game.sig !== sig) { game.sig = sig; game.sets = {}; ui.pick = null; saveGame(); }
+    var navHtml = '<div class="setnav-inner">';
     for (var k = 0; k < state.sets; k++) navHtml += '<a href="#set' + (k + 1) + '">S' + (k + 1) + '</a>';
     navHtml += '<a class="opt" href="#set5">S5?</a>';
     nav.innerHTML = navHtml + '<a class="wide" href="#overzicht">Overzicht</a></div>';
@@ -360,21 +361,7 @@ button.link{background:transparent;color:var(--court);padding:8px 4px;min-height
         : 'Met ' + present.length + ' spelers kan het niet precies gelijk: ' + extra + (extra === 1 ? ' speler speelt ' : ' spelers spelen ') + (lo + 1) +
           ' sets, de rest ' + lo + '. Zie het overzicht wie dat zijn.') + '</p></section>';
     }
-    sch.sets.forEach(function(set, s){
-      var bench = present.map(function(_, i){ return i; }).filter(function(i){ return set.first.indexOf(i) < 0; });
-      var extra = s === state.sets;
-      html += '<section class="set' + (extra ? ' extra' : '') + '" id="set' + (s + 1) + '"><h3>Set ' + (s + 1) +
-        (extra ? '<small>alleen als die gespeeld wordt</small>' : '') + '</h3>' +
-        (extra ? '<p class="bench">Gekozen op wie na 4 sets het minst heeft gespeeld.</p>' : '') +
-        '<div class="label">Basis</div><div class="names">' +
-        set.first.map(function(i){ return '<span>' + esc(present[i]) + '</span>'; }).join('') + '</div>';
-      if (bench.length) html += '<p class="bench">Bank: ' + bench.map(function(i){ return esc(present[i]); }).join(', ') + '</p>';
-      if (set.subs.length) {
-        html += '<div class="label">Wissels rond 12–13 punten</div><ul class="subs">' +
-          set.subs.map(function(p){ return '<li><span class="in">' + esc(present[p[0]]) + '</span><span class="arrow">erin voor</span><span>' + esc(present[p[1]]) + '</span></li>'; }).join('') + '</ul>';
-      }
-      html += '</section>';
-    });
+    sch.sets.forEach(function(set, s){ html += courtCard(set, s, present, full); });
 
     html += '<section id="overzicht"><div class="over-head"><h2>Overzicht</h2>' +
       '<button type="button" class="ghost small" id="set5Btn" aria-pressed="' + state.with5 + '">' +
@@ -397,32 +384,74 @@ button.link{background:transparent;color:var(--court);padding:8px 4px;min-height
         '<span><i class="dot h2"></i>tweede helft</span>') + '</div>' +
       '<p class="hint">' + (state.with5 ? 'Telling inclusief set 5. ' : 'Telling over 4 sets. ') + 'Wie net iets minder speeltijd heeft, laat je volgende wedstrijd in de basis beginnen.</p></section>';
     out.innerHTML = html;
+    renderStats(present);
   }
 
-  function matchSchedule(){
-    return match.mode === 'full' ? buildFullSetSchedule(match.names, state.sets + 1, match.seed) : buildSchedule(match.names, state.sets + 1, match.seed);
+  var GRID = [4, 3, 2, 5, 6, 1]; // zo staan de posities op het veld, net bovenaan
+
+  function lineupFor(set, s){
+    var g = setState(s), key = g.after ? 'a' : 'b';
+    var line = (g.after ? set.second : set.first).slice();
+    Object.keys(g.swaps[key]).forEach(function(slot){ line[+slot] = g.swaps[key][slot]; });
+    return line;
   }
-  function startSet(s){
-    var sch = matchSchedule();
-    match.set = s; match.court = sch.sets[s].first.slice(); match.server = 0; match.subsDone = false;
-    ui.pick = null;
+  function scoresOf(name, s){ return game.serves.filter(function(v){ return v.s === s && v.n === name; }); }
+
+  function courtCard(set, s, present, full){
+    var g = setState(s), line = lineupFor(set, s), extra = s === state.sets;
+    var at = function(pos){ return (g.t + pos - 1) % 6; }; // slot op deze positie
+    var server = present[line[at(1)]];
+    var h = '<section class="set' + (extra ? ' extra' : '') + '" id="set' + (s + 1) + '">' +
+      '<div class="set-head"><h3>Set ' + (s + 1) + (extra ? '<small>als die gespeeld wordt</small>' : '') + '</h3>' +
+      '<div class="rate4 noprint" role="group" aria-label="Service van ' + esc(server) + ' beoordelen">' +
+      RATING.map(function(t, r){ return '<button type="button" class="r' + r + '" data-rate="' + s + ':' + r + '" title="' + t + '" aria-label="' + r + ' ' + t + '">' + r + '</button>'; }).join('') +
+      '</div></div>';
+    if (extra) h += '<p class="bench">Gekozen op wie na 4 sets het minst heeft gespeeld.</p>';
+    h += '<div class="court"><div class="net">NET</div><div class="grid6">';
+    GRID.forEach(function(pos){
+      var slot = at(pos), name = present[line[slot]];
+      var ds = scoresOf(name, s).map(function(v){ return '<i class="d d' + v.r + '">' + v.r + '</i>'; }).join('');
+      var sel = ui.pick && ui.pick.s === s && ui.pick.slot === slot;
+      h += '<button type="button" class="pos' + (pos === 1 ? ' on' : '') + (sel ? ' sel' : '') + '" data-tile="' + s + ':' + slot + '">' +
+        '<span class="pn">' + pos + '</span><span class="pname">' + esc(name) + '</span>' +
+        (pos === 1 ? '<span class="srv">serveert</span>' : '') + '<span class="ds">' + ds + '</span></button>';
+    });
+    h += '</div></div>';
+
+    var bench = present.map(function(_, i){ return i; }).filter(function(i){ return line.indexOf(i) < 0; });
+    if (ui.pick && ui.pick.s === s && bench.length) {
+      h += '<div class="pick noprint"><span class="label">Wie komt erin voor ' + esc(present[line[ui.pick.slot]]) + '?</span>' +
+        bench.map(function(b){ return '<button type="button" data-in="' + b + '">' + esc(present[b]) + '</button>'; }).join('') +
+        '<button type="button" class="cancel" data-cancel>Annuleer</button></div>';
+    }
+    if (!full && set.subs.length) {
+      h += '<div class="phase noprint" role="group" aria-label="Opstelling">' +
+        '<button type="button" data-phase="' + s + ':0" aria-pressed="' + !g.after + '">Voor wissel</button>' +
+        '<button type="button" data-phase="' + s + ':1" aria-pressed="' + g.after + '">Na wissel</button></div>';
+    }
+    h += '<div class="turnrow noprint"><button type="button" class="ghost" data-back="' + s + '"' + (g.t ? '' : ' disabled') + '>Terug</button>' +
+      '<button type="button" data-turn="' + s + '">Doordraaien</button></div>';
+    var f = ui.flash[s];
+    h += '<p class="status" aria-live="polite">' + (f ? esc(f) + ' <button type="button" class="link" data-unscore="' + s + '">ongedaan</button>'
+      : (g.t ? g.t + '× doorgedraaid' : 'Beginopstelling')) + '</p>';
+    if (bench.length) h += '<p class="bench">Bank: ' + bench.map(function(b){ return esc(present[b]); }).join(', ') + '</p>';
+    if (set.subs.length) {
+      h += '<div class="label">Wissels rond 12–13 punten</div><ul class="subs">' +
+        set.subs.map(function(p){ return '<li><span class="in">' + esc(present[p[0]]) + '</span><span class="arrow">erin voor</span><span>' + esc(present[p[1]]) + '</span></li>'; }).join('') + '</ul>';
+    }
+    return h + '</section>';
   }
-  function snapshot(){
-    undo.push(JSON.stringify(match)); if (undo.length > 60) undo.shift();
-  }
+
   function stats(serves){
     var st = {};
     serves.forEach(function(v){
-      var k = v.p, o = st[k] || (st[k] = { n: 0, c: [0, 0, 0, 0], sum: 0 });
+      var o = st[v.n] || (st[v.n] = { n: 0, c: [0, 0, 0, 0], sum: 0 });
       o.n++; o.c[v.r]++; o.sum += v.r;
     });
     return st;
   }
   function avg(o){ return o && o.n ? (o.sum / o.n).toFixed(1).replace('.', ',') : '–'; }
-  function statLine(o){ return o && o.n ? o.n + '× · gem ' + avg(o) : 'nog niet geserveerd'; }
-
   function statsTable(rows){
-    // rows: [{name, o}]
     var h = '<table class="stats"><thead><tr><th>Speler</th><th>×</th><th title="fout">0</th><th title="simpel">1</th><th title="lastig">2</th><th title="ace">3</th><th>Gem</th></tr></thead><tbody>';
     rows.forEach(function(r){
       var o = r.o || { n: 0, c: [0, 0, 0, 0], sum: 0 };
@@ -433,61 +462,16 @@ button.link{background:transparent;color:var(--court);padding:8px 4px;min-height
     return h + '</tbody></table>';
   }
 
-  function renderLive(){
-    var box = $('liveBox');
-    $('presence').hidden = !!match; $('editTeam').hidden = !!match;
-    $('shuffleBtn').hidden = !!match; $('startBtn').hidden = !!match; $('toLiveBtn').hidden = !match;
-    if (!match) { box.innerHTML = ''; return; }
-    var sch = matchSchedule(), names = match.names, set = sch.sets[match.set];
-    var setServes = match.serves.filter(function(v){ return v.s === match.set; });
-    var stSet = stats(setServes), stAll = stats(match.serves);
-    var cur = match.court[match.server];
-    var bench = names.map(function(_, i){ return i; }).filter(function(i){ return match.court.indexOf(i) < 0; });
-    var last = match.set === state.sets;
-
-    var h = '<section class="live" id="live"><div class="live-head"><h2>Set ' + (match.set + 1) + (last ? ' <small style="font-size:1rem;color:var(--muted)">extra</small>' : '') + '</h2>' +
-      '<div class="nav"><button type="button" class="ghost" data-goset="-1" aria-label="Vorige set"' + (match.set === 0 ? ' disabled' : '') + '>‹</button>' +
-      '<button type="button" class="ghost" data-goset="1" aria-label="Volgende set"' + (last ? ' disabled' : '') + '>›</button></div></div>';
-
-    var todo = set.subs.filter(function(p){ return match.court.indexOf(p[1]) >= 0 && match.court.indexOf(p[0]) < 0; });
-    if (!match.subsDone && todo.length) {
-      h += '<div class="plan"><p>Rond 12–13 punten: ' + todo.map(function(p){ return esc(names[p[0]]) + ' erin voor ' + esc(names[p[1]]); }).join(', ') + '</p>' +
-        '<button type="button" class="small" id="doSubs">Wissels doen</button></div>';
-    }
-
-    h += '<div class="server"><div class="label">Aan service</div><div class="sname">' + esc(names[cur]) + '</div>' +
-      '<div class="sline">Deze set ' + statLine(stSet[cur]) + '</div></div>' +
-      '<div class="rate" role="group" aria-label="Beoordeel de service">' +
-      RATING.map(function(t, i){ return '<button type="button" class="r' + i + '" data-rate="' + i + '"><b>' + i + '</b><span>' + t + '</span></button>'; }).join('') +
-      '</div><div class="row2"><button type="button" class="ghost" id="lostBtn">Punt voor hen · draaien</button>' +
-      '<button type="button" class="ghost" id="undoBtn"' + (undo.length ? '' : ' disabled') + '>Ongedaan</button></div>' +
-      '<p class="flash" aria-live="polite">' + esc(ui.flash) + '</p>';
-
-    h += '<div class="label">Opstelling in servicevolgorde · tik een naam om die aan service te zetten</div><ol class="rot">';
-    match.court.forEach(function(p, i){
-      h += '<li class="' + (i === match.server ? 'on' : '') + '"><div class="r"><button type="button" class="who" data-srv="' + i + '">' + esc(names[p]) + '</button>' +
-        '<span class="mini">' + (stSet[p] ? stSet[p].n + '× ' + avg(stSet[p]) : '') + '</span>' +
-        (ui.reorder && i > 0 ? '<button type="button" class="ghost up" data-up="' + i + '" aria-label="Omhoog">▲</button>' : '') +
-        (bench.length ? '<button type="button" class="ghost small" data-sub="' + i + '">Wissel</button>' : '') + '</div>';
-      if (ui.pick === i) {
-        h += '<div class="pick"><span class="label" style="width:100%">Wie komt erin voor ' + esc(names[p]) + '?</span>' +
-          bench.map(function(b){ return '<button type="button" data-in="' + b + '">' + esc(names[b]) + '</button>'; }).join('') +
-          '<button type="button" class="cancel" data-cancel>Annuleer</button></div>';
-      }
-      h += '</li>';
-    });
-    h += '</ol><button type="button" class="link" id="reorderBtn">' + (ui.reorder ? 'Klaar met volgorde' : 'Volgorde aanpassen') + '</button>';
-    if (bench.length) h += '<p class="bench">Bank: ' + bench.map(function(b){ return esc(names[b]); }).join(', ') + '</p>';
-    h += '</section>';
-
-    // Service-overzicht van deze wedstrijd
-    var setSubs = match.subs.filter(function(x){ return !x.planned; });
-    h += '<section id="servstats"><h2>Service deze wedstrijd</h2>' +
-      statsTable(names.map(function(n, i){ return { name: n, o: stAll[i] }; })) +
-      '<div class="legend"><span>0 = fout</span><span>1 = simpel</span><span>2 = lastig</span><span>3 = ace</span></div>' +
-      (setSubs.length ? '<ul class="sublog">' + setSubs.map(function(x){ return '<li>Set ' + (x.s + 1) + ': ' + esc(names[x['in']]) + ' erin voor ' + esc(names[x.out]) + '</li>'; }).join('') + '</ul>' : '') +
-      '<div class="row2"><button type="button" class="danger" id="endBtn">Wedstrijd afsluiten</button></div></section>';
-    box.innerHTML = h;
+  function renderStats(present){
+    var st = stats(game.serves), names = present.slice();
+    Object.keys(st).forEach(function(n){ if (names.indexOf(n) < 0) names.push(n); });
+    $('statsBox').innerHTML = '<section id="service"><h2>Service deze wedstrijd</h2>' +
+      (game.serves.length ? statsTable(names.map(function(n){ return { name: n, o: st[n] }; })) +
+        '<div class="legend"><span>0 = fout</span><span>1 = simpel</span><span>2 = lastig</span><span>3 = ace</span></div>' +
+        '<div class="row2"><button type="button" class="danger" id="newGameBtn">Nieuwe wedstrijd</button></div>' +
+        '<p class="hint">"Nieuwe wedstrijd" zet deze cijfers bij het seizoen en maakt alle sets weer leeg.</p>'
+      : '<p class="hint" style="margin:0">Tik na elke service rechtsboven bij de set op 0, 1, 2 of 3. Het cijfer gaat naar wie op plek 1 serveert.</p>') +
+      '</section>';
   }
 
   function renderSeason(){
@@ -506,9 +490,14 @@ button.link{background:transparent;color:var(--court);padding:8px 4px;min-height
       '<div class="row2"><button type="button" class="danger small" id="clearSeason">Seizoen wissen</button></div></div></details>';
   }
 
-  function act(fn, msg){ snapshot(); fn(); ui.flash = msg || ''; saveMatch(); renderLive(); }
+  function confirmTap(t, label){
+    if (t.dataset.sure) return true;
+    t.dataset.sure = '1'; t.textContent = 'Zeker? Tik nog een keer';
+    setTimeout(function(){ if (t.isConnected) { delete t.dataset.sure; t.textContent = label; } }, 3000);
+    return false;
+  }
 
-  function renderAll(){ renderMode(); renderPlayers(); renderLive(); renderOutput(); renderSeason(); }
+  function renderAll(){ renderMode(); renderPlayers(); renderOutput(); renderSeason(); }
 
   $('addForm').addEventListener('submit', function(e){
     e.preventDefault();
@@ -529,7 +518,7 @@ button.link{background:transparent;color:var(--court);padding:8px 4px;min-height
     if (t !== undefined) { state.players[+t].present = e.target.checked; save(); renderAll(); }
   });
   $('shuffleBtn').addEventListener('click', function(){
-    state.seed++; renderOutput();
+    state.seed++; save(); renderOutput();
     var first = $('set1'); if (first) first.scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
   $('modeBox').addEventListener('click', function(e){
@@ -543,78 +532,46 @@ button.link{background:transparent;color:var(--court);padding:8px 4px;min-height
   });
   $('printBtn').addEventListener('click', function(){ window.print(); });
 
-  $('startBtn').addEventListener('click', function(){
-    var names = state.players.filter(function(p){ return p.present; }).map(function(p){ return p.name; });
-    match = { names: names, mode: state.mode, seed: state.seed, set: 0, court: [], server: 0, subsDone: false, serves: [], subs: [], date: new Date().toISOString().slice(0, 10) };
-    startSet(0); undo = []; ui.flash = ''; saveMatch(); renderAll();
-    $('live').scrollIntoView({ block: 'start' });
-  });
-  $('toLiveBtn').addEventListener('click', function(){ var l = $('live'); if (l) l.scrollIntoView({ behavior: 'smooth', block: 'start' }); });
-
-  $('liveBox').addEventListener('click', function(e){
-    if (!match) return;
-    var t, names = match.names;
+  // Acties in de setkaarten (veld, service, draaien, wissels) en het service-overzicht
+  function keepScroll(fn){ var y = window.scrollY; fn(); window.scrollTo(0, y); }
+  document.querySelector('main').addEventListener('click', function(e){
+    var t, a;
     if ((t = e.target.closest('[data-rate]'))) {
-      var r = +t.dataset.rate, p = match.court[match.server];
-      act(function(){
-        match.serves.push({ p: p, s: match.set, r: r });
-        if (r === 0) match.server = (match.server + 1) % 6;
-      }, names[p] + ': ' + r + ' (' + RATING[r] + ')' + (r === 0 ? ' · service naar de tegenstander, rotatie doorgedraaid' : ''));
+      a = t.dataset.rate.split(':').map(Number);
+      var card = $('set' + (a[0] + 1)), name = card.querySelector('.pos.on .pname').textContent;
+      game.serves.push({ n: name, s: a[0], r: a[1] });
+      ui.flash[a[0]] = name + ': ' + a[1] + ' (' + RATING[a[1]] + ')';
       if (navigator.vibrate) navigator.vibrate(15);
-    } else if (e.target.closest('#lostBtn')) {
-      act(function(){ match.server = (match.server + 1) % 6; }, 'Doorgedraaid: volgende keer serveert ' + names[match.court[(match.server + 1) % 6]]);
-    } else if (e.target.closest('#undoBtn')) {
-      if (!undo.length) return;
-      match = JSON.parse(undo.pop()); ui.flash = 'Laatste actie ongedaan gemaakt'; ui.pick = null; saveMatch(); renderLive();
-    } else if ((t = e.target.closest('[data-srv]'))) {
-      var i = +t.dataset.srv; if (i === match.server) return;
-      act(function(){ match.server = i; }, names[match.court[i]] + ' staat nu aan service');
-    } else if ((t = e.target.closest('[data-sub]'))) {
-      ui.pick = ui.pick === +t.dataset.sub ? null : +t.dataset.sub; renderLive();
+    } else if ((t = e.target.closest('[data-unscore]'))) {
+      var us = +t.dataset.unscore;
+      for (var k = game.serves.length - 1; k >= 0; k--) if (game.serves[k].s === us) { game.serves.splice(k, 1); break; }
+      ui.flash[us] = '';
+    } else if ((t = e.target.closest('[data-turn]'))) {
+      var ts = +t.dataset.turn; setState(ts).t++; ui.flash[ts] = ''; ui.pick = null;
+    } else if ((t = e.target.closest('[data-back]'))) {
+      var bs = +t.dataset.back, g = setState(bs); if (g.t > 0) g.t--; ui.flash[bs] = ''; ui.pick = null;
+    } else if ((t = e.target.closest('[data-phase]'))) {
+      a = t.dataset.phase.split(':').map(Number); setState(a[0]).after = a[1] === 1; ui.pick = null;
+    } else if ((t = e.target.closest('[data-tile]'))) {
+      a = t.dataset.tile.split(':').map(Number);
+      ui.pick = ui.pick && ui.pick.s === a[0] && ui.pick.slot === a[1] ? null : { s: a[0], slot: a[1] };
     } else if (e.target.closest('[data-cancel]')) {
-      ui.pick = null; renderLive();
+      ui.pick = null;
     } else if ((t = e.target.closest('[data-in]'))) {
-      var slot = ui.pick, inn = +t.dataset['in'], out = match.court[slot]; ui.pick = null;
-      act(function(){ match.court[slot] = inn; match.subs.push({ s: match.set, 'in': inn, out: out }); }, names[inn] + ' erin voor ' + names[out]);
-    } else if (e.target.closest('#doSubs')) {
-      var plan = matchSchedule().sets[match.set].subs;
-      act(function(){
-        plan.forEach(function(pr){ var k = match.court.indexOf(pr[1]); if (k >= 0 && match.court.indexOf(pr[0]) < 0) match.court[k] = pr[0]; });
-        match.subsDone = true;
-      }, 'Geplande wissels gedaan. Ze serveren op de plek van wie eruit ging.');
-    } else if ((t = e.target.closest('[data-up]'))) {
-      var u = +t.dataset.up;
-      act(function(){
-        var c = match.court, tmp = c[u]; c[u] = c[u - 1]; c[u - 1] = tmp;
-        if (match.server === u) match.server = u - 1; else if (match.server === u - 1) match.server = u;
-      });
-    } else if (e.target.closest('#reorderBtn')) {
-      ui.reorder = !ui.reorder; renderLive();
-    } else if ((t = e.target.closest('[data-goset]'))) {
-      var ns = match.set + (+t.dataset.goset); if (ns < 0 || ns > state.sets) return;
-      act(function(){ startSet(ns); }, ns === state.sets ? 'Set 5: opstelling op basis van wie na 4 sets het minst speelde' : '');
-      $('live').scrollIntoView({ block: 'start' });
-    } else if ((t = e.target.closest('#endBtn'))) {
-      if (!t.dataset.sure) {
-        t.dataset.sure = '1'; t.textContent = 'Zeker? Tik nog een keer';
-        setTimeout(function(){ if (t.isConnected) { delete t.dataset.sure; t.textContent = 'Wedstrijd afsluiten'; } }, 3000);
-        return;
-      }
-      var st = stats(match.serves), byName = {};
-      Object.keys(st).forEach(function(k){ byName[names[k]] = st[k]; });
-      if (match.serves.length) { season.push({ date: match.date, stats: byName }); saveSeason(); }
-      match = null; undo = []; ui = { pick: null, reorder: false, flash: '' }; saveMatch(); renderAll();
-      window.scrollTo(0, 0);
-    }
+      var gp = setState(ui.pick.s); gp.swaps[gp.after ? 'a' : 'b'][ui.pick.slot] = +t.dataset['in']; ui.pick = null;
+    } else if ((t = e.target.closest('#newGameBtn'))) {
+      if (!confirmTap(t, 'Nieuwe wedstrijd')) return;
+      var st = stats(game.serves);
+      season.push({ date: new Date().toISOString().slice(0, 10), stats: st }); saveSeason();
+      game.serves = []; game.sets = {}; ui = { pick: null, flash: {} }; saveGame(); renderAll();
+      var s1 = $('set1'); if (s1) s1.scrollIntoView({ block: 'start' });
+      return;
+    } else return;
+    saveGame(); keepScroll(renderOutput);
   });
 
   $('seasonBox').addEventListener('click', function(e){
-    var t = e.target.closest('#clearSeason'); if (!t) return;
-    if (!t.dataset.sure) {
-      t.dataset.sure = '1'; t.textContent = 'Zeker? Tik nog een keer';
-      setTimeout(function(){ if (t.isConnected) { delete t.dataset.sure; t.textContent = 'Seizoen wissen'; } }, 3000);
-      return;
-    }
+    var t = e.target.closest('#clearSeason'); if (!t || !confirmTap(t, 'Seizoen wissen')) return;
     season = []; saveSeason(); renderSeason();
   });
 
