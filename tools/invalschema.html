@@ -12,7 +12,7 @@
 :root{
   --bg:#F4F6FA; --surface:#FFFFFF; --ink:#16233F; --muted:#5A6680; --line:#D9DFEA;
   --court:#1A4D94; --court-soft:#E1E9F5; --floor:#FF7F04; --floor-dark:#B35700; --floor-soft:#FFEBD6; --bench:#B8C1D2;
-  --band:#1A4D94; --band-ink:#FFFFFF;
+  --band:#1A4D94; --band-ink:#FFFFFF; --bad:#C62828; --bad-soft:#FBE3E3;
   box-sizing:border-box;
   padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
 }
@@ -20,13 +20,13 @@
   :root:not([data-theme="light"]){
     --bg:#0E1628; --surface:#172240; --ink:#EAF0F9; --muted:#9DAAC4; --line:#2A3A5E;
     --court:#7FA6E6; --court-soft:#203660; --floor:#FF8F26; --floor-dark:#FFB066; --floor-soft:#3B2712; --bench:#3E4C6B;
-    --band:#12366A;
+    --band:#12366A; --bad:#FF7B7B; --bad-soft:#3A1C22;
   }
 }
 :root[data-theme="dark"]{
   --bg:#0E1628; --surface:#172240; --ink:#EAF0F9; --muted:#9DAAC4; --line:#2A3A5E;
   --court:#7FA6E6; --court-soft:#203660; --floor:#FF8F26; --floor-dark:#FFB066; --floor-soft:#3B2712; --bench:#3E4C6B;
-  --band:#12366A;
+  --band:#12366A; --bad:#FF7B7B; --bad-soft:#3A1C22;
 }
 *,*::before,*::after{box-sizing:inherit}
 html{scroll-padding-top:calc(env(safe-area-inset-top,0px) + 64px);-webkit-text-size-adjust:100%}
@@ -123,6 +123,50 @@ th{font-family:"Barlow Condensed",sans-serif;font-size:1.05rem;color:var(--court
 .legend span{display:inline-flex;align-items:center;gap:6px}
 .legend .dot{width:16px;height:16px}
 
+/* Live: service en rotatie */
+.live{border:2px solid var(--floor)}
+.live-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px}
+.live-head h2{margin:0}
+.live-head .nav{display:flex;gap:6px}
+.live-head .nav button{min-width:48px;padding:8px 12px}
+.plan{background:var(--floor-soft);border-radius:10px;padding:10px 12px;margin:6px 0 10px;display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px}
+.plan p{margin:0;flex:1 1 200px;font-weight:600}
+.server{text-align:center;padding:6px 0 10px}
+.sname{font-family:"Barlow Condensed",sans-serif;font-size:2.2rem;font-weight:800;line-height:1.05;overflow-wrap:anywhere}
+.sline{color:var(--muted);font-size:.92rem}
+.rate{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.rate button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:76px;padding:8px 4px;border-radius:14px;line-height:1.1}
+.rate b{font-size:1.7rem;font-family:"Barlow Condensed",sans-serif}
+.rate span{font-size:.85rem;font-weight:600}
+.r0{background:var(--bad);color:#fff}
+.r1{background:var(--court-soft);color:var(--ink);border:2px solid var(--court)!important}
+.r2{background:var(--court);color:var(--surface)}
+.r3{background:var(--floor);color:#fff}
+.row2{display:flex;gap:8px;margin-top:10px}
+.row2 button{flex:1}
+.flash{color:var(--muted);font-size:.9rem;text-align:center;min-height:1.4em;margin:8px 0 0}
+.rot{list-style:none;padding:0;margin:6px 0 0;counter-reset:pos}
+.rot li{border-top:1px solid var(--line)}
+.rot .r{display:flex;align-items:center;gap:8px;min-height:52px}
+.rot .r::before{counter-increment:pos;content:counter(pos);width:24px;text-align:center;color:var(--muted);font-weight:700;flex:none}
+.rot .who{flex:1;min-width:0;text-align:left;background:transparent;color:var(--ink);padding:8px 6px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rot li.on .who{color:var(--floor-dark);font-weight:800}
+.rot li.on .who::before{content:"● ";color:var(--floor)}
+.rot .mini{color:var(--muted);font-size:.85rem;white-space:nowrap}
+.rot .up{min-width:44px;padding:8px}
+.pick{display:flex;flex-wrap:wrap;gap:6px;padding:4px 0 12px 32px}
+.pick button{min-height:44px;padding:8px 12px;background:var(--court-soft);color:var(--ink);border:2px solid var(--court)}
+.pick .cancel{background:transparent;border-color:var(--line);color:var(--muted)}
+button.link{background:transparent;color:var(--court);padding:8px 4px;min-height:44px;font-weight:600;text-decoration:underline}
+.stats td,.stats th{padding:8px 3px}
+.stats td.n0{color:var(--bad);font-weight:700}
+.stats td.n3{color:var(--floor-dark);font-weight:700}
+.stats td.avg{font-weight:800}
+.stats .zero{color:var(--bench)}
+.sublog{color:var(--muted);font-size:.9rem;margin:10px 0 0;padding-left:18px}
+.danger{background:transparent;color:var(--bad);border:2px solid var(--bad)}
+.seg button:disabled{opacity:.55;cursor:not-allowed}
+
 /* Actiebalk onderaan, binnen bereik van je duim */
 .actionbar{position:fixed;left:0;right:0;bottom:0;z-index:6;background:var(--surface);border-top:1px solid var(--line);padding:10px 14px calc(10px + env(safe-area-inset-bottom,0px))}
 .actionbar-inner{max-width:640px;margin:0 auto;display:flex;gap:8px}
@@ -154,6 +198,7 @@ th{font-family:"Barlow Condensed",sans-serif;font-size:1.05rem;color:var(--court
 <nav class="setnav noprint" id="setnav" aria-label="Ga naar set"></nav>
 
 <main>
+  <div id="liveBox" class="noprint"></div>
   <section class="noprint" id="presence">
     <div class="presence-head"><h2>Wie is er?</h2><span class="count" id="count"></span></div>
     <div class="players" id="players"></div>
@@ -171,11 +216,14 @@ th{font-family:"Barlow Condensed",sans-serif;font-size:1.05rem;color:var(--court
   </details>
 
   <div id="output"></div>
+  <div id="seasonBox" class="noprint"></div>
 </main>
 
 <div class="actionbar noprint">
   <div class="actionbar-inner">
     <button type="button" class="ghost" id="shuffleBtn">Andere indeling</button>
+    <button type="button" id="startBtn">Start wedstrijd</button>
+    <button type="button" class="ghost" id="toLiveBtn" hidden>Naar service</button>
     <button type="button" class="ghost" id="printBtn">Printen</button>
   </div>
 </div>
@@ -191,6 +239,15 @@ th{font-family:"Barlow Condensed",sans-serif;font-size:1.05rem;color:var(--court
     if (saved && saved.mode === 'full') state.mode = 'full';
   } catch(e) {}
   function save(){ try { localStorage.setItem(KEY, JSON.stringify({players: state.players, mode: state.mode})); } catch(e) {} }
+
+  // Lopende wedstrijd: schema ligt vast (namen, speelwijze, indeling) zodat herladen niets verschuift.
+  var MKEY = 'invalschema-wedstrijd-v1', SKEY = 'invalschema-seizoen-v1';
+  var match = null, season = [], undo = [], ui = { pick: null, reorder: false, flash: '' };
+  try { match = JSON.parse(localStorage.getItem(MKEY) || 'null'); } catch(e) {}
+  try { season = JSON.parse(localStorage.getItem(SKEY) || '[]') || []; } catch(e) {}
+  function saveMatch(){ try { if (match) localStorage.setItem(MKEY, JSON.stringify(match)); else localStorage.removeItem(MKEY); } catch(e) {} }
+  function saveSeason(){ try { localStorage.setItem(SKEY, JSON.stringify(season)); } catch(e) {} }
+  var RATING = ['fout', 'simpel', 'lastig', 'ace'];
 
   var $ = function(id){ return document.getElementById(id); };
   function esc(s){ return String(s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
@@ -247,7 +304,8 @@ th{font-family:"Barlow Condensed",sans-serif;font-size:1.05rem;color:var(--court
 
   function renderMode(){
     var full = state.mode === 'full';
-    document.querySelectorAll('[data-mode]').forEach(function(b){ b.setAttribute('aria-pressed', String(b.dataset.mode === state.mode)); });
+    if (match) { state.mode = match.mode; full = state.mode === 'full'; }
+    document.querySelectorAll('[data-mode]').forEach(function(b){ b.setAttribute('aria-pressed', String(b.dataset.mode === state.mode)); b.disabled = !!match; });
     $('sub').textContent = full ? '4 sets, geen wissels in een set' : '4 sets, iedereen speelt elke set';
   }
 
@@ -267,8 +325,10 @@ th{font-family:"Barlow Condensed",sans-serif;font-size:1.05rem;color:var(--court
 
   function renderOutput(){
     var out = $('output'), nav = $('setnav');
-    var present = state.players.filter(function(p){ return p.present; }).map(function(p){ return p.name; });
-    var full = state.mode === 'full';
+    var present = match ? match.names : state.players.filter(function(p){ return p.present; }).map(function(p){ return p.name; });
+    var full = (match ? match.mode : state.mode) === 'full';
+    var seed = match ? match.seed : state.seed;
+    $('startBtn').disabled = !match && (present.length < 6 || (!full && present.length > 12));
     if (present.length < 6 || (!full && present.length > 12)) {
       nav.innerHTML = '';
       out.innerHTML = state.players.length ? '<section><p class="msg">' + (present.length < 6
@@ -279,14 +339,14 @@ th{font-family:"Barlow Condensed",sans-serif;font-size:1.05rem;color:var(--court
     }
     // Het schema is per set opgebouwd: set 5 verandert niets aan sets 1–4,
     // en kiest juist wie na 4 sets het minst speelde.
-    var sch = full ? buildFullSetSchedule(present, state.sets + 1, state.seed) : buildSchedule(present, state.sets + 1, state.seed);
+    var sch = full ? buildFullSetSchedule(present, state.sets + 1, seed) : buildSchedule(present, state.sets + 1, seed);
     var shown = state.with5 ? state.sets + 1 : state.sets;
     var total = present.map(function(_, i){
       var c = 0;
       sch.sets.slice(0, shown).forEach(function(st){ if (st.first.indexOf(i) >= 0) c++; if (st.second.indexOf(i) >= 0) c++; });
       return c;
     });
-    var navHtml = '<div class="setnav-inner">';
+    var navHtml = '<div class="setnav-inner">' + (match ? '<a class="wide" href="#live">Live</a>' : '');
     for (var k = 0; k < state.sets; k++) navHtml += '<a href="#set' + (k + 1) + '">S' + (k + 1) + '</a>';
     navHtml += '<a class="opt" href="#set5">S5?</a>';
     nav.innerHTML = navHtml + '<a class="wide" href="#overzicht">Overzicht</a></div>';
@@ -339,7 +399,116 @@ th{font-family:"Barlow Condensed",sans-serif;font-size:1.05rem;color:var(--court
     out.innerHTML = html;
   }
 
-  function renderAll(){ renderMode(); renderPlayers(); renderOutput(); }
+  function matchSchedule(){
+    return match.mode === 'full' ? buildFullSetSchedule(match.names, state.sets + 1, match.seed) : buildSchedule(match.names, state.sets + 1, match.seed);
+  }
+  function startSet(s){
+    var sch = matchSchedule();
+    match.set = s; match.court = sch.sets[s].first.slice(); match.server = 0; match.subsDone = false;
+    ui.pick = null;
+  }
+  function snapshot(){
+    undo.push(JSON.stringify(match)); if (undo.length > 60) undo.shift();
+  }
+  function stats(serves){
+    var st = {};
+    serves.forEach(function(v){
+      var k = v.p, o = st[k] || (st[k] = { n: 0, c: [0, 0, 0, 0], sum: 0 });
+      o.n++; o.c[v.r]++; o.sum += v.r;
+    });
+    return st;
+  }
+  function avg(o){ return o && o.n ? (o.sum / o.n).toFixed(1).replace('.', ',') : '–'; }
+  function statLine(o){ return o && o.n ? o.n + '× · gem ' + avg(o) : 'nog niet geserveerd'; }
+
+  function statsTable(rows){
+    // rows: [{name, o}]
+    var h = '<table class="stats"><thead><tr><th>Speler</th><th>×</th><th title="fout">0</th><th title="simpel">1</th><th title="lastig">2</th><th title="ace">3</th><th>Gem</th></tr></thead><tbody>';
+    rows.forEach(function(r){
+      var o = r.o || { n: 0, c: [0, 0, 0, 0], sum: 0 };
+      h += '<tr><td>' + esc(r.name) + '</td><td>' + (o.n || '<span class="zero">0</span>') + '</td>' +
+        o.c.map(function(c, i){ return '<td class="' + (c ? 'n' + i : 'zero') + '">' + c + '</td>'; }).join('') +
+        '<td class="avg">' + avg(o) + '</td></tr>';
+    });
+    return h + '</tbody></table>';
+  }
+
+  function renderLive(){
+    var box = $('liveBox');
+    $('presence').hidden = !!match; $('editTeam').hidden = !!match;
+    $('shuffleBtn').hidden = !!match; $('startBtn').hidden = !!match; $('toLiveBtn').hidden = !match;
+    if (!match) { box.innerHTML = ''; return; }
+    var sch = matchSchedule(), names = match.names, set = sch.sets[match.set];
+    var setServes = match.serves.filter(function(v){ return v.s === match.set; });
+    var stSet = stats(setServes), stAll = stats(match.serves);
+    var cur = match.court[match.server];
+    var bench = names.map(function(_, i){ return i; }).filter(function(i){ return match.court.indexOf(i) < 0; });
+    var last = match.set === state.sets;
+
+    var h = '<section class="live" id="live"><div class="live-head"><h2>Set ' + (match.set + 1) + (last ? ' <small style="font-size:1rem;color:var(--muted)">extra</small>' : '') + '</h2>' +
+      '<div class="nav"><button type="button" class="ghost" data-goset="-1" aria-label="Vorige set"' + (match.set === 0 ? ' disabled' : '') + '>‹</button>' +
+      '<button type="button" class="ghost" data-goset="1" aria-label="Volgende set"' + (last ? ' disabled' : '') + '>›</button></div></div>';
+
+    var todo = set.subs.filter(function(p){ return match.court.indexOf(p[1]) >= 0 && match.court.indexOf(p[0]) < 0; });
+    if (!match.subsDone && todo.length) {
+      h += '<div class="plan"><p>Rond 12–13 punten: ' + todo.map(function(p){ return esc(names[p[0]]) + ' erin voor ' + esc(names[p[1]]); }).join(', ') + '</p>' +
+        '<button type="button" class="small" id="doSubs">Wissels doen</button></div>';
+    }
+
+    h += '<div class="server"><div class="label">Aan service</div><div class="sname">' + esc(names[cur]) + '</div>' +
+      '<div class="sline">Deze set ' + statLine(stSet[cur]) + '</div></div>' +
+      '<div class="rate" role="group" aria-label="Beoordeel de service">' +
+      RATING.map(function(t, i){ return '<button type="button" class="r' + i + '" data-rate="' + i + '"><b>' + i + '</b><span>' + t + '</span></button>'; }).join('') +
+      '</div><div class="row2"><button type="button" class="ghost" id="lostBtn">Punt voor hen · draaien</button>' +
+      '<button type="button" class="ghost" id="undoBtn"' + (undo.length ? '' : ' disabled') + '>Ongedaan</button></div>' +
+      '<p class="flash" aria-live="polite">' + esc(ui.flash) + '</p>';
+
+    h += '<div class="label">Opstelling in servicevolgorde · tik een naam om die aan service te zetten</div><ol class="rot">';
+    match.court.forEach(function(p, i){
+      h += '<li class="' + (i === match.server ? 'on' : '') + '"><div class="r"><button type="button" class="who" data-srv="' + i + '">' + esc(names[p]) + '</button>' +
+        '<span class="mini">' + (stSet[p] ? stSet[p].n + '× ' + avg(stSet[p]) : '') + '</span>' +
+        (ui.reorder && i > 0 ? '<button type="button" class="ghost up" data-up="' + i + '" aria-label="Omhoog">▲</button>' : '') +
+        (bench.length ? '<button type="button" class="ghost small" data-sub="' + i + '">Wissel</button>' : '') + '</div>';
+      if (ui.pick === i) {
+        h += '<div class="pick"><span class="label" style="width:100%">Wie komt erin voor ' + esc(names[p]) + '?</span>' +
+          bench.map(function(b){ return '<button type="button" data-in="' + b + '">' + esc(names[b]) + '</button>'; }).join('') +
+          '<button type="button" class="cancel" data-cancel>Annuleer</button></div>';
+      }
+      h += '</li>';
+    });
+    h += '</ol><button type="button" class="link" id="reorderBtn">' + (ui.reorder ? 'Klaar met volgorde' : 'Volgorde aanpassen') + '</button>';
+    if (bench.length) h += '<p class="bench">Bank: ' + bench.map(function(b){ return esc(names[b]); }).join(', ') + '</p>';
+    h += '</section>';
+
+    // Service-overzicht van deze wedstrijd
+    var setSubs = match.subs.filter(function(x){ return !x.planned; });
+    h += '<section id="servstats"><h2>Service deze wedstrijd</h2>' +
+      statsTable(names.map(function(n, i){ return { name: n, o: stAll[i] }; })) +
+      '<div class="legend"><span>0 = fout</span><span>1 = simpel</span><span>2 = lastig</span><span>3 = ace</span></div>' +
+      (setSubs.length ? '<ul class="sublog">' + setSubs.map(function(x){ return '<li>Set ' + (x.s + 1) + ': ' + esc(names[x['in']]) + ' erin voor ' + esc(names[x.out]) + '</li>'; }).join('') + '</ul>' : '') +
+      '<div class="row2"><button type="button" class="danger" id="endBtn">Wedstrijd afsluiten</button></div></section>';
+    box.innerHTML = h;
+  }
+
+  function renderSeason(){
+    var box = $('seasonBox');
+    if (!season.length) { box.innerHTML = ''; return; }
+    var tot = {}, order = [];
+    season.forEach(function(m){
+      Object.keys(m.stats).forEach(function(n){
+        var a = m.stats[n], o = tot[n] || (order.push(n), tot[n] = { n: 0, c: [0, 0, 0, 0], sum: 0 });
+        o.n += a.n; o.sum += a.sum; a.c.forEach(function(c, i){ o.c[i] += c; });
+      });
+    });
+    order.sort(function(a, b){ return a.localeCompare(b, 'nl'); });
+    box.innerHTML = '<details class="card"><summary>Service dit seizoen (' + season.length + (season.length === 1 ? ' wedstrijd' : ' wedstrijden') + ')</summary><div class="edit">' +
+      statsTable(order.map(function(n){ return { name: n, o: tot[n] }; })) +
+      '<div class="row2"><button type="button" class="danger small" id="clearSeason">Seizoen wissen</button></div></div></details>';
+  }
+
+  function act(fn, msg){ snapshot(); fn(); ui.flash = msg || ''; saveMatch(); renderLive(); }
+
+  function renderAll(){ renderMode(); renderPlayers(); renderLive(); renderOutput(); renderSeason(); }
 
   $('addForm').addEventListener('submit', function(e){
     e.preventDefault();
@@ -373,6 +542,81 @@ th{font-family:"Barlow Condensed",sans-serif;font-size:1.05rem;color:var(--court
     var o = $('overzicht'); if (o) o.scrollIntoView({ block: 'start' });
   });
   $('printBtn').addEventListener('click', function(){ window.print(); });
+
+  $('startBtn').addEventListener('click', function(){
+    var names = state.players.filter(function(p){ return p.present; }).map(function(p){ return p.name; });
+    match = { names: names, mode: state.mode, seed: state.seed, set: 0, court: [], server: 0, subsDone: false, serves: [], subs: [], date: new Date().toISOString().slice(0, 10) };
+    startSet(0); undo = []; ui.flash = ''; saveMatch(); renderAll();
+    $('live').scrollIntoView({ block: 'start' });
+  });
+  $('toLiveBtn').addEventListener('click', function(){ var l = $('live'); if (l) l.scrollIntoView({ behavior: 'smooth', block: 'start' }); });
+
+  $('liveBox').addEventListener('click', function(e){
+    if (!match) return;
+    var t, names = match.names;
+    if ((t = e.target.closest('[data-rate]'))) {
+      var r = +t.dataset.rate, p = match.court[match.server];
+      act(function(){
+        match.serves.push({ p: p, s: match.set, r: r });
+        if (r === 0) match.server = (match.server + 1) % 6;
+      }, names[p] + ': ' + r + ' (' + RATING[r] + ')' + (r === 0 ? ' · service naar de tegenstander, rotatie doorgedraaid' : ''));
+      if (navigator.vibrate) navigator.vibrate(15);
+    } else if (e.target.closest('#lostBtn')) {
+      act(function(){ match.server = (match.server + 1) % 6; }, 'Doorgedraaid: volgende keer serveert ' + names[match.court[(match.server + 1) % 6]]);
+    } else if (e.target.closest('#undoBtn')) {
+      if (!undo.length) return;
+      match = JSON.parse(undo.pop()); ui.flash = 'Laatste actie ongedaan gemaakt'; ui.pick = null; saveMatch(); renderLive();
+    } else if ((t = e.target.closest('[data-srv]'))) {
+      var i = +t.dataset.srv; if (i === match.server) return;
+      act(function(){ match.server = i; }, names[match.court[i]] + ' staat nu aan service');
+    } else if ((t = e.target.closest('[data-sub]'))) {
+      ui.pick = ui.pick === +t.dataset.sub ? null : +t.dataset.sub; renderLive();
+    } else if (e.target.closest('[data-cancel]')) {
+      ui.pick = null; renderLive();
+    } else if ((t = e.target.closest('[data-in]'))) {
+      var slot = ui.pick, inn = +t.dataset['in'], out = match.court[slot]; ui.pick = null;
+      act(function(){ match.court[slot] = inn; match.subs.push({ s: match.set, 'in': inn, out: out }); }, names[inn] + ' erin voor ' + names[out]);
+    } else if (e.target.closest('#doSubs')) {
+      var plan = matchSchedule().sets[match.set].subs;
+      act(function(){
+        plan.forEach(function(pr){ var k = match.court.indexOf(pr[1]); if (k >= 0 && match.court.indexOf(pr[0]) < 0) match.court[k] = pr[0]; });
+        match.subsDone = true;
+      }, 'Geplande wissels gedaan. Ze serveren op de plek van wie eruit ging.');
+    } else if ((t = e.target.closest('[data-up]'))) {
+      var u = +t.dataset.up;
+      act(function(){
+        var c = match.court, tmp = c[u]; c[u] = c[u - 1]; c[u - 1] = tmp;
+        if (match.server === u) match.server = u - 1; else if (match.server === u - 1) match.server = u;
+      });
+    } else if (e.target.closest('#reorderBtn')) {
+      ui.reorder = !ui.reorder; renderLive();
+    } else if ((t = e.target.closest('[data-goset]'))) {
+      var ns = match.set + (+t.dataset.goset); if (ns < 0 || ns > state.sets) return;
+      act(function(){ startSet(ns); }, ns === state.sets ? 'Set 5: opstelling op basis van wie na 4 sets het minst speelde' : '');
+      $('live').scrollIntoView({ block: 'start' });
+    } else if ((t = e.target.closest('#endBtn'))) {
+      if (!t.dataset.sure) {
+        t.dataset.sure = '1'; t.textContent = 'Zeker? Tik nog een keer';
+        setTimeout(function(){ if (t.isConnected) { delete t.dataset.sure; t.textContent = 'Wedstrijd afsluiten'; } }, 3000);
+        return;
+      }
+      var st = stats(match.serves), byName = {};
+      Object.keys(st).forEach(function(k){ byName[names[k]] = st[k]; });
+      if (match.serves.length) { season.push({ date: match.date, stats: byName }); saveSeason(); }
+      match = null; undo = []; ui = { pick: null, reorder: false, flash: '' }; saveMatch(); renderAll();
+      window.scrollTo(0, 0);
+    }
+  });
+
+  $('seasonBox').addEventListener('click', function(e){
+    var t = e.target.closest('#clearSeason'); if (!t) return;
+    if (!t.dataset.sure) {
+      t.dataset.sure = '1'; t.textContent = 'Zeker? Tik nog een keer';
+      setTimeout(function(){ if (t.isConnected) { delete t.dataset.sure; t.textContent = 'Seizoen wissen'; } }, 3000);
+      return;
+    }
+    season = []; saveSeason(); renderSeason();
+  });
 
   renderAll();
 })();
