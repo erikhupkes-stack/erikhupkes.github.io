@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1A4D94">
+<title>Invalschema Move4u</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;800&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F4F6FA; --surface:#FFFFFF; --ink:#16233F; --muted:#5A6680; --line:#D9DFEA;
+  --court:#1A4D94; --court-soft:#E1E9F5; --floor:#FF7F04; --floor-dark:#B35700; --floor-soft:#FFEBD6; --bench:#B8C1D2;
+  --band:#1A4D94; --band-ink:#FFFFFF;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0E1628; --surface:#172240; --ink:#EAF0F9; --muted:#9DAAC4; --line:#2A3A5E;
+    --court:#7FA6E6; --court-soft:#203660; --floor:#FF8F26; --floor-dark:#FFB066; --floor-soft:#3B2712; --bench:#3E4C6B;
+    --band:#12366A;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0E1628; --surface:#172240; --ink:#EAF0F9; --muted:#9DAAC4; --line:#2A3A5E;
+  --court:#7FA6E6; --court-soft:#203660; --floor:#FF8F26; --floor-dark:#FFB066; --floor-soft:#3B2712; --bench:#3E4C6B;
+  --band:#12366A;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:calc(env(safe-area-inset-top,0px) + 64px);-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.45 "Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-tap-highlight-color:transparent}
+button,input,summary,label{touch-action:manipulation}
+h1,h2,h3{font-family:"Barlow Condensed","Arial Narrow",sans-serif;line-height:1.1;margin:0}
+
+/* Kopbalk */
+.band{background:var(--band);color:var(--band-ink);border-bottom:4px solid var(--floor)}
+.band-inner{max-width:640px;margin:0 auto;padding:12px 14px;display:flex;align-items:center;gap:12px}
+.logo{height:52px;width:auto;flex:none;filter:drop-shadow(0 0 1.5px #fff) drop-shadow(0 2px 3px rgba(0,0,0,.25))}
+h1{font-size:1.9rem;font-weight:800}
+.sub{margin:0;font-size:.9rem;opacity:.85}
+
+/* Set-navigatie, blijft bovenaan staan tijdens scrollen */
+.setnav{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);border-bottom:1px solid var(--line)}
+.setnav-inner{max-width:640px;margin:0 auto;display:flex;gap:6px;padding:8px 14px}
+.setnav a{flex:1;text-align:center;text-decoration:none;font-weight:700;color:var(--court);background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:9px 0;min-height:44px;line-height:24px}
+.setnav a.wide{flex:1.6}
+
+main{max-width:640px;margin:0 auto;padding:12px 12px calc(96px + env(safe-area-inset-bottom,0px))}
+section,details.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}
+h2{font-size:1.4rem;font-weight:700;color:var(--court);margin-bottom:8px}
+
+/* Aanwezigheid */
+.presence-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.count{color:var(--muted);font-weight:600;font-size:.95rem}
+.players{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;margin-top:6px}
+.chip{position:relative;display:flex;align-items:center;gap:8px;min-height:48px;padding:8px 12px;border-radius:12px;border:2px solid var(--court);background:var(--court-soft);font-weight:600;cursor:pointer;user-select:none;-webkit-user-select:none}
+.chip::before{content:"";width:20px;height:20px;border-radius:50%;background:var(--court);flex:none;box-shadow:inset 0 0 0 4px var(--court-soft)}
+.chip.absent{border-color:var(--line);background:transparent;color:var(--muted);text-decoration:line-through}
+.chip.absent::before{background:transparent;box-shadow:inset 0 0 0 2px var(--bench)}
+.chip input{position:absolute;opacity:0;pointer-events:none}
+.chip:focus-within{outline:3px solid var(--floor);outline-offset:2px}
+.hint{color:var(--muted);font-size:.9rem;margin:10px 0 0}
+
+/* Team bewerken */
+details.card{padding:0}
+details.card summary{list-style:none;cursor:pointer;padding:14px;font-weight:700;color:var(--court);display:flex;justify-content:space-between;align-items:center;min-height:52px}
+details.card summary::-webkit-details-marker{display:none}
+details.card summary::after{content:"+";font-size:1.5rem;line-height:1}
+details.card[open] summary::after{content:"–"}
+.edit{padding:0 14px 14px}
+.add{display:flex;gap:8px}
+input[type=text]{flex:1;min-width:0;font:inherit;font-size:16px;padding:12px;min-height:48px;border:1px solid var(--line);border-radius:12px;background:var(--bg);color:var(--ink)}
+.roster{list-style:none;padding:0;margin:12px 0 0}
+.roster li{display:flex;justify-content:space-between;align-items:center;min-height:48px;border-top:1px solid var(--line)}
+button{font:inherit;font-weight:700;border:0;border-radius:12px;padding:12px 18px;min-height:48px;cursor:pointer;background:var(--floor);color:#fff}
+button:active{transform:scale(.98)}
+button.ghost{background:transparent;color:var(--court);border:2px solid var(--court)}
+button.del{background:transparent;color:var(--floor-dark);padding:8px 12px;min-height:44px;font-weight:600}
+button:focus-visible,input:focus-visible,summary:focus-visible,.setnav a:focus-visible{outline:3px solid var(--court);outline-offset:2px}
+
+/* Speelwijze-schakelaar */
+.band-inner > div:not(.seg){min-width:0;flex:1}
+@media (max-width:519px){ .band-inner{gap:10px;padding:10px 12px} .logo{height:44px} .band h1{font-size:1.55rem} .sub{font-size:.82rem} }
+.seg{margin-left:auto;flex:none;display:flex;flex-direction:column;gap:3px;padding:3px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.35);border-radius:12px}
+.seg button{background:transparent;color:var(--band-ink);min-height:40px;padding:6px 10px;border-radius:9px;font-size:.95rem;line-height:1.1;white-space:nowrap}
+.seg button[aria-pressed="true"]{background:var(--floor);color:#fff}
+@media (min-width:520px){ .seg{flex-direction:row} .seg button{min-height:44px} }
+.msg{padding:12px;border-radius:10px;background:var(--floor-soft);margin:0}
+
+/* Sets */
+.set{border-left:6px solid var(--floor)}
+.set h3{font-size:1.5rem;font-weight:800;margin-bottom:8px}
+.set.extra{border-left-style:dashed;border-left-color:var(--bench);border-style:dashed}
+.set.extra h3 small{font-family:"Barlow",sans-serif;font-size:.95rem;font-weight:600;color:var(--muted);margin-left:6px}
+.setnav a.opt{border-style:dashed;color:var(--muted)}
+.over-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px}
+.over-head h2{margin:0}
+button.small{min-height:44px;padding:8px 12px;font-size:.92rem}
+th.opt,td.opt{opacity:.75}
+.label{font-weight:700;font-size:.85rem;color:var(--muted);margin-top:4px}
+.names{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:6px 0 10px}
+.names span{background:var(--court-soft);padding:8px 10px;border-radius:8px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bench{color:var(--muted);font-size:.95rem;margin:0 0 10px}
+.subs{list-style:none;padding:0;margin:6px 0 0}
+.subs li{display:flex;align-items:center;gap:8px;padding:10px 0;border-top:1px dashed var(--line);font-size:1.05rem}
+.subs .in{font-weight:700;color:var(--floor-dark)}
+.subs .arrow{color:var(--muted);font-size:.9rem}
+
+/* Overzicht */
+table{border-collapse:collapse;width:100%}
+th,td{padding:9px 2px;text-align:center;border-bottom:1px solid var(--line)}
+th:first-child,td:first-child{text-align:left;padding-left:0;max-width:34vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+th{font-family:"Barlow Condensed",sans-serif;font-size:1.05rem;color:var(--court)}
+.dot{display:inline-block;width:22px;height:22px;border-radius:50%;border:2px solid var(--court);vertical-align:middle}
+.dot.full{background:var(--court)}
+.dot.h1{background:linear-gradient(90deg,var(--court) 50%,transparent 50%)}
+.dot.h2{background:linear-gradient(90deg,transparent 50%,var(--court) 50%)}
+.dot.none{border-color:var(--bench);border-style:dashed}
+.total{font-weight:700;white-space:nowrap}
+.legend{display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;color:var(--muted);font-size:.88rem;margin-top:10px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend .dot{width:16px;height:16px}
+
+/* Actiebalk onderaan, binnen bereik van je duim */
+.actionbar{position:fixed;left:0;right:0;bottom:0;z-index:6;background:var(--surface);border-top:1px solid var(--line);padding:10px 14px calc(10px + env(safe-area-inset-bottom,0px))}
+.actionbar-inner{max-width:640px;margin:0 auto;display:flex;gap:8px}
+.actionbar button{flex:1}
+#printBtn{display:none}
+@media (min-width:700px){ #printBtn{display:block;flex:0 0 auto} .logo{height:64px} h1{font-size:2.2rem} }
+
+@media print{
+  body{background:#fff;color:#000} .band{background:#fff;color:#000} .logo{filter:none}
+  .noprint,.setnav,.actionbar{display:none!important} main{padding-bottom:0} section{break-inside:avoid;border-color:#999}
+}
+</style>
+</head>
+<body>
+<header class="band">
+  <div class="band-inner">
+    <img class="logo" alt="Volleybalvereniging Move4u" src="data:image/svg+xml;base64,CgoKPHN2ZwogICB2aWV3Qm94PSItMzExIDE0MSA5MSA3MSIKICAgdmVyc2lvbj0iMS4xIgogICBpZD0ic3ZnMSIKICAgeG1sOnNwYWNlPSJwcmVzZXJ2ZSIKICAKICAKICAKICAKICAKICAgeG1sbnM6aW5rc2NhcGU9Imh0dHA6Ly93d3cuaW5rc2NhcGUub3JnL25hbWVzcGFjZXMvaW5rc2NhcGUiCiAgIHhtbG5zOnNvZGlwb2RpPSJodHRwOi8vc29kaXBvZGkuc291cmNlZm9yZ2UubmV0L0RURC9zb2RpcG9kaS0wLmR0ZCIKICAgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiCiAgIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIKICAgeG1sbnM6c3ZnPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnMKICAgICBpZD0iZGVmczEiIC8+PGcKICAgIAogICAgCiAgICAgaWQ9ImxheWVyMSI+PGcKICAgICAgIGlkPSJnMSIKICAgICAgIHRyYW5zZm9ybT0ibWF0cml4KDAuMzA0MjM2MzksMCwwLDAuMzA0MjM2MzksLTgwMi4xNjU4MSwxOC43MDU0NjYpIgogICAgICAKICAgICAgCiAgICAgID48ZwogICAgICAgICBpZD0iZzQxIgogICAgICAgICB0cmFuc2Zvcm09Im1hdHJpeCgwLjc0MzE0NDc3LDAsMCwwLjc0MzE0NDc3LDE2MTguMzg1LDQwNi42MzM4NikiCiAgICAgICAgCiAgICAgICAgIHN0eWxlPSJkaXNwbGF5OmlubGluZSIKICAgICAgICAKICAgICAgICAKICAgICAgICA+PGcKICAgICAgICAgICBpZD0iTGFhZ18xIj4KCTxlbGxpcHNlCiAgIGZpbGw9IiNmMThlMDAiCiAgIHN0cm9rZT0iIzAwMzg4OCIKICAgc3Ryb2tlLXdpZHRoPSI4IgogICBjeD0iMTk0LjYwNiIKICAgY3k9IjE4NS4yNDUiCiAgIHJ4PSIxOTAuNjA2IgogICByeT0iMTEzLjAzMSIKICAgaWQ9ImVsbGlwc2U2IiAvPgoJPGNpcmNsZQogICBmaWxsPSIjZmZmZmZmIgogICBjeD0iMTk3LjM4MiIKICAgY3k9IjYyLjE0NiIKICAgcj0iNDguMTg4OTk5IgogICBpZD0iY2lyY2xlNiIgLz4KCQoJCTxsaW5lYXJHcmFkaWVudAogICBpZD0iU1ZHSURfMV8iCiAgIGdyYWRpZW50VW5pdHM9InVzZXJTcGFjZU9uVXNlIgogICB4MT0iNTYyLjEyNTk4IgogICB5MT0iLTQxMC40MDUzIgogICB4Mj0iNTYyLjEyNTk4IgogICB5Mj0iLTI0Ny40ODMyIgogICBncmFkaWVudFRyYW5zZm9ybT0ibWF0cml4KDAuNDI0OSwwLjkwNTIsMC45MDUyLC0wLjQyNDksMTU5LjA0MDEsLTU1OC45OTc5KSI+CgkJPHN0b3AKICAgb2Zmc2V0PSIwIgogICBzdHlsZT0ic3RvcC1jb2xvcjojMDA0RDk1IgogICBpZD0ic3RvcDYiIC8+CgkJPHN0b3AKICAgb2Zmc2V0PSIxIgogICBzdHlsZT0ic3RvcC1jb2xvcjojN0VBMkQxIgogICBpZD0ic3RvcDciIC8+Cgk8L2xpbmVhckdyYWRpZW50PgoJPHBhdGgKICAgZmlsbD0idXJsKCNTVkdJRF8xXykiCiAgIHN0cm9rZT0iIzAwMzg4OCIKICAgc3Ryb2tlLXdpZHRoPSI0IgogICBkPSJNIDkyLjkyNSwxOC41NDkgQyA5LjY0OCw2Mi44OCAzLjA4OSwxNDIuOCAyLjAyNSwxODcuOTY4IDQuNjU4LDE1Ni44NTYgOS45NDYsOTEuNDU0IDY5LjE5LDU3LjMyOCBjIDI0LjMzOSwtMTQuMDIgNjEuOTU2LC0xNC4wNTUgNzguNTcsLTcuNDExIC0wLjQ2MSwxLjc1NyAtMC44MjcsMy41MDkgLTEuMDk4LDUuMjU1IC0yOS4wMzcsLTUuODEzIC01OS42NjgsLTIuNzUyIC04Ny4zMiwyNi4zMTMgMzMuOTM1LC0yOS4xNDQgNjguMzQsLTI4LjA1NiA5MS4wOTQsMy43NjMgNS44MjYsOC4xNDYgMTUuNTM5LDIwLjA4NCAyOS4zMzIsMjQuODY3IDEzLjQ0Miw0LjY2MiAyNy44NjQsNC4xMDEgMzkuMDQzLC0xLjYxMSAxMy4wNTMsLTYuNjc2IDIwLjM0NiwtMTQuOTQ2IDI1Ljk3MywtMjguOTAyIEMgMjU3LjI5Miw0OC41NzcgMjMyLjg4NCwyMS4zNiAyMTguNDQ2LDEzLjU3NCAyMDMuMzE4LDUuNDE0IDE0Ni43MDgsLTEwLjA4IDkyLjkyNSwxOC41NDkgWiIKICAgaWQ9InBhdGg3IgogICBzdHlsZT0iZmlsbDp1cmwoI1NWR0lEXzFfKSIgLz4KCTxwYXRoCiAgIGZpbGw9IiNmZmZmZmYiCiAgIGQ9Im0gMjEyLjg2MSwxOS4zODIgYyAtMTkuMjI0LDEzLjcyNCAtMzQuMzI5LDM0Ljg0MSAtNDEuMzE2LDYzLjk2MyAtMy45NTYsLTEuMDY2IC03LjY2NSwtMi45NTQgLTEwLjQ3OCwtNS4zMzUgLTEuNDMzLC0xMy44NiAxLjkyOSwtMjcuMjg5IDEwLjQ5OSwtNDAuMzg0IDcuNDYsLTExLjM5NyAxOC43MzMsLTIxLjA5NiAyOC44NDgsLTIxLjg1NCA2LjEzMiwtMC40NjIgMTEuMzc3LDIuMzkyIDEyLjQ0NywzLjYxIHogbSAxLjkxMiwxLjg3MyBjIDQuNTE0LDMuNTUxIDcuNTkyLDcuNjc0IDEwLjA4NiwxMy4zNTEgLTE4LjIwNCwxMy41ODYgLTI1LjY4NiwzMS4xODIgLTI5LjkzNCw0OC4wMTkgLTguNzI2LDEuNjUxIC0xNC41NzUsMi4yNDYgLTIwLjc4NSwwLjk1NCA1LjkyMywtMjYuMTc3IDIxLjA5NCwtNTAuNjAyIDQwLjYzMywtNjIuMzI0IHogbSAyNi4xMjMsMjguNDU1IGMgLTMuOTI2LC02LjI3MSAtNy41NzYsLTEwLjE2OCAtMTMuMzgxLC0xNS4wMzggLTIuMzYxLC00LjkwOCAtNS4wNTUsLTguNzc5IC04LjY3MiwtMTMuMzk3IDExLjE3Nyw1LjkzOSAxOC44OTUsMTcuNzQ4IDIyLjA1MywyOC40MzUgeiBtIDAuNTEsMjIuMjg0IGMgLTMuNTQzLC04LjIwOSAtMTEuODI0LC0xOC4yNDUgLTI2LjYzMSwtMjUuNDA0IDMuNTg4LC00LjA1MiA2LjkwOCwtNi43IDExLjQ0NywtOS41MTcgNS43NTIsNC4zMjIgMTMuODI0LDExLjk0OCAxNS43MzIsMTkuNTQ0IDEuMzI3LDUuMjc4IDAuMzI5LDEwLjk0OCAtMC41NDgsMTUuMzc3IHogbSAtMTEuNDg0LDIxLjY0NyBjIC0yLjY4LC05LjcyNSAtMTQuNjkzLC0yNS44NiAtMjQuNTI0LC0zMi45ODIgMS4xNTksLTIuODI0IDUuOTcyLC0xMC4yOTYgOC4xNzMsLTEyLjg4NCAxNy4xMzEsOC4xOTUgMjYuOTA4LDIyLjk1MSAyNi4yMTMsMjguNzc5IC0wLjY3MSw1LjYzIC01LjQxOSwxMi4yMTYgLTkuODYyLDE3LjA4NyB6IE0gMjE2LjA1NSwxMDMuOTcgQyAyMTMuODQsOTYuNzQgMjA1LjY1Niw4OC44NTcgMTk3LjQ4LDgzLjM2MSBjIDEuODM5LC04LjQxIDMuNTg4LC0xNC4xNDUgNi44NTksLTIwLjY4OSA3LjgyOCw0LjYxMyAyNS42ODcsMjguNTQyIDIzLjQwOCwzMy4yNzIgLTMuMzg0LDMuMTc5IC03LjMsNS45MDIgLTExLjY5Miw4LjAyNiB6IE0gMTU4LjIzNiw4OS45MzggYyAxMy4zMTMsMTIuNzUyIDMwLjk4NywxNS45OTEgNTIuNzc5LDkuMDI0IDEuNzMxLDIuMzA5IDIuNzk3LDUuNTIgMS44MzMsNi4xMTEgLTE5LjkzNSw4LjE2NiAtNDIuMDQ3LDEuNjQzIC01NC42MTIsLTE1LjEzNSB6IG0gLTguMzk1LC0yNS45ODkgYyA5LjA2MSwyNi45NTQgMzMuNTIyLDIzLjQ2NyA0NS45MzUsMjEuNTIyIDYuMjIxLDQuNzI5IDEwLjg0Nyw4LjIzMyAxMy44MTksMTEuNTg5IC0yMi45NzgsOS4zNDkgLTQ4LjUwNywwLjQxMiAtNTcuNDY1LC0xOC44OTMgLTEuODE0LC0zLjkxMyAtMi43OTgsLTguMzU4IC0zLjEzNSwtMTIuNzc0IDAuMzA2LC0wLjY1NSAwLjQ2OCwtMC44MTUgMC44NDYsLTEuNDQ0IHogTSAxOTQuMDUsMTUuMDQ0IGMgLTIzLjQ4NSwxMS41NjEgLTM2Ljc0NywzOC45MTIgLTM1LjIyNyw2MS4wNjMgLTMuNTM5LC0zLjc2MyAtNS42NTQsLTguOTQgLTcuMTA0LC0xNS4xNDYgMC45ODIsLTE2LjYwNyAxMS43OTIsLTM0LjA4MyAyNS42MTksLTQxLjQwMyA3LjI5MSwtMy44NTggMTQuOTg3LC00LjU0NyAxNi43MTIsLTQuNTE0IHoiCiAgIGlkPSJwYXRoOCIgLz4KPC9nPjxnCiAgICAgICAgICAgaWQ9InZvbGxleWJhbF9zaW5kc18xOTU0Ij4KCTxnCiAgIGlkPSJnMjciPgoJCTxwYXRoCiAgIGZpbGw9IiNmZmZmZmYiCiAgIGQ9Im0gMzcuMjQ3LDIxOC45NzIgMy4wMDEsOS4zODUgYyAwLjUzMiwxLjYzMyAwLjkxMiwzLjExNSAxLjI1NCw0LjYzNSBoIDAuMTE0IGMgMC4zNDIsLTEuNTIgMC43NiwtMi45NjQgMS4yNTQsLTQuNjM1IGwgMi45MjYsLTkuMzg1IGggNC45MzkgbCAtNy4wNjcsMTguNTAzIGggLTQuNTk3IGwgLTYuODc3LC0xOC41MDMgeiIKICAgaWQ9InBhdGg5IiAvPgoJCTxwYXRoCiAgIGZpbGw9IiNmZmZmZmYiCiAgIGQ9Im0gNzAuMTE1LDIyOC4wNTIgYyAwLDYuODAxIC00Ljc4OCw5Ljg0MSAtOS40OTksOS44NDEgLTUuMjQzLDAgLTkuMjcxLC0zLjYwOSAtOS4yNzEsLTkuNTM2IDAsLTYuMDggMy45OSwtOS44MDMgOS41NzUsLTkuODAzIDUuNTEsMCA5LjE5NSwzLjg3NSA5LjE5NSw5LjQ5OCB6IG0gLTEzLjk0NCwwLjE5MSBjIDAsMy41NzEgMS43NDgsNi4yNjkgNC41OTcsNi4yNjkgMi42NiwwIDQuNTIxLC0yLjYyMSA0LjUyMSwtNi4zNDUgMCwtMi44ODggLTEuMjkyLC02LjE5MyAtNC40ODMsLTYuMTkzIC0zLjMwNSwtMTBlLTQgLTQuNjM1LDMuMTkxIC00LjYzNSw2LjI2OSB6IgogICBpZD0icGF0aDEwIiAvPgoJCTxwYXRoCiAgIGZpbGw9IiNmZmZmZmYiCiAgIGQ9Im0gNzMuMzg1LDIxMC41IGggNC43MTEgdiAyNi45NzYgaCAtNC43MTEgeiIKICAgaWQ9InBhdGgxMSIgLz4KCQk8cGF0aAogICBmaWxsPSIjZmZmZmZmIgogICBkPSJtIDgyLjU4MSwyMTAuNSBoIDQuNzExIHYgMjYuOTc2IGggLTQuNzExIHoiCiAgIGlkPSJwYXRoMTIiIC8+CgkJPHBhdGgKICAgZmlsbD0iI2ZmZmZmZiIKICAgZD0ibSA5NS4wODIsMjI5LjUzNSBjIDAuMTE0LDMuMzQzIDIuNzM2LDQuNzg3IDUuNjk5LDQuNzg3IDIuMTY2LDAgMy43MjQsLTAuMzA0IDUuMTI5LC0wLjgzNiBsIDAuNjg0LDMuMjI5IGMgLTEuNTk2LDAuNjQ2IC0zLjgsMS4xNzggLTYuNDU5LDEuMTc4IC02LjAwMywwIC05LjUzNywtMy43MjQgLTkuNTM3LC05LjM4NSAwLC01LjEyOSAzLjExNiwtOS45NTQgOS4wNDMsLTkuOTU0IDYuMDQxLDAgNy45NzksNC45MzkgNy45NzksOS4wMDQgMCwwLjg3NCAtMC4wNzYsMS41NTkgLTAuMTUyLDEuOTc3IHogbSA4LjEzMSwtMy4yNjggYyAwLjAzOCwtMS43MSAtMC43MjIsLTQuNTIxIC0zLjgzNywtNC41MjEgLTIuODg4LDAgLTQuMTA0LDIuNjIxIC00LjI5Myw0LjUyMSB6IgogICBpZD0icGF0aDEzIiAvPgoJCTxwYXRoCiAgIGZpbGw9IiNmZmZmZmYiCiAgIGQ9Im0gMTEzLjYyNiwyMTguOTcyIDMuMzQ0LDkuOTE2IGMgMC4zOCwxLjE0IDAuNzYsMi41NDYgMS4wMjYsMy42MDkgaCAwLjExNCBjIDAuMzA0LC0xLjA2MyAwLjY0NiwtMi40MzIgMC45ODgsLTMuNjQ3IGwgMi44ODgsLTkuODc4IEggMTI3IGwgLTQuNjM1LDEyLjYxNCBjIC0yLjU0NSw2LjkxNCAtNC4yNTUsOS45OTIgLTYuNDU5LDExLjg5MiAtMS44MjQsMS42MzQgLTMuNzI0LDIuMjQyIC00LjkwMSwyLjM5NCBsIC0xLjA2NCwtMy45NTEgYyAwLjc5OCwtMC4xOSAxLjc4NiwtMC42MDcgMi43MzYsLTEuMjkyIDAuODc0LC0wLjU2OSAxLjg5OSwtMS42NzIgMi41NDUsLTIuOTI2IDAuMTksLTAuMzQyIDAuMzA0LC0wLjYwNyAwLjMwNCwtMC44MzYgMCwtMC4xODkgLTAuMDM4LC0wLjQ1NSAtMC4yNjYsLTAuOTExIGwgLTYuNzYzLC0xNi45ODMgaCA1LjEyOSB6IgogICBpZD0icGF0aDE0IiAvPgoJCTxwYXRoCiAgIGZpbGw9IiNmZmZmZmYiCiAgIGQ9Im0gMTI5LjEzMSwyMTAuNSBoIDQuNjczIHYgMTEuMDE4IGggMC4wNzYgYyAxLjE0LC0xLjc4NSAzLjE1NCwtMi45NjMgNS45MjcsLTIuOTYzIDQuNTIxLDAgNy43NTEsMy43NjEgNy43MTMsOS4zODUgMCw2LjY0OCAtNC4yMTcsOS45NTQgLTguMzk3LDkuOTU0IC0yLjM5NCwwIC00LjUyMSwtMC45MTIgLTUuODUxLC0zLjE5MSBoIC0wLjA3NiBsIC0wLjIyOCwyLjc3MyBoIC0zLjk5IGMgMC4wNzYsLTEuMjU0IDAuMTUyLC0zLjMwNiAwLjE1MiwtNS4yMDUgViAyMTAuNSBaIG0gNC42NzQsMTkuMzM4IGMgMCwwLjM4IDAuMDM4LDAuNzYgMC4xMTQsMS4xMDIgMC40OTQsMS44NjIgMi4xMjcsMy4yNjggNC4xNDIsMy4yNjggMi45MjUsMCA0LjcxMSwtMi4zNTUgNC43MTEsLTYuMDc5IDAsLTMuMjY4IC0xLjU1OCwtNS45MjcgLTQuNjczLC01LjkyNyAtMS44OTksMCAtMy42MDksMS4zNjcgLTQuMTQxLDMuNDE5IC0wLjA3NiwwLjM0MiAtMC4xNTIsMC43NiAtMC4xNTIsMS4yMTYgdiAzLjAwMSB6IgogICBpZD0icGF0aDE1IiAvPgoJCTxwYXRoCiAgIGZpbGw9IiNmZmZmZmYiCiAgIGQ9Im0gMTY1LjE1MiwyMzMuMDMgYyAwLDEuNjcyIDAuMDc2LDMuMzA2IDAuMjY2LDQuNDQ1IGggLTQuMjE3IGwgLTAuMzA0LC0yLjA1MiBoIC0wLjExNCBjIC0xLjE0LDEuNDQzIC0zLjA3OCwyLjQ3IC01LjQ3MSwyLjQ3IC0zLjcyMywwIC01LjgxMywtMi42OTcgLTUuODEzLC01LjUwOSAwLC00LjY3NCA0LjE0MiwtNy4wMjkgMTAuOTgsLTYuOTkxIHYgLTAuMzA0IGMgMCwtMS4yMTYgLTAuNDk0LC0zLjIyOSAtMy43NjIsLTMuMjI5IC0xLjgyNCwwIC0zLjcyMywwLjU2OSAtNC45NzcsMS4zNjcgbCAtMC45MTIsLTMuMDM5IGMgMS4zNjgsLTAuODM2IDMuNzYyLC0xLjYzNCA2LjY4NywtMS42MzQgNS45MjcsMCA3LjYzNywzLjc2MSA3LjYzNyw3Ljc4OCB6IG0gLTQuNTU5LC00LjU5OCBjIC0zLjMwNSwtMC4wNzUgLTYuNDU5LDAuNjQ2IC02LjQ1OSwzLjQ1OCAwLDEuODIzIDEuMTc4LDIuNjU5IDIuNjYsMi42NTkgMS44NjIsMCAzLjIyOSwtMS4yMTYgMy42NDcsLTIuNTQ2IDAuMTE0LC0wLjM0MiAwLjE1MiwtMC43MjIgMC4xNTIsLTEuMDI1IHoiCiAgIGlkPSJwYXRoMTYiIC8+CgkJPHBhdGgKICAgZmlsbD0iI2ZmZmZmZiIKICAgZD0ibSAxNjkuNTI0LDIxMC41IGggNC43MTEgdiAyNi45NzYgaCAtNC43MTEgeiIKICAgaWQ9InBhdGgxNyIgLz4KCQk8cGF0aAogICBmaWxsPSIjZmZmZmZmIgogICBkPSJtIDE4MS42ODQsMjE4Ljk3MiAzLjAwMSw5LjM4NSBjIDAuNTMyLDEuNjMzIDAuOTEyLDMuMTE1IDEuMjU0LDQuNjM1IGggMC4xMTQgYyAwLjM0MiwtMS41MiAwLjc2LC0yLjk2NCAxLjI1NCwtNC42MzUgbCAyLjkyNiwtOS4zODUgaCA0LjkzOSBsIC03LjA2NywxOC41MDMgaCAtNC41OTcgbCAtNi44NzcsLTE4LjUwMyB6IgogICBpZD0icGF0aDE4IiAvPgoJCTxwYXRoCiAgIGZpbGw9IiNmZmZmZmYiCiAgIGQ9Im0gMjAwLjI2NSwyMjkuNTM1IGMgMC4xMTQsMy4zNDMgMi43MzYsNC43ODcgNS42OTksNC43ODcgMi4xNjYsMCAzLjcyNCwtMC4zMDQgNS4xMjksLTAuODM2IGwgMC42ODQsMy4yMjkgYyAtMS41OTYsMC42NDYgLTMuNzk5LDEuMTc4IC02LjQ1OSwxLjE3OCAtNi4wMDMsMCAtOS41MzcsLTMuNzI0IC05LjUzNywtOS4zODUgMCwtNS4xMjkgMy4xMTYsLTkuOTU0IDkuMDQzLC05Ljk1NCA2LjA0MSwwIDcuOTc4LDQuOTM5IDcuOTc4LDkuMDA0IDAsMC44NzQgLTAuMDc1LDEuNTU5IC0wLjE1MSwxLjk3NyB6IG0gOC4xMzEsLTMuMjY4IGMgMC4wMzgsLTEuNzEgLTAuNzIyLC00LjUyMSAtMy44MzcsLTQuNTIxIC0yLjg4OCwwIC00LjEwNCwyLjYyMSAtNC4yOTMsNC41MjEgeiIKICAgaWQ9InBhdGgxOSIgLz4KCQk8cGF0aAogICBmaWxsPSIjZmZmZmZmIgogICBkPSJtIDIxNS45OTgsMjI0LjkzNyBjIDAsLTIuNTA4IC0wLjAzOSwtNC4yOTMgLTAuMTUyLC01Ljk2NSBoIDQuMDY0IGwgMC4xNTIsMy41MzMgaCAwLjE1MiBjIDAuOTEyLC0yLjYyMiAzLjA3OCwtMy45NTEgNS4wNTMsLTMuOTUxIDAuNDU3LDAgMC43MjMsMC4wMzggMS4xMDIsMC4xMTMgdiA0LjQwOCBjIC0wLjM3OSwtMC4wNzYgLTAuNzk3LC0wLjE1MiAtMS4zNjcsLTAuMTUyIC0yLjI0MiwwIC0zLjc2MiwxLjQ0MyAtNC4xOCwzLjUzMyAtMC4wNzYsMC40MTggLTAuMTUxLDAuOTEyIC0wLjE1MSwxLjQ0NCB2IDkuNTc0IGggLTQuNjczIHoiCiAgIGlkPSJwYXRoMjAiIC8+CgkJPHBhdGgKICAgZmlsbD0iI2ZmZmZmZiIKICAgZD0ibSAyMzEuOTE5LDIyOS41MzUgYyAwLjExNCwzLjM0MyAyLjczNSw0Ljc4NyA1LjY5OSw0Ljc4NyAyLjE2NiwwIDMuNzI0LC0wLjMwNCA1LjEzLC0wLjgzNiBsIDAuNjg0LDMuMjI5IGMgLTEuNTk2LDAuNjQ2IC0zLjgsMS4xNzggLTYuNDU5LDEuMTc4IC02LjAwNCwwIC05LjUzNywtMy43MjQgLTkuNTM3LC05LjM4NSAwLC01LjEyOSAzLjExNSwtOS45NTQgOS4wNDMsLTkuOTU0IDYuMDQxLDAgNy45NzksNC45MzkgNy45NzksOS4wMDQgMCwwLjg3NCAtMC4wNzYsMS41NTkgLTAuMTUyLDEuOTc3IHogbSA4LjEzMSwtMy4yNjggYyAwLjAzOCwtMS43MSAtMC43MjIsLTQuNTIxIC0zLjgzNywtNC41MjEgLTIuODg5LDAgLTQuMTA0LDIuNjIxIC00LjI5NCw0LjUyMSB6IgogICBpZD0icGF0aDIxIiAvPgoJCTxwYXRoCiAgIGZpbGw9IiNmZmZmZmYiCiAgIGQ9Im0gMjQ3LjY1LDIyNC40ODEgYyAwLC0yLjEyOCAtMC4wMzcsLTMuOTEzIC0wLjE1MiwtNS41MDkgaCA0LjEwNCBsIDAuMjI5LDIuNzczIGggMC4xMTMgYyAwLjc5OSwtMS40NDQgMi44MTMsLTMuMTkxIDUuODksLTMuMTkxIDMuMjI5LDAgNi41NzMsMi4wOSA2LjU3Myw3Ljk0IHYgMTAuOTggaCAtNC42NzQgdiAtMTAuNDQ4IGMgMCwtMi42NiAtMC45ODcsLTQuNjc0IC0zLjUzMywtNC42NzQgLTEuODYxLDAgLTMuMTUzLDEuMzMgLTMuNjQ3LDIuNzM2IC0wLjE1MSwwLjQxOCAtMC4xOSwwLjk4NyAtMC4xOSwxLjUyIHYgMTAuODY2IGggLTQuNzExIHYgLTEyLjk5MyB6IgogICBpZD0icGF0aDIyIiAvPgoJCTxwYXRoCiAgIGZpbGw9IiNmZmZmZmYiCiAgIGQ9Im0gMjczLjc5NCwyMTMuODA0IGMgMCwxLjQwNiAtMS4wMjYsMi41MDggLTIuNjU5LDIuNTA4IC0xLjU1OSwwIC0yLjU4NCwtMS4xMDIgLTIuNTg0LC0yLjUwOCAwLC0xLjQ0MyAxLjA2NCwtMi41NDUgMi42MjEsLTIuNTQ1IDEuNTk2LDAgMi41ODQsMS4xMDIgMi42MjIsMi41NDUgeiBtIC00Ljk3OCwyMy42NzEgdiAtMTguNTAzIGggNC43MTEgdiAxOC41MDMgeiIKICAgaWQ9InBhdGgyMyIgLz4KCQk8cGF0aAogICBmaWxsPSIjZmZmZmZmIgogICBkPSJtIDI5NC43MywyMzQuNzc4IGMgMCwzLjg3NSAtMC43OTgsNi42NDggLTIuNzM2LDguMzk2IC0xLjkzOCwxLjcxIC00LjU5NywyLjI0MSAtNy4xNDMsMi4yNDEgLTIuMzU1LDAgLTQuODYzLC0wLjQ5MyAtNi40NTksLTEuNDgxIGwgMS4wMjYsLTMuNTMzIGMgMS4xNzgsMC42ODQgMy4xNTMsMS40MDUgNS4zOTYsMS40MDUgMy4wMzksMCA1LjMxOCwtMS41OTYgNS4zMTgsLTUuNTg1IHYgLTEuNTk2IGggLTAuMDc2IGMgLTEuMDYzLDEuNjM0IC0yLjk2MywyLjczNSAtNS4zOTUsMi43MzUgLTQuNTk4LDAgLTcuODY1LC0zLjc5OSAtNy44NjUsLTkuMDQyIDAsLTYuMDc5IDMuOTUxLC05Ljc2NSA4LjM5NiwtOS43NjUgMi44MTMsMCA0LjQ4NCwxLjM2NyA1LjM1NywyLjg4OCBoIDAuMDc2IGwgMC4xODksLTIuNDcgaCA0LjA2NiBjIC0wLjA3NiwxLjI1NCAtMC4xNTIsMi43NzMgLTAuMTUyLDUuMzE5IHYgMTAuNDg4IHogbSAtNC42NzMsLTguMzk4IGMgMCwtMC40MTggLTAuMDM3LC0wLjg3MyAtMC4xNTEsLTEuMjU0IC0wLjQ5NCwtMS43MDkgLTEuODIzLC0zLjAwMSAtMy44LC0zLjAwMSAtMi42MjEsMCAtNC41NTksMi4yNzkgLTQuNTU5LDYuMDQxIDAsMy4xNTMgMS41OTYsNS42OTkgNC41MjEsNS42OTkgMS43NDcsMCAzLjI2OCwtMS4xNCAzLjc5OSwtMi44MTIgMC4xMTMsLTAuNDk0IDAuMTg5LC0xLjE0IDAuMTg5LC0xLjY3MiB2IC0zLjAwMSB6IgogICBpZD0icGF0aDI0IiAvPgoJCTxwYXRoCiAgIGZpbGw9IiNmZmZmZmYiCiAgIGQ9Im0gMzA0LjAwNCwyMTMuODA0IGMgMCwxLjQwNiAtMS4wMjUsMi41MDggLTIuNjYsMi41MDggLTEuNTU3LDAgLTIuNTgzLC0xLjEwMiAtMi41ODMsLTIuNTA4IDAsLTEuNDQzIDEuMDYzLC0yLjU0NSAyLjYyMiwtMi41NDUgMS41OTYsMCAyLjU4MywxLjEwMiAyLjYyMSwyLjU0NSB6IG0gLTQuOTc3LDIzLjY3MSB2IC0xOC41MDMgaCA0LjcxMSB2IDE4LjUwMyB6IgogICBpZD0icGF0aDI1IiAvPgoJCTxwYXRoCiAgIGZpbGw9IiNmZmZmZmYiCiAgIGQ9Im0gMzA4LjE4NiwyMjQuNDgxIGMgMCwtMi4xMjggLTAuMDM5LC0zLjkxMyAtMC4xNTIsLTUuNTA5IGggNC4xMDQgbCAwLjIyOCwyLjc3MyBoIDAuMTE0IGMgMC43OTgsLTEuNDQ0IDIuODEyLC0zLjE5MSA1Ljg4OSwtMy4xOTEgMy4yMjksMCA2LjU3MywyLjA5IDYuNTczLDcuOTQgdiAxMC45OCBoIC00LjY3MyB2IC0xMC40NDggYyAwLC0yLjY2IC0wLjk4OCwtNC42NzQgLTMuNTM0LC00LjY3NCAtMS44NjEsMCAtMy4xNTMsMS4zMyAtMy42NDcsMi43MzYgLTAuMTUyLDAuNDE4IC0wLjE4OSwwLjk4NyAtMC4xODksMS41MiB2IDEwLjg2NiBoIC00LjcxMSB2IC0xMi45OTMgeiIKICAgaWQ9InBhdGgyNiIgLz4KCQk8cGF0aAogICBmaWxsPSIjZmZmZmZmIgogICBkPSJtIDM0Ni4xMDYsMjM0Ljc3OCBjIDAsMy44NzUgLTAuNzk4LDYuNjQ4IC0yLjczNSw4LjM5NiAtMS45MzgsMS43MSAtNC41OTgsMi4yNDEgLTcuMTQzLDIuMjQxIC0yLjM1NiwwIC00Ljg2MywtMC40OTMgLTYuNDU5LC0xLjQ4MSBsIDEuMDI1LC0zLjUzMyBjIDEuMTc4LDAuNjg0IDMuMTUzLDEuNDA1IDUuMzk1LDEuNDA1IDMuMDQsMCA1LjMyLC0xLjU5NiA1LjMyLC01LjU4NSB2IC0xLjU5NiBoIC0wLjA3NiBjIC0xLjA2NCwxLjYzNCAtMi45NjQsMi43MzUgLTUuMzk2LDIuNzM1IC00LjU5OCwwIC03Ljg2NSwtMy43OTkgLTcuODY1LC05LjA0MiAwLC02LjA3OSAzLjk1MiwtOS43NjUgOC4zOTcsLTkuNzY1IDIuODExLDAgNC40ODIsMS4zNjcgNS4zNTcsMi44ODggaCAwLjA3NSBsIDAuMTksLTIuNDcgaCA0LjA2NCBjIC0wLjA3NSwxLjI1NCAtMC4xNTEsMi43NzMgLTAuMTUxLDUuMzE5IHYgMTAuNDg4IHogbSAtNC42NzIsLTguMzk4IGMgMCwtMC40MTggLTAuMDM5LC0wLjg3MyAtMC4xNTIsLTEuMjU0IC0wLjQ5NCwtMS43MDkgLTEuODI0LC0zLjAwMSAtMy44LC0zLjAwMSAtMi42MjIsMCAtNC41NiwyLjI3OSAtNC41Niw2LjA0MSAwLDMuMTUzIDEuNTk2LDUuNjk5IDQuNTIxLDUuNjk5IDEuNzQ4LDAgMy4yNjgsLTEuMTQgMy44LC0yLjgxMiAwLjExNCwtMC40OTQgMC4xOSwtMS4xNCAwLjE5LC0xLjY3MiB2IC0zLjAwMSB6IgogICBpZD0icGF0aDI3IiAvPgoJPC9nPgo8L2c+PGcKICAgICAgICAgICBpZD0ibW92ZTR1Ij4KCTxnCiAgIGlkPSJnMjkiPgoJCTxnCiAgIGlkPSJnMjgiPgoJCQk8cGF0aAogICBmaWxsPSIjMDA0ZDk1IgogICBzdHJva2U9IiNmZmZmZmYiCiAgIHN0cm9rZS13aWR0aD0iMy42IgogICBkPSJNIDI2Ny4zNjIsMjA2Ljc5MyBWIDE4Mi4yNjUgSCAyMTkuOTg2IFYgMTYyLjYxIGwgMzcuOTY4LC02NS4wMTYgaCAzNy45NjggdiA2Mi4xNiBoIDEyLjA5NiB2IDIyLjUxMiBoIC0xMi4wOTYgdiAyNC41MjggaCAtMjguNTYgeiBtIDAsLTQ3LjA0IHYgLTE4LjY0NyBjIDAsLTcuMDU2IDAuNTA0LC0xNC4xMTIgMC44NCwtMjEuODQgaCAtMC42NzIgYyAtMy41MjgsNy4zOTIgLTYuNTUzLDE0LjQ0OCAtMTAuNTg0LDIyLjAwOCBsIC05LjI0LDE4LjE0NCAtMC4xNjgsMC4zMzYgaCAxOS44MjQgeiIKICAgaWQ9InBhdGgyOCIgLz4KCQk8L2c+Cgk8L2c+Cgk8ZwogICBpZD0iZzM3Ij4KCQk8ZwogICBpZD0iZzMyIj4KCQkJPHBhdGgKICAgZmlsbD0iIzAwMzg4OCIKICAgc3Ryb2tlPSIjMDAzODg4IgogICBzdHJva2Utd2lkdGg9IjcuMiIKICAgZD0ibSA3MS4wMTMsMTU0LjIzNSBjIC0wLjQzMiwtOC4yMDggLTAuODY0LC0xOC4xNDUgLTAuNzU2LC0yNi4xMzcgaCAtMC4zMjQgYyAtMS40MDQsNy45OTIgLTMuMzQ4LDE2Ljc0IC01LjA3NiwyMy43NiBsIC03LjU2LDI5LjU5MiBoIC03Ljg4NCBsIC03LjEyOCwtMjguODM2IGMgLTEuOTQ0LC03LjM0NCAtMy44ODgsLTE2LjQxNiAtNS4xODQsLTI0LjUxNiBoIC0wLjMyNCBjIC0wLjEwOCw4LjIwOCAtMC41NCwxNy44MiAtMC45NzIsMjYuNDYgbCAtMS4yOTYsMjcuNzU3IEggMjQuNDY0IGwgNC44NiwtNzIuNzkzIGggMTIuMjA0IGwgNy4wMiwyOS40ODQgYyAyLjI2OCw5LjM5NiA0LjEwNCwxNy4wNjQgNS41MDgsMjUuMjcyIGggMC4yMTYgYyAxLjI5NiwtOC4yMDggMi45MTYsLTE1Ljc2OSA1LjA3NiwtMjUuMjcyIGwgNi44MDQsLTI5LjQ4NCBoIDEyLjQyIGwgNC4zMiw3Mi43OTMgSCA3Mi40MTcgWiIKICAgaWQ9InBhdGgyOSIgLz4KCQkJPHBhdGgKICAgZmlsbD0iIzAwMzg4OCIKICAgc3Ryb2tlPSIjMDAzODg4IgogICBzdHJva2Utd2lkdGg9IjcuMiIKICAgZD0ibSAxMDkuMzUyLDE4My4xNzkgYyAtMTEuMTI0LDAgLTE4Ljc5MiwtOS4yODggLTE4Ljc5MiwtMjcuMDAxIDAsLTE5LjExNiA5LjM5NiwtMjcuMzI0IDE5LjIyNCwtMjcuMzI0IDExLjAxNiwwIDE4LjU3Niw5LjYxMiAxOC41NzYsMjcuMDAxIDAsMjEuMjc1IC0xMS4wMTYsMjcuMzI0IC0xOC45LDI3LjMyNCB6IG0gMC40MzIsLTguODU2IGMgNS43MjQsMCA3LjAyLC0xMC4zNjggNy4wMiwtMTguMzYgMCwtNy42NjggLTEuMjk2LC0xOC4yNTIgLTcuMjM2LC0xOC4yNTIgLTYuMjY0LDAgLTcuNDUyLDEwLjU4NCAtNy40NTIsMTguMjUyIDAsOC44NTYgMS41MTIsMTguMzYgNy41NiwxOC4zNiB6IgogICBpZD0icGF0aDMwIiAvPgoJCQk8cGF0aAogICBmaWxsPSIjMDAzODg4IgogICBzdHJva2U9IiMwMDM4ODgiCiAgIHN0cm9rZS13aWR0aD0iNy4yIgogICBkPSJtIDE0My44MDMsMTI5LjcxOCA1LjE4NCwyNi4yNDQgYyAwLjc1Niw0LjEwNCAxLjUxMiw4Ljg1NiAyLjI2OCwxMy44MjQgaCAwLjIxNiBjIDAuNjQ4LC00Ljg2IDEuNDA0LC05LjI4OCAyLjE2LC0xMy44MjQgbCA1LjA3NiwtMjYuMjQ0IGggMTEuNDQ4IGwgLTEzLjkzMiw1Mi41OTcgaCAtMTAuNDc2IGwgLTE0LjE0OCwtNTIuNTk3IHoiCiAgIGlkPSJwYXRoMzEiIC8+CgkJCTxwYXRoCiAgIGZpbGw9IiMwMDM4ODgiCiAgIHN0cm9rZT0iIzAwMzg4OCIKICAgc3Ryb2tlLXdpZHRoPSI3LjIiCiAgIGQ9Im0gMTg0LjE5NSwxNTkuMDk0IGMgMC4xMDgsMTEuNzcyIDUuNTA4LDE1LjAxMyAxMS42NjUsMTUuMDEzIDMuODg4LDAgNy4xMjgsLTAuODY0IDkuMzk2LC0xLjgzNiBsIDEuNzI4LDguMjA4IGMgLTMuMzQ4LDEuNTEyIC04LjQyNCwyLjQ4NCAtMTMuMTc2LDIuNDg0IC0xMy42MDgsMCAtMjAuODQ0LC05LjgyOCAtMjAuODQ0LC0yNi4xMzcgMCwtMTcuMzg4IDguMzE2LC0yNy45NzMgMTkuNTQ4LC0yNy45NzMgMTEuMDE2LDAgMTYuNjMyLDEwLjA0NCAxNi42MzIsMjQuMDg1IDAsMy4wMjMgLTAuMTA4LDQuNzUyIC0wLjMyNCw2LjE1NSBoIC0yNC42MjUgeiBtIDE0LjI1NywtOC4yMDggYyAwLjEwOCwtOC40MjQgLTIuNywtMTMuMzkyIC02LjgwNCwtMTMuMzkyIC00Ljk2OCwwIC03LjIzNiw3LjIzNiAtNy40NTIsMTMuMzkyIHoiCiAgIGlkPSJwYXRoMzIiIC8+CgkJPC9nPgoJCTxnCiAgIGlkPSJnMzYiPgoJCQk8cGF0aAogICBmaWxsPSIjZmZmZmZmIgogICBkPSJtIDcxLjAxMywxNTQuODU5IGMgLTAuNDMyLC04LjIwOCAtMC44NjQsLTE4LjE0NSAtMC43NTYsLTI2LjEzNyBoIC0wLjMyNCBjIC0xLjQwNCw3Ljk5MiAtMy4zNDgsMTYuNzQgLTUuMDc2LDIzLjc2IGwgLTcuNTYsMjkuNTkyIGggLTcuODg0IGwgLTcuMTI4LC0yOC44MzYgYyAtMS45NDQsLTcuMzQ0IC0zLjg4OCwtMTYuNDE3IC01LjE4NCwtMjQuNTE3IGggLTAuMzI0IGMgLTAuMTA4LDguMjA4IC0wLjU0LDE3LjgyIC0wLjk3MiwyNi40NiBsIC0xLjI5NiwyNy43NTcgSCAyNC40NjQgbCA0Ljg2LC03Mi43OTMgaCAxMi4yMDQgbCA3LjAyLDI5LjQ4NCBjIDIuMjY4LDkuMzk2IDQuMTA0LDE3LjA2NCA1LjUwOCwyNS4yNzIgaCAwLjIxNiBjIDEuMjk2LC04LjIwOCAyLjkxNiwtMTUuNzY5IDUuMDc2LC0yNS4yNzIgbCA2LjgwNCwtMjkuNDg0IGggMTIuNDIgbCA0LjMyLDcyLjc5MyBIIDcyLjQxNyBaIgogICBpZD0icGF0aDMzIiAvPgoJCQk8cGF0aAogICBmaWxsPSIjZmZmZmZmIgogICBkPSJtIDEwOS4zNTIsMTgzLjgwMyBjIC0xMS4xMjQsMCAtMTguNzkyLC05LjI4OCAtMTguNzkyLC0yNy4wMDEgMCwtMTkuMTE2IDkuMzk2LC0yNy4zMjQgMTkuMjI0LC0yNy4zMjQgMTEuMDE2LDAgMTguNTc2LDkuNjEyIDE4LjU3NiwyNy4wMDEgMCwyMS4yNzYgLTExLjAxNiwyNy4zMjQgLTE4LjksMjcuMzI0IHogbSAwLjQzMiwtOC44NTYgYyA1LjcyNCwwIDcuMDIsLTEwLjM2OCA3LjAyLC0xOC4zNiAwLC03LjY2OCAtMS4yOTYsLTE4LjI1MiAtNy4yMzYsLTE4LjI1MiAtNi4yNjQsMCAtNy40NTIsMTAuNTg0IC03LjQ1MiwxOC4yNTIgMCw4Ljg1NiAxLjUxMiwxOC4zNiA3LjU2LDE4LjM2IHoiCiAgIGlkPSJwYXRoMzQiIC8+CgkJCTxwYXRoCiAgIGZpbGw9IiNmZmZmZmYiCiAgIGQ9Im0gMTQzLjgwMywxMzAuMzQyIDUuMTg0LDI2LjI0NCBjIDAuNzU2LDQuMTA0IDEuNTEyLDguODU2IDIuMjY4LDEzLjgyNCBoIDAuMjE2IGMgMC42NDgsLTQuODYgMS40MDQsLTkuMjg4IDIuMTYsLTEzLjgyNCBsIDUuMDc2LC0yNi4yNDQgaCAxMS40NDggbCAtMTMuOTMyLDUyLjU5NyBoIC0xMC40NzYgbCAtMTQuMTQ4LC01Mi41OTcgeiIKICAgaWQ9InBhdGgzNSIgLz4KCQkJPHBhdGgKICAgZmlsbD0iI2ZmZmZmZiIKICAgZD0ibSAxODQuMTk1LDE1OS43MTggYyAwLjEwOCwxMS43NzIgNS41MDgsMTUuMDEzIDExLjY2NSwxNS4wMTMgMy44ODgsMCA3LjEyOCwtMC44NjQgOS4zOTYsLTEuODM2IGwgMS43MjgsOC4yMDggYyAtMy4zNDgsMS41MTIgLTguNDI0LDIuNDg0IC0xMy4xNzYsMi40ODQgLTEzLjYwOCwwIC0yMC44NDQsLTkuODI4IC0yMC44NDQsLTI2LjEzNyAwLC0xNy4zODggOC4zMTYsLTI3Ljk3MyAxOS41NDgsLTI3Ljk3MyAxMS4wMTYsMCAxNi42MzIsMTAuMDQ0IDE2LjYzMiwyNC4wODQgMCwzLjAyNCAtMC4xMDgsNC43NTMgLTAuMzI0LDYuMTU2IGggLTI0LjYyNSB6IG0gMTQuMjU3LC04LjIwOCBjIDAuMTA4LC04LjQyNCAtMi43LC0xMy4zOTIgLTYuODA0LC0xMy4zOTIgLTQuOTY4LDAgLTcuMjM2LDcuMjM2IC03LjQ1MiwxMy4zOTIgeiIKICAgaWQ9InBhdGgzNiIgLz4KCQk8L2c+Cgk8L2c+Cgk8ZwogICBpZD0iZzQwIj4KCQk8ZwogICBpZD0iZzM4Ij4KCQkJPHBhdGgKICAgZmlsbD0iIzAwMzg4OCIKICAgc3Ryb2tlPSIjMDAzODg4IgogICBzdHJva2Utd2lkdGg9IjcuMiIKICAgZD0ibSAzNTcuMjkzLDE2Ni45NzkgYyAwLDUuNzI0IDAuMjE2LDEwLjkwOCAwLjQzMiwxNS4zMzYgaCAtMTAuMDQ0IGwgLTAuNjQ4LC01LjUwOCBoIC0wLjIxNiBjIC0yLjA1MiwzLjEzMiAtNi4yNjQsNi4zNzIgLTExLjc3MSw2LjM3MiAtOS42MTIsMCAtMTMuNTAxLC03LjIzNiAtMTMuNTAxLC0yMC45NTIgdiAtMzIuNTA5IGggMTEuNTU3IHYgMzEuMTA0IGMgMCw3LjU2IDEuMjk2LDEyLjc0NCA2LjA0OCwxMi43NDQgMy41NjQsMCA1LjQsLTMuMDI0IDUuOTQsLTUuMTg1IDAuNDMyLC0xLjE4OCAwLjY0NywtMi44MDggMC42NDcsLTQuNTM2IHYgLTM0LjEyOCBoIDExLjU1NyB2IDM3LjI2MiB6IgogICBpZD0icGF0aDM3IiAvPgoJCTwvZz4KCQk8ZwogICBpZD0iZzM5Ij4KCQkJPHBhdGgKICAgZmlsbD0iI2ZmZmZmZiIKICAgZD0ibSAzNTcuMjkzLDE2Ny42MDMgYyAwLDUuNzI0IDAuMjE2LDEwLjkwOCAwLjQzMiwxNS4zMzYgaCAtMTAuMDQ0IGwgLTAuNjQ4LC01LjUwOCBoIC0wLjIxNiBjIC0yLjA1MiwzLjEzMiAtNi4yNjQsNi4zNzIgLTExLjc3MSw2LjM3MiAtOS42MTIsMCAtMTMuNTAxLC03LjIzNiAtMTMuNTAxLC0yMC45NTIgdiAtMzIuNTA5IGggMTEuNTU3IHYgMzEuMTA0IGMgMCw3LjU2IDEuMjk2LDEyLjc0NCA2LjA0OCwxMi43NDQgMy41NjQsMCA1LjQsLTMuMDI0IDUuOTQsLTUuMTg1IDAuNDMyLC0xLjE4OCAwLjY0NywtMi44MDggMC42NDcsLTQuNTM2IHYgLTM0LjEyOCBoIDExLjU1NyB2IDM3LjI2MiB6IgogICBpZD0icGF0aDM4IiAvPgoJCTwvZz4KCTwvZz4KPC9nPjwvZz48L2c+PC9nPjwvc3ZnPgo=">
+    <div>
+      <h1>Invalschema</h1>
+      <p class="sub" id="sub">4 sets, iedereen speelt elke set</p>
+    </div>
+    <div class="seg noprint" id="modeBox" role="group" aria-label="Speelwijze">
+      <button type="button" data-mode="half" aria-pressed="true">Wissels</button>
+      <button type="button" data-mode="full" aria-pressed="false">Hele sets</button>
+    </div>
+  </div>
+</header>
+
+<nav class="setnav noprint" id="setnav" aria-label="Ga naar set"></nav>
+
+<main>
+  <section class="noprint" id="presence">
+    <div class="presence-head"><h2>Wie is er?</h2><span class="count" id="count"></span></div>
+    <div class="players" id="players"></div>
+  </section>
+
+  <details class="card noprint" id="editTeam">
+    <summary>Team bewerken</summary>
+    <div class="edit">
+      <form class="add" id="addForm">
+        <input type="text" id="nameInput" placeholder="Naam (of: Sanne, Daan, Noor)" autocomplete="off" autocapitalize="words" enterkeyhint="done" aria-label="Naam speler">
+        <button type="submit">Voeg toe</button>
+      </form>
+      <ul class="roster" id="roster"></ul>
+    </div>
+  </details>
+
+  <div id="output"></div>
+</main>
+
+<div class="actionbar noprint">
+  <div class="actionbar-inner">
+    <button type="button" class="ghost" id="shuffleBtn">Andere indeling</button>
+    <button type="button" class="ghost" id="printBtn">Printen</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  var KEY = 'rotatie-team-v1';
+  // Eerlijk verdeeld over 4 sets; set 5 wordt pas daarna bepaald (alleen als hij gespeeld wordt).
+  var state = { players: [], sets: 4, seed: 1, mode: 'half', with5: false };
+  try {
+    var saved = JSON.parse(localStorage.getItem(KEY) || 'null');
+    if (saved && Array.isArray(saved.players)) state.players = saved.players;
+    if (saved && saved.mode === 'full') state.mode = 'full';
+  } catch(e) {}
+  function save(){ try { localStorage.setItem(KEY, JSON.stringify({players: state.players, mode: state.mode})); } catch(e) {} }
+
+  var $ = function(id){ return document.getElementById(id); };
+  function esc(s){ return String(s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+
+  function rng(seed){ return function(){ seed = (seed * 1664525 + 1013904223) % 4294967296; return seed / 4294967296; }; }
+  function shuffled(arr, seed){
+    var a = arr.slice(), r = rng(seed);
+    for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(r() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; }
+    return a;
+  }
+
+  function buildSchedule(names, sets, seed){
+    // Iedereen speelt elke set minstens een helft: n-6 spelers alleen 1e helft, n-6 alleen 2e helft, rest hele set.
+    var n = names.length, k = n - 6, order = shuffled(names.map(function(_, i){ return i; }), seed);
+    var rank = {}; order.forEach(function(p, i){ rank[p] = i; });
+    var count = names.map(function(){ return 0; }), starts = names.map(function(){ return 0; });
+    var result = [];
+    for (var s = 0; s < sets; s++) {
+      var rot = function(a, b){ return ((rank[a] + s * 5) % n) - ((rank[b] + s * 5) % n); };
+      var ids = names.map(function(_, i){ return i; });
+      // wie tot nu toe het meest speelde, speelt deze set een halve set
+      ids.sort(function(a, b){ return (count[b] - count[a]) || rot(a, b); });
+      var half = ids.slice(0, 2 * k), full = ids.slice(2 * k);
+      // van de halve-setters begint wie het minst vaak in de basis stond
+      half.sort(function(a, b){ return (starts[a] - starts[b]) || rot(a, b); });
+      var h1 = half.slice(0, k), h2 = half.slice(k);
+      var first = full.concat(h1), second = full.concat(h2);
+      first.forEach(function(p){ count[p]++; starts[p]++; });
+      second.forEach(function(p){ count[p]++; });
+      result.push({ first: first, second: second, subs: h2.map(function(p, i){ return [p, h1[i]]; }) });
+    }
+    return { sets: result, count: count };
+  }
+
+  function buildFullSetSchedule(names, sets, seed){
+    // Geen wissels binnen een set: per set spelen de 6 spelers met de minste sets tot nu toe.
+    // Bij gelijke stand gaat voor wie het langst op de bank zat, zodat niemand onnodig twee sets achter elkaar zit.
+    var n = names.length, order = shuffled(names.map(function(_, i){ return i; }), seed);
+    var rank = {}; order.forEach(function(p, i){ rank[p] = i; });
+    var count = names.map(function(){ return 0; }), last = names.map(function(){ return -1; });
+    var result = [];
+    for (var s = 0; s < sets; s++) {
+      var ids = names.map(function(_, i){ return i; });
+      ids.sort(function(a, b){
+        return (count[a] - count[b]) || (last[a] - last[b]) ||
+          (((rank[a] + s * 5) % n) - ((rank[b] + s * 5) % n));
+      });
+      var court = ids.slice(0, 6);
+      court.forEach(function(p){ count[p] += 2; last[p] = s; });
+      result.push({ first: court, second: court, subs: [] });
+    }
+    return { sets: result, count: count };
+  }
+
+  function renderMode(){
+    var full = state.mode === 'full';
+    document.querySelectorAll('[data-mode]').forEach(function(b){ b.setAttribute('aria-pressed', String(b.dataset.mode === state.mode)); });
+    $('sub').textContent = full ? '4 sets, geen wissels in een set' : '4 sets, iedereen speelt elke set';
+  }
+
+  function renderPlayers(){
+    var box = $('players'), present = state.players.filter(function(p){ return p.present; }).length;
+    $('count').textContent = state.players.length ? present + ' van ' + state.players.length : '';
+    $('presence').style.display = state.players.length ? '' : 'none';
+    if (!state.players.length) $('editTeam').open = true;
+    box.innerHTML = state.players.map(function(p, i){
+      return '<label class="chip' + (p.present ? '' : ' absent') + '">' +
+        '<input type="checkbox" data-toggle="' + i + '"' + (p.present ? ' checked' : '') + '>' + esc(p.name) + '</label>';
+    }).join('');
+    $('roster').innerHTML = state.players.map(function(p, i){
+      return '<li><span>' + esc(p.name) + '</span><button type="button" class="del" data-del="' + i + '">Verwijder</button></li>';
+    }).join('');
+  }
+
+  function renderOutput(){
+    var out = $('output'), nav = $('setnav');
+    var present = state.players.filter(function(p){ return p.present; }).map(function(p){ return p.name; });
+    var full = state.mode === 'full';
+    if (present.length < 6 || (!full && present.length > 12)) {
+      nav.innerHTML = '';
+      out.innerHTML = state.players.length ? '<section><p class="msg">' + (present.length < 6
+        ? 'Er zijn ' + present.length + ' spelers aanwezig. Je hebt er minstens 6 nodig voor een schema.'
+        : 'Met ' + present.length + ' spelers lukt het niet binnen zes wissels per set. Zet er maximaal 12 op aanwezig, of kies "Alleen hele sets".') + '</p></section>'
+        : '<section><p class="msg">Open "Team bewerken" en voeg je spelers toe. Je team wordt op deze telefoon onthouden.</p></section>';
+      return;
+    }
+    // Het schema is per set opgebouwd: set 5 verandert niets aan sets 1–4,
+    // en kiest juist wie na 4 sets het minst speelde.
+    var sch = full ? buildFullSetSchedule(present, state.sets + 1, state.seed) : buildSchedule(present, state.sets + 1, state.seed);
+    var shown = state.with5 ? state.sets + 1 : state.sets;
+    var total = present.map(function(_, i){
+      var c = 0;
+      sch.sets.slice(0, shown).forEach(function(st){ if (st.first.indexOf(i) >= 0) c++; if (st.second.indexOf(i) >= 0) c++; });
+      return c;
+    });
+    var navHtml = '<div class="setnav-inner">';
+    for (var k = 0; k < state.sets; k++) navHtml += '<a href="#set' + (k + 1) + '">S' + (k + 1) + '</a>';
+    navHtml += '<a class="opt" href="#set5">S5?</a>';
+    nav.innerHTML = navHtml + '<a class="wide" href="#overzicht">Overzicht</a></div>';
+
+    var html = '';
+    if (present.length === 6) html += '<section><p class="msg">Precies 6 spelers: iedereen speelt alles, er zijn geen wissels nodig.</p></section>';
+    if (full && present.length > 6) {
+      var slots = 6 * state.sets, lo = Math.floor(slots / present.length), extra = slots % present.length;
+      html += '<section><p class="msg">' + (extra === 0
+        ? 'Met ' + present.length + ' spelers speelt iedereen precies ' + lo + ' sets.'
+        : 'Met ' + present.length + ' spelers kan het niet precies gelijk: ' + extra + (extra === 1 ? ' speler speelt ' : ' spelers spelen ') + (lo + 1) +
+          ' sets, de rest ' + lo + '. Zie het overzicht wie dat zijn.') + '</p></section>';
+    }
+    sch.sets.forEach(function(set, s){
+      var bench = present.map(function(_, i){ return i; }).filter(function(i){ return set.first.indexOf(i) < 0; });
+      var extra = s === state.sets;
+      html += '<section class="set' + (extra ? ' extra' : '') + '" id="set' + (s + 1) + '"><h3>Set ' + (s + 1) +
+        (extra ? '<small>alleen als die gespeeld wordt</small>' : '') + '</h3>' +
+        (extra ? '<p class="bench">Gekozen op wie na 4 sets het minst heeft gespeeld.</p>' : '') +
+        '<div class="label">Basis</div><div class="names">' +
+        set.first.map(function(i){ return '<span>' + esc(present[i]) + '</span>'; }).join('') + '</div>';
+      if (bench.length) html += '<p class="bench">Bank: ' + bench.map(function(i){ return esc(present[i]); }).join(', ') + '</p>';
+      if (set.subs.length) {
+        html += '<div class="label">Wissels rond 12–13 punten</div><ul class="subs">' +
+          set.subs.map(function(p){ return '<li><span class="in">' + esc(present[p[0]]) + '</span><span class="arrow">erin voor</span><span>' + esc(present[p[1]]) + '</span></li>'; }).join('') + '</ul>';
+      }
+      html += '</section>';
+    });
+
+    html += '<section id="overzicht"><div class="over-head"><h2>Overzicht</h2>' +
+      '<button type="button" class="ghost small" id="set5Btn" aria-pressed="' + state.with5 + '">' +
+      (state.with5 ? 'Set 5 weghalen' : 'Set 5 gespeeld') + '</button></div><table><thead><tr><th>Speler</th>';
+    for (var s = 0; s < shown; s++) html += '<th' + (s === state.sets ? ' class="opt"' : '') + '>S' + (s + 1) + '</th>';
+    html += '<th>Sets</th></tr></thead><tbody>';
+    present.forEach(function(name, i){
+      html += '<tr><td>' + esc(name) + '</td>';
+      sch.sets.slice(0, shown).forEach(function(set, s){
+        var a = set.first.indexOf(i) >= 0, b = set.second.indexOf(i) >= 0;
+        var cls = a && b ? 'full' : a ? 'h1' : b ? 'h2' : 'none';
+        var t = a && b ? 'hele set' : a ? 'eerste helft' : b ? 'tweede helft' : 'bank';
+        html += '<td' + (s === state.sets ? ' class="opt"' : '') + '><span class="dot ' + cls + '" role="img" aria-label="' + t + '"></span></td>';
+      });
+      html += '<td class="total">' + String(total[i] / 2).replace('.', ',') + '</td></tr>';
+    });
+    html += '</tbody></table><div class="legend">' + (full
+      ? '<span><i class="dot full"></i>speelt</span><span><i class="dot none"></i>bank</span>'
+      : '<span><i class="dot full"></i>hele set</span><span><i class="dot h1"></i>eerste helft</span>' +
+        '<span><i class="dot h2"></i>tweede helft</span>') + '</div>' +
+      '<p class="hint">' + (state.with5 ? 'Telling inclusief set 5. ' : 'Telling over 4 sets. ') + 'Wie net iets minder speeltijd heeft, laat je volgende wedstrijd in de basis beginnen.</p></section>';
+    out.innerHTML = html;
+  }
+
+  function renderAll(){ renderMode(); renderPlayers(); renderOutput(); }
+
+  $('addForm').addEventListener('submit', function(e){
+    e.preventDefault();
+    var input = $('nameInput');
+    input.value.split(',').map(function(s){ return s.trim(); }).filter(Boolean)
+      .forEach(function(n){ state.players.push({ name: n, present: true }); });
+    input.value = ''; save(); renderAll();
+  });
+  $('roster').addEventListener('click', function(e){
+    var del = e.target.closest('[data-del]'); if (!del) return;
+    var i = +del.dataset.del;
+    if (del.dataset.sure) { state.players.splice(i, 1); save(); renderAll(); return; }
+    del.dataset.sure = '1'; del.textContent = 'Zeker?';
+    setTimeout(function(){ if (del.isConnected) { delete del.dataset.sure; del.textContent = 'Verwijder'; } }, 3000);
+  });
+  $('players').addEventListener('change', function(e){
+    var t = e.target.dataset.toggle;
+    if (t !== undefined) { state.players[+t].present = e.target.checked; save(); renderAll(); }
+  });
+  $('shuffleBtn').addEventListener('click', function(){
+    state.seed++; renderOutput();
+    var first = $('set1'); if (first) first.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+  $('modeBox').addEventListener('click', function(e){
+    var b = e.target.closest('[data-mode]'); if (!b || b.dataset.mode === state.mode) return;
+    state.mode = b.dataset.mode; save(); renderAll();
+  });
+  $('output').addEventListener('click', function(e){
+    if (!e.target.closest('#set5Btn')) return;
+    state.with5 = !state.with5; renderOutput();
+    var o = $('overzicht'); if (o) o.scrollIntoView({ block: 'start' });
+  });
+  $('printBtn').addEventListener('click', function(){ window.print(); });
+
+  renderAll();
+})();
+</script>
+</body>
+</html>
