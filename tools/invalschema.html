@@ -77,7 +77,12 @@ input[type=text]{flex:1;min-width:0;font:inherit;font-size:16px;padding:12px;min
 button{font:inherit;font-weight:700;border:0;border-radius:12px;padding:12px 18px;min-height:48px;cursor:pointer;background:var(--floor);color:#fff}
 button:active{transform:scale(.98)}
 button.ghost{background:transparent;color:var(--court);border:2px solid var(--court)}
-button.del{background:transparent;color:var(--floor-dark);padding:8px 12px;min-height:44px;font-weight:600}
+button.del{background:transparent;color:var(--floor-dark);padding:8px;min-height:44px;min-width:44px;font-weight:700;flex:none}
+.lvl{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;flex:none}
+.lvl button{background:transparent;color:var(--muted);border-radius:0;min-height:44px;padding:6px 8px;font-weight:700;letter-spacing:-1px;font-size:.9rem}
+.lvl button[aria-pressed="true"]{background:var(--court);color:#fff}
+.roster li{gap:8px}
+.roster .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 button:focus-visible,input:focus-visible,summary:focus-visible,.setnav a:focus-visible{outline:3px solid var(--court);outline-offset:2px}
 
 /* Speelwijze-schakelaar */
@@ -142,6 +147,8 @@ th{font-family:"Barlow Condensed",sans-serif;font-size:1.05rem;color:var(--court
 .pos .srv{font-size:.78rem;font-weight:600;color:var(--muted)}
 .pos.on{border:2px solid var(--court);box-shadow:inset 0 -5px 0 var(--court)}
 .pos.sel{outline:3px solid var(--floor);outline-offset:1px}
+.pos.sub{border:2px solid var(--floor)}
+.pos.sub .pname{color:var(--floor-dark)}
 .d{font-style:normal;font-size:.75rem;font-weight:800;min-width:17px;height:17px;line-height:17px;border-radius:5px;text-align:center}
 .d0{background:var(--bad);color:#fff}.d1{background:var(--court-soft);color:var(--ink)}.d2{background:var(--court);color:var(--surface)}.d3{background:var(--floor);color:#fff}
 .phase{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--line);border-radius:12px;overflow:hidden;margin-top:10px}
@@ -205,9 +212,10 @@ button.link{background:transparent;color:var(--court);padding:8px 4px;min-height
     <summary>Team bewerken</summary>
     <div class="edit">
       <form class="add" id="addForm">
-        <input type="text" id="nameInput" placeholder="Naam (of: Sanne, Daan, Noor)" autocomplete="off" autocapitalize="words" enterkeyhint="done" aria-label="Naam speler">
+        <input type="text" id="nameInput" placeholder="Naam" autocomplete="off" autocapitalize="words" enterkeyhint="done" aria-label="Naam speler">
         <button type="submit">Voeg toe</button>
       </form>
+      <p class="hint">Meerdere tegelijk kan met komma's. Ervaring: ● beginnend, ●● gevorderd, ●●● ervaren. Nieuwe spelers krijgen ●●.</p>
       <ul class="roster" id="roster"></ul>
     </div>
   </details>
@@ -235,6 +243,7 @@ button.link{background:transparent;color:var(--court);padding:8px 4px;min-height
     if (saved && saved.mode === 'full') state.mode = 'full';
     if (saved && saved.seed) state.seed = saved.seed;
   } catch(e) {}
+  state.players.forEach(function(p){ if (!p.level) p.level = 2; });
   function save(){ try { localStorage.setItem(KEY, JSON.stringify({players: state.players, mode: state.mode, seed: state.seed})); } catch(e) {} }
 
   // Wedstrijdstand: per set de rotatie (hoe vaak doorgedraaid), voor/na wissel en wissels bij blessure,
@@ -250,6 +259,8 @@ button.link{background:transparent;color:var(--court);padding:8px 4px;min-height
   var RATING = ['fout', 'simpel', 'lastig', 'ace'];
 
   var $ = function(id){ return document.getElementById(id); };
+  var DOTS = {1: '●', 2: '●●', 3: '●●●'};
+  var LABELS = {1: 'beginnend', 2: 'gevorderd', 3: 'ervaren'};
   function esc(s){ return String(s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
 
   function rng(seed){ return function(){ seed = (seed * 1664525 + 1013904223) % 4294967296; return seed / 4294967296; }; }
@@ -259,43 +270,114 @@ button.link{background:transparent;color:var(--court);padding:8px 4px;min-height
     return a;
   }
 
-  function buildSchedule(names, sets, seed){
-    // Iedereen speelt elke set minstens een helft: n-6 spelers alleen 1e helft, n-6 alleen 2e helft, rest hele set.
-    var n = names.length, k = n - 6, order = shuffled(names.map(function(_, i){ return i; }), seed);
+  // Alle volgordes van 6 plekken, om per set de beste opstelling te zoeken
+  var PERMS = (function(){
+    var out = [];
+    (function perm(rest, acc){
+      if (!rest.length) { out.push(acc); return; }
+      rest.forEach(function(x, i){ perm(rest.slice(0, i).concat(rest.slice(i + 1)), acc.concat([x])); });
+    })([0,1,2,3,4,5], []);
+    return out;
+  })();
+
+  // Kosten van een opstelling in rotatievolgorde (positie 1..6 als ring); lv: 1 beginnend, 2 gevorderd, 3 ervaren
+  function lineupCost(ids, lv){
+    var c = 0;
+    for (var i = 0; i < 6; i++) {
+      var a = lv[ids[i]], b = lv[ids[(i + 1) % 6]], d = lv[ids[(i + 2) % 6]];
+      if (a === 1 && b === 1 && d === 1) c += 1000;   // nooit drie zwakkere op een rij
+      if (a === 1 && b === 1) c += 50;                // liever geen twee naast elkaar
+      if (a === 3 && b === 3) c += 2;                 // sterke spelers wat spreiden
+      if (i < 3 && lv[ids[i]] === 1 && lv[ids[i + 3]] === 1) c += 5; // tegelijk op 3 en 6 (midden voor/achter)
+    }
+    return c;
+  }
+  function bestOrder(six, lv, noise, after){
+    var best = null, bestCost = Infinity;
+    PERMS.forEach(function(perm){
+      var a = perm.map(function(i){ return six[i]; });
+      var c = lineupCost(a, lv) + (after ? lineupCost(a.map(after), lv) : 0) + noise() * 0.5;
+      if (c < bestCost) { bestCost = c; best = a; }
+    });
+    return best;
+  }
+
+  // Wissels in de set: iedereen speelt elke set minstens een helft, invallers zoveel mogelijk van gelijk niveau.
+  function buildSchedule(players, sets, seed){
+    var n = players.length, k = n - 6;
+    var lv = players.map(function(p){ return p.level || 2; });
+    var order = shuffled(players.map(function(_, i){ return i; }), seed);
     var rank = {}; order.forEach(function(p, i){ rank[p] = i; });
-    var count = names.map(function(){ return 0; }), starts = names.map(function(){ return 0; });
+    var noise = rng(seed * 7919 + 17);
+    var count = players.map(function(){ return 0; }), starts = players.map(function(){ return 0; });
     var result = [];
     for (var s = 0; s < sets; s++) {
       var rot = function(a, b){ return ((rank[a] + s * 5) % n) - ((rank[b] + s * 5) % n); };
-      var ids = names.map(function(_, i){ return i; });
-      // wie tot nu toe het meest speelde, speelt deze set een halve set
-      ids.sort(function(a, b){ return (count[b] - count[a]) || rot(a, b); });
-      var half = ids.slice(0, 2 * k), full = ids.slice(2 * k);
-      // van de halve-setters begint wie het minst vaak in de basis stond
-      half.sort(function(a, b){ return (starts[a] - starts[b]) || rot(a, b); });
-      var h1 = half.slice(0, k), h2 = half.slice(k);
-      var first = full.concat(h1), second = full.concat(h2);
+      var ids = players.map(function(_, i){ return i; }).sort(function(a, b){ return (count[b] - count[a]) || rot(a, b); });
+
+      // 1. Wie speelt deze set een halve set? Eerlijkheid eerst, daarna zoveel mogelijk paren van gelijk niveau.
+      var chosen = [];
+      if (k > 0) {
+        var cstar = count[ids[2 * k - 1]];
+        chosen = ids.filter(function(p){ return count[p] > cstar; });
+        var pool = ids.filter(function(p){ return count[p] === cstar; });
+        while (chosen.length < 2 * k) {
+          var tally = {1: 0, 2: 0, 3: 0}; chosen.forEach(function(p){ tally[lv[p]]++; });
+          var left = 2 * k - chosen.length;
+          var pick = pool.filter(function(p){ return tally[lv[p]] % 2 === 1; })[0];
+          if (pick === undefined && left >= 2) {
+            pick = pool.filter(function(p){ return pool.filter(function(q){ return lv[q] === lv[p]; }).length >= 2; })[0];
+          }
+          if (pick === undefined) pick = pool[0];
+          pool.splice(pool.indexOf(pick), 1); chosen.push(pick);
+        }
+      }
+
+      // 2. Koppels: eerst gelijk niveau, restanten met het dichtstbijzijnde niveau
+      var pairs = [], rest = [];
+      [1, 2, 3].forEach(function(L){
+        var g = chosen.filter(function(p){ return lv[p] === L; });
+        while (g.length >= 2) pairs.push([g.shift(), g.shift()]);
+        rest = rest.concat(g);
+      });
+      rest.sort(function(a, b){ return lv[a] - lv[b]; });
+      while (rest.length >= 2) pairs.push([rest.shift(), rest.shift()]);
+
+      // 3. Per koppel begint wie het minst vaak in de basis stond
+      var h1 = [], h2 = [];
+      pairs.forEach(function(pr){
+        var a = pr[0], b = pr[1];
+        var aFirst = (starts[a] - starts[b]) || rot(a, b);
+        if (aFirst <= 0) { h1.push(a); h2.push(b); } else { h1.push(b); h2.push(a); }
+      });
+      var full = ids.filter(function(p){ return chosen.indexOf(p) < 0; });
+      var subFor = {}; h1.forEach(function(p, i){ subFor[p] = h2[i]; });
+      var swap = function(p){ return subFor[p] !== undefined ? subFor[p] : p; };
+
+      // 4. Opstelling: beste volgorde over beide helften (invaller neemt de plek van wie eruit gaat)
+      var first = bestOrder(full.concat(h1), lv, noise, swap), second = first.map(swap);
       first.forEach(function(p){ count[p]++; starts[p]++; });
       second.forEach(function(p){ count[p]++; });
-      result.push({ first: first, second: second, subs: h2.map(function(p, i){ return [p, h1[i]]; }) });
+      result.push({ first: first, second: second, subs: h1.map(function(p){ return [subFor[p], p]; }) });
     }
     return { sets: result, count: count };
   }
 
-  function buildFullSetSchedule(names, sets, seed){
-    // Geen wissels binnen een set: per set spelen de 6 spelers met de minste sets tot nu toe.
-    // Bij gelijke stand gaat voor wie het langst op de bank zat, zodat niemand onnodig twee sets achter elkaar zit.
-    var n = names.length, order = shuffled(names.map(function(_, i){ return i; }), seed);
+  // Alleen hele sets: per set spelen de 6 met de minste sets tot nu toe; wie het langst op de bank zat gaat voor.
+  function buildFullSetSchedule(players, sets, seed){
+    var n = players.length, lv = players.map(function(p){ return p.level || 2; });
+    var order = shuffled(players.map(function(_, i){ return i; }), seed);
     var rank = {}; order.forEach(function(p, i){ rank[p] = i; });
-    var count = names.map(function(){ return 0; }), last = names.map(function(){ return -1; });
+    var noise = rng(seed * 7919 + 17);
+    var count = players.map(function(){ return 0; }), last = players.map(function(){ return -1; });
     var result = [];
     for (var s = 0; s < sets; s++) {
-      var ids = names.map(function(_, i){ return i; });
+      var ids = players.map(function(_, i){ return i; });
       ids.sort(function(a, b){
         return (count[a] - count[b]) || (last[a] - last[b]) ||
           (((rank[a] + s * 5) % n) - ((rank[b] + s * 5) % n));
       });
-      var court = ids.slice(0, 6);
+      var court = bestOrder(ids.slice(0, 6), lv, noise);
       court.forEach(function(p){ count[p] += 2; last[p] = s; });
       result.push({ first: court, second: court, subs: [] });
     }
@@ -318,13 +400,17 @@ button.link{background:transparent;color:var(--court);padding:8px 4px;min-height
         '<input type="checkbox" data-toggle="' + i + '"' + (p.present ? ' checked' : '') + '>' + esc(p.name) + '</label>';
     }).join('');
     $('roster').innerHTML = state.players.map(function(p, i){
-      return '<li><span>' + esc(p.name) + '</span><button type="button" class="del" data-del="' + i + '">Verwijder</button></li>';
+      var seg = '<span class="lvl" role="group" aria-label="Ervaring ' + esc(p.name) + '">' + [1,2,3].map(function(L){
+        return '<button type="button" data-lvl="' + L + '" data-i="' + i + '" aria-pressed="' + (p.level === L) + '" aria-label="' + LABELS[L] + '">' + DOTS[L] + '</button>';
+      }).join('') + '</span>';
+      return '<li><span class="nm">' + esc(p.name) + '</span>' + seg + '<button type="button" class="del" data-del="' + i + '" aria-label="' + esc(p.name) + ' verwijderen">✕</button></li>';
     }).join('');
   }
 
   function renderOutput(){
     var out = $('output'), nav = $('setnav');
-    var present = state.players.filter(function(p){ return p.present; }).map(function(p){ return p.name; });
+    var pres = state.players.filter(function(p){ return p.present; });
+    var present = pres.map(function(p){ return p.name; });
     var full = state.mode === 'full';
     var seed = state.seed;
     if (present.length < 6 || (!full && present.length > 12)) {
@@ -332,12 +418,12 @@ button.link{background:transparent;color:var(--court);padding:8px 4px;min-height
       out.innerHTML = state.players.length ? '<section><p class="msg">' + (present.length < 6
         ? 'Er zijn ' + present.length + ' spelers aanwezig. Je hebt er minstens 6 nodig voor een schema.'
         : 'Met ' + present.length + ' spelers lukt het niet binnen zes wissels per set. Zet er maximaal 12 op aanwezig, of kies "Alleen hele sets".') + '</p></section>'
-        : '<section><p class="msg">Open "Team bewerken" en voeg je spelers toe. Je team wordt op deze telefoon onthouden.</p></section>';
+        : '<section><p class="msg">Open "Team bewerken" en voeg je spelers toe met hun niveau. Je team wordt op deze telefoon onthouden.</p></section>';
       return;
     }
     // Het schema is per set opgebouwd: set 5 verandert niets aan sets 1–4,
     // en kiest juist wie na 4 sets het minst speelde.
-    var sch = full ? buildFullSetSchedule(present, state.sets + 1, seed) : buildSchedule(present, state.sets + 1, seed);
+    var sch = full ? buildFullSetSchedule(pres, state.sets + 1, seed) : buildSchedule(pres, state.sets + 1, seed);
     var shown = state.with5 ? state.sets + 1 : state.sets;
     var total = present.map(function(_, i){
       var c = 0;
@@ -345,7 +431,7 @@ button.link{background:transparent;color:var(--court);padding:8px 4px;min-height
       return c;
     });
     // Andere aanwezigen, speelwijze of indeling: rotatiestand per set opnieuw beginnen (cijfers blijven).
-    var sig = present.join('|') + '#' + state.mode + '#' + seed;
+    var sig = pres.map(function(p){ return p.name + p.level; }).join('|') + '#' + state.mode + '#' + seed;
     if (game.sig !== sig) { game.sig = sig; game.sets = {}; ui.pick = null; saveGame(); }
     var navHtml = '<div class="setnav-inner">';
     for (var k = 0; k < state.sets; k++) navHtml += '<a href="#set' + (k + 1) + '">S' + (k + 1) + '</a>';
@@ -412,7 +498,8 @@ button.link{background:transparent;color:var(--court);padding:8px 4px;min-height
       var slot = at(pos), name = present[line[slot]];
       var ds = scoresOf(name, s).map(function(v){ return '<i class="d d' + v.r + '">' + v.r + '</i>'; }).join('');
       var sel = ui.pick && ui.pick.s === s && ui.pick.slot === slot;
-      h += '<button type="button" class="pos' + (pos === 1 ? ' on' : '') + (sel ? ' sel' : '') + '" data-tile="' + s + ':' + slot + '">' +
+      var isSub = g.after && set.subs.some(function(pr){ return pr[0] === line[slot]; });
+      h += '<button type="button" class="pos' + (pos === 1 ? ' on' : '') + (sel ? ' sel' : '') + (isSub ? ' sub' : '') + '" data-tile="' + s + ':' + slot + '">' +
         '<span class="pn">' + pos + '</span><span class="pname">' + esc(name) + '</span>' +
         (pos === 1 ? '<span class="srv">serveert</span>' : '') + '<span class="ds">' + ds + '</span></button>';
     });
@@ -503,15 +590,17 @@ button.link{background:transparent;color:var(--court);padding:8px 4px;min-height
     e.preventDefault();
     var input = $('nameInput');
     input.value.split(',').map(function(s){ return s.trim(); }).filter(Boolean)
-      .forEach(function(n){ state.players.push({ name: n, present: true }); });
+      .forEach(function(n){ state.players.push({ name: n, present: true, level: 2 }); });
     input.value = ''; save(); renderAll();
   });
   $('roster').addEventListener('click', function(e){
+    var lvb = e.target.closest('[data-lvl]');
+    if (lvb) { state.players[+lvb.dataset.i].level = +lvb.dataset.lvl; save(); renderAll(); return; }
     var del = e.target.closest('[data-del]'); if (!del) return;
     var i = +del.dataset.del;
     if (del.dataset.sure) { state.players.splice(i, 1); save(); renderAll(); return; }
     del.dataset.sure = '1'; del.textContent = 'Zeker?';
-    setTimeout(function(){ if (del.isConnected) { delete del.dataset.sure; del.textContent = 'Verwijder'; } }, 3000);
+    setTimeout(function(){ if (del.isConnected) { delete del.dataset.sure; del.textContent = '✕'; } }, 3000);
   });
   $('players').addEventListener('change', function(e){
     var t = e.target.dataset.toggle;
