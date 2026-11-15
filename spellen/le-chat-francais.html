@@ -716,7 +716,7 @@ function ask(){
   }else{
     const needsArt=!w.zin&&!!ART&&ART.test(w.fr), isVerb=LANG.toVerb&&/^to /.test(w.fr);
     const extra=[w.g==="m"?"mannelijk":w.g==="v"?"vrouwelijk":"",w.mv?"meervoud":""].filter(Boolean).join(", ");
-    const hint=LANG.code!=="fr"?(isVerb?"Werkwoord: begin met <b>to</b>.":"Let op de spelling."):w.zin?"Let op de accenten. Leestekens en hoofdletters mag je overslaan.":needsArt?"Vergeet het lidwoord niet!":"Let op de accenten.";
+    const hint=LANG.code!=="fr"?(isVerb?"Let op de spelling, en begin met <b>to</b>.":"Let op de spelling."):w.zin?"Let op de accenten. Leestekens en hoofdletters mag je overslaan.":needsArt?"Vergeet het lidwoord niet!":"Let op de accenten.";
     body=`<div class="prompt${w.zin?" zin":""}">${esc(w.nl)}</div>
       <p class="hint">${hint}${extra?` (${extra})`:""}</p>
       <form id="tf" autocomplete="off"><input type="text" id="inp" autocapitalize="off" spellcheck="false" aria-label="Jouw antwoord" placeholder="${needsArt?"le / la / l' / les …":isVerb?"to …":""}">
