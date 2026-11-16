@@ -1,0 +1,832 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Katzenkram</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gluten:wght@500;700&family=Atkinson+Hyperlegible:wght@400;700&display=swap">
+<style>
+.back{display:inline-block;font:inherit;font-size:.9rem;color:var(--muted);text-decoration:none;padding:4px 0}
+.back:hover,.back:focus-visible{color:var(--ink);text-decoration:underline}
+.backbar{max-width:640px;margin:0 auto;padding-top:10px;padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px))}
+/* Layout: één kolom-app; boven het kattenhuis, daaronder voortgang en oefenen. Quiz vervangt de huiskamer. */
+:root{
+  --bg:#eef1e6;        /* kattenkruid-papier */
+  --card:#fbfcf6;
+  --ink:#2f2340;       /* pruim */
+  --muted:#6c6478;
+  --line:#d6d9c8;
+  --accent:#e9a31c;    /* kattenoog-goud */
+  --accent-ink:#2f2340;
+  --leaf:#4f8a4a;      /* catnip */
+  --bad:#c2453b;
+  --rare:#c79a1e;
+  --display:"Gluten", "Comic Sans MS", system-ui, sans-serif;
+  --body:"Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#1d1726;--card:#2a2236;--ink:#f1ecf6;--muted:#b3a9c0;--line:#3d3349;
+  --accent:#f2b63a;--accent-ink:#1d1726;--leaf:#7cc174;--bad:#ef7a6f;--rare:#f2cf5a;color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#1d1726;--card:#2a2236;--ink:#f1ecf6;--muted:#b3a9c0;--line:#3d3349;
+  --accent:#f2b63a;--accent-ink:#1d1726;--leaf:#7cc174;--bad:#ef7a6f;--rare:#f2cf5a;color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.5}
+.wrap{max-width:640px;margin:0 auto;padding-block:20px 48px;
+  padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));
+  display:flex;flex-direction:column;gap:18px}
+h1,h2,.display{font-family:var(--display);font-weight:700;letter-spacing:.01em;text-wrap:balance;margin:0}
+h1{font-size:2rem;line-height:1.1}
+h2{font-size:1.35rem}
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.fish{display:flex;align-items:center;gap:6px;font-weight:700;font-variant-numeric:tabular-nums;
+  background:var(--card);border:1.5px solid var(--line);border-radius:999px;padding:4px 12px}
+.fish svg{width:22px;height:22px}
+.panel{background:var(--card);border:1.5px solid var(--line);border-radius:18px;padding:18px}
+.muted{color:var(--muted)}
+.small{font-size:.88rem}
+
+/* kattenhuis */
+.house{border-radius:18px;overflow:hidden;border:1.5px solid var(--line);background:var(--card);line-height:0;position:relative}
+.house svg.scene{width:100%;height:auto;display:block}
+.mover{transition:transform 2.6s ease-in-out;cursor:pointer;outline:none}
+.mover:focus-visible .catbody{stroke:var(--accent);stroke-width:4}
+.tail{transform-box:fill-box;transform-origin:0% 100%;animation:sway 2.6s ease-in-out infinite alternate}
+.eyes{transform-box:fill-box;transform-origin:center;animation:blink 5s infinite}
+@keyframes sway{from{transform:rotate(-9deg)}to{transform:rotate(11deg)}}
+@keyframes blink{0%,93%,100%{transform:scaleY(1)}96%{transform:scaleY(.1)}}
+.svgheart{transform-box:fill-box;transform-origin:center;animation:svgfloat 1.4s ease-out forwards;pointer-events:none}
+@keyframes svgfloat{from{opacity:1;transform:translateY(0)}to{opacity:0;transform:translateY(-34px)}}
+.bfly{transform-box:fill-box;transform-origin:center;animation:flap .35s ease-in-out infinite alternate}
+@keyframes flap{to{transform:scaleX(.3)}}
+.bpath{animation:drift 9s ease-in-out infinite alternate}
+@keyframes drift{0%{transform:translate(0,0)}50%{transform:translate(60px,-25px)}100%{transform:translate(120px,8px)}}
+.glow{animation:glow 2.4s ease-in-out infinite alternate}
+@keyframes glow{from{opacity:.55}to{opacity:1}}
+.namebubble{font-family:var(--display);font-size:13px;pointer-events:none}
+.houseinfo{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:.86rem;color:var(--muted);margin-top:6px}
+.shop{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-top:10px}
+.item{border:1.5px solid var(--line);border-radius:14px;padding:10px 12px;display:flex;flex-direction:column;gap:6px;background:var(--bg)}
+.item .fr{font-style:italic;color:var(--muted);font-size:.85rem;line-height:1.2}
+.item .nlname{font-weight:700;line-height:1.2}
+.item button{font:inherit;font-size:.9rem;display:flex;align-items:center;justify-content:center;gap:4px;border-radius:10px;padding:6px 8px;border:0;background:var(--accent);color:var(--accent-ink);cursor:pointer;font-weight:700}
+.item button svg{width:18px;height:18px}
+.item button:disabled{background:var(--line);color:var(--muted);cursor:default}
+.item.owned{border-color:var(--leaf)}
+.item.owned .state{color:var(--leaf);font-weight:700;font-size:.9rem}
+.item .state{font-size:.85rem;color:var(--muted)}
+.cat{background:none;border:0;padding:0;cursor:pointer;display:flex;flex-direction:column;align-items:center;font:inherit;color:inherit;position:relative}
+.cat svg{width:92px;height:92px;transition:transform .2s}
+.cat:hover svg,.cat:focus-visible svg{transform:translateY(-4px) rotate(-3deg)}
+.cat:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:12px}
+.cat .nm{font-family:var(--display);font-size:.95rem;line-height:1}
+.cat.rare .nm{color:var(--rare)}
+.heart{position:absolute;top:0;left:50%;font-size:22px;pointer-events:none;animation:float 1s ease-out forwards;color:var(--bad)}
+@keyframes float{from{opacity:1;transform:translate(-50%,10px)}to{opacity:0;transform:translate(-50%,-40px)}}
+.empty-room{align-self:center;text-align:center;max-width:32ch}
+
+/* voortgang */
+.paws{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.paw{width:34px;height:34px}
+.paw path,.paw ellipse{fill:var(--line)}
+.paw.on path,.paw.on ellipse{fill:var(--accent)}
+.bar{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:10px}
+.bar div{background:var(--bg);border-radius:10px;padding:6px 4px;text-align:center;font-size:.8rem;line-height:1.2}
+.bar b{display:block;font-size:1.2rem;font-variant-numeric:tabular-nums}
+.bar div:last-child{background:color-mix(in srgb,var(--leaf) 22%, var(--bg))}
+
+.btn{font:inherit;font-family:var(--display);font-weight:700;font-size:1.15rem;border:0;border-radius:14px;
+  padding:12px 20px;background:var(--accent);color:var(--accent-ink);cursor:pointer;box-shadow:0 3px 0 color-mix(in srgb,var(--accent) 55%, #000)}
+.btn:active{transform:translateY(2px);box-shadow:0 1px 0 color-mix(in srgb,var(--accent) 55%, #000)}
+.btn:focus-visible,.ghost:focus-visible,.opt:focus-visible,.key:focus-visible,input:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+.ghost{font:inherit;background:none;border:1.5px solid var(--line);color:var(--ink);border-radius:12px;padding:8px 14px;cursor:pointer}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+
+/* quiz */
+.qhead{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.mode{font-size:.78rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:700}
+.prompt{font-family:var(--display);font-size:2.2rem;line-height:1.15;text-align:center;padding:18px 0 6px;word-break:break-word}
+.hint{text-align:center;color:var(--muted);margin-bottom:12px}
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media (max-width:420px){.opts{grid-template-columns:1fr}}
+.opt{font:inherit;font-size:1.1rem;padding:14px 10px;border-radius:14px;border:2px solid var(--line);background:var(--bg);color:var(--ink);cursor:pointer}
+.opt.good{border-color:var(--leaf);background:color-mix(in srgb,var(--leaf) 20%, var(--bg))}
+.opt.bad{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 15%, var(--bg))}
+input[type=text]{width:100%;font:inherit;font-size:1.4rem;padding:12px 14px;border-radius:14px;border:2px solid var(--line);background:var(--bg);color:var(--ink)}
+.keys{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}
+.key{font:inherit;font-size:1.1rem;min-width:40px;padding:6px 8px;border-radius:10px;border:1.5px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer}
+.speak{background:none;border:1.5px solid var(--line);border-radius:999px;width:40px;height:40px;cursor:pointer;color:var(--ink);display:inline-grid;place-items:center}
+.speak svg{width:20px;height:20px}
+.fb{border-radius:14px;padding:14px;margin-top:14px}
+.fb.ok{background:color-mix(in srgb,var(--leaf) 18%, var(--card))}
+.fb.no{background:color-mix(in srgb,var(--bad) 12%, var(--card))}
+.fb .big{font-family:var(--display);font-size:1.3rem}
+.answer{font-size:1.5rem;font-weight:700}
+.answer mark{background:color-mix(in srgb,var(--accent) 45%, transparent);color:inherit;border-radius:4px;padding:0 2px}
+.dots{display:flex;gap:4px}
+.dots span{width:10px;height:10px;border-radius:50%;background:var(--line)}
+.dots span.done{background:var(--accent)}
+
+/* modals */
+.overlay{position:fixed;inset:0;background:color-mix(in srgb,var(--ink) 45%, transparent);display:grid;place-items:center;z-index:20;
+  padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px))}
+.modal{background:var(--card);border-radius:22px;padding:22px;max-width:380px;width:100%;text-align:center;display:flex;flex-direction:column;gap:12px;align-items:center}
+.modal svg.bigcat{width:170px;height:170px;animation:pop .5s cubic-bezier(.3,1.6,.5,1)}
+@keyframes pop{from{transform:scale(.3)}to{transform:scale(1)}}
+
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.chip{font:inherit;font-size:.92rem;border:1.5px solid var(--line);background:var(--bg);color:var(--ink);border-radius:999px;padding:6px 12px;cursor:pointer}
+.chip span{font-variant-numeric:tabular-nums;color:var(--muted);font-size:.82rem}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.chip[aria-pressed="true"] span{color:var(--accent-ink)}
+.chip:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+.tag{font-family:var(--body);font-size:.7em;font-style:italic;color:var(--muted);font-weight:400}
+.prompt.zin{font-size:1.55rem}
+.opts.one{grid-template-columns:1fr}
+.btn:disabled{opacity:.5;cursor:default}
+table{width:100%;border-collapse:collapse;font-size:.95rem}
+td,th{padding:7px 6px;border-bottom:1px solid var(--line);text-align:left}
+th{font-size:.75rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.lvl{font-variant-numeric:tabular-nums;font-weight:700}
+.tablewrap{overflow-x:auto}
+.note{font-size:.85rem;color:var(--muted)}
+/* garderobe */
+.modal.wide{max-width:480px;max-height:92vh;max-height:92dvh;overflow-y:auto;text-align:left;align-items:stretch}
+.modal svg{overflow:visible}
+.wardrobe-top{display:flex;gap:14px;align-items:center}
+.wardrobe-top svg{width:120px;height:120px;flex:none}
+.wardrobe-top .nmrow{display:flex;flex-direction:column;gap:6px;min-width:0;flex:1}
+.wardrobe-top input{font-size:1.15rem;padding:8px 10px}
+.slot h3{font-family:var(--display);font-size:1.05rem;margin:6px 0 6px}
+.wgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:8px}
+.witem{border:1.5px solid var(--line);border-radius:14px;background:var(--bg);padding:6px 8px 8px;display:flex;flex-direction:column;align-items:center;gap:2px;text-align:center}
+.witem svg{width:64px;height:64px}
+.witem .nlname{font-weight:700;font-size:.88rem;line-height:1.15}
+.witem .fr{font-style:italic;color:var(--muted);font-size:.78rem;line-height:1.15}
+.witem button{margin-top:4px;font:inherit;font-size:.85rem;font-weight:700;display:flex;align-items:center;justify-content:center;gap:3px;border-radius:10px;padding:5px 8px;border:0;width:100%;cursor:pointer;background:var(--accent);color:var(--accent-ink)}
+.witem button svg{width:16px;height:16px}
+.witem button.wearing{background:var(--leaf);color:#fff}
+.witem button.plain{background:var(--card);color:var(--ink);border:1.5px solid var(--line)}
+.witem button:disabled{background:var(--line);color:var(--muted);cursor:default}
+.witem.on{border-color:var(--leaf)}
+.item button svg path,.witem button svg path{fill:currentColor}
+.item button svg circle,.witem button svg circle{fill:var(--accent)}
+.shopgroup summary{cursor:pointer;font-family:var(--display);font-weight:700;font-size:1.05rem;padding:6px 0;list-style-position:inside}
+.shopgroup + .shopgroup{margin-top:4px;border-top:1px solid var(--line);padding-top:4px}
+@media (max-width:480px){
+  body{font-size:16px}
+  .wrap{padding-block:10px 32px;gap:14px}
+  h1{font-size:1.55rem}
+  .top{flex-wrap:nowrap}
+  .panel{padding:14px;border-radius:16px}
+  .prompt{font-size:1.8rem;padding:8px 0 4px}
+  .prompt.zin{font-size:1.25rem}
+  .hint{margin-bottom:8px;font-size:.92rem}
+  .keys{gap:5px;margin:8px 0}
+  .key{min-width:0;flex:1 0 calc(12.5% - 5px);padding:8px 0;font-size:1.05rem}
+  .opt{padding:12px 10px;font-size:1rem}
+  .fb{padding:12px;margin-top:10px}
+  .btn{padding:11px 18px}
+  .qhead .ghost{padding:6px 12px}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+/* Duitse variant: groenblauw accent */
+:root{--accent:#2f8f7a;--accent-ink:#ffffff}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--accent:#5cc4a8;--accent-ink:#1d1726}}
+:root[data-theme="dark"]{--accent:#5cc4a8;--accent-ink:#1d1726}
+</style>
+</head>
+<body>
+<div class="backbar"><a class="back" href="../index.html">← Alle spellen</a></div>
+<div class="wrap" id="app"></div>
+
+<script>
+/*@@CONFIG*/
+const LANG = {
+  code:"de", name:"Duits", adj:"Duitse", title:"Katzenkram", key:"katzenkram-de-v1",
+  voice:/^de([-_]|$)/i, voicePref:/de[-_]DE/i, voiceNames:/google|natural|premium|enhanced|anna|petra|markus|helena|katja|conrad/i,
+  keys:["ä","ö","ü","ß","Ä","Ö","Ü"],
+  art:/^(der |die |das )/, toVerb:false, caseSensitive:true,
+  praise:["Sehr gut!","Super!","Toll!","Prima!","Miauw, goed zo!"],
+  party:"Katzenparty!", shop:"Der Katzenladen", allText:"met lidwoorden, hoofdletters en umlauts",
+  note:"Bakje 1: Duits → Nederlands kiezen · 2: Nederlands → Duits kiezen · 3 en 4: zelf typen, met lidwoord, hoofdletter en umlauts · 5: gekend. Woorden uit de linkerkolom (begrijpen) hoef je alleen te herkennen.",
+  names:["Minka","Mieze","Brezel","Strudel","Krümel","Flocke","Wuschel","Pfötchen","Zimt","Mohn","Keks","Knödel","Lebkuchen","Rosine","Strolch","Pünktchen","Kringel","Honig","Sternchen","Schnurri","Bärli","Trüffel","Muffin","Grisu"],
+};
+/* ===== WOORDENLIJST (Duits, Wörterliste A en B) =====
+   [duits, nederlands, vlaggen, alternatieven]; r = alleen begrijpen */
+const GROUPS = [
+ {id:"l1a", name:"Lijst 1 · A", items:[
+  ["der Ratschlag, die Ratschläge", "het advies", "r"],["die Abwechslung", "de afwisseling", "r"],["die Liste", "de lijst", "r"],["die Sprachnachricht", "het ingesproken bericht", "r"],["die mobilen Daten", "de mobiele data", "r"],["auf lautlos schalten", "op stil zetten", "r"],["das Ziel im Auge behalten", "het doel voor ogen houden", "r"],["Prioritäten setzen", "prioriteiten stellen", "r"],["Vokabeln abfragen", "woorden overhoren", "r"],["Vokabeln pauken", "woorden stampen", "r"],["die Erinnerung", "de herinnering"],["die Ruhe", "de rust"],["die Zeit", "de tijd"],["das Handy", "de mobiele telefoon"],["das Treffen, die Treffen", "de ontmoeting", "", ["das Treffen"]],["anfangen", "beginnen"],["einerseits ... andererseits", "enerzijds ... anderzijds"],["einschalten – ausschalten", "aanzetten – uitzetten"],["erwarten", "verwachten"],["etwas schaffen", "iets klaarspelen"],["nutzen", "gebruiken"],["Streit haben", "ruzie hebben"],["(un)angenehm", "(on)aangenaam"],["wertvoll", "waardevol"]]},
+ {id:"l1b", name:"Lijst 1 · B", items:[
+  ["der Einschätzungsfehler", "de inschattingsfout", "r"],["der Rollstuhl", "de rolstoel", "r"],["der Zeuge", "de getuige (man)", "r"],["die Behinderung", "de handicap", "r"],["die Betreuung", "de begeleiding", "r"],["die Clique", "de vriendengroep", "r"],["die Doku", "de documentaire", "r"],["die Muskelerkrankung", "de spierziekte", "r"],["die Regelschule", "de reguliere school", "r"],["die Zeugin", "de getuige (vrouw)", "r"],["die Beteiligten", "de betrokken partijen", "r"],["abwärts", "naar beneden", "r"],["alltäglich", "alledaags", "r"],["aufgrund von", "op grond van, naar aanleiding van", "r"],["gelähmt", "verlamd", "r"],["seitdem", "sindsdien", "r"],["der Rücken", "de rug"],["der Stundenplan", "het rooster"],["der Unfall, die Unfälle", "het ongeluk", "", ["der Unfall"]],["die Ausbildung", "de opleiding"],["die Möglichkeit", "de mogelijkheid"],["verbringen", "doorbrengen"],["weiter", "verder"]]},
+ {id:"l2a", name:"Lijst 2 · A", items:[
+  ["der Deckel", "de deksel", "r"],["der Konsum", "de consumptie", "r"],["der Flieger", "het vliegtuig", "r"],["der Pragmatiker", "iemand die praktisch in het leven staat", "r"],["der Topf", "de pan", "r"],["der Zufall", "het toeval", "r"],["die Empfehlung", "de aanbeveling, het advies", "r"],["die Hauptsache", "de hoofdzaak", "r"],["das Aussehen", "het uiterlijk", "r"],["Einfluss haben auf", "invloed hebben op", "r"],["etwas vermeiden", "iets vermijden", "r"],["im Idealfall", "idealiter", "r"],["inzwischen", "inmiddels", "r"],["stehen zu", "vinden van", "r"],["zumindest", "tenminste", "r"],["die Insel", "het eiland"],["das Rad", "de fiets"],["achten auf", "letten op"],["aussuchen", "uitzoeken"],["ein bisschen", "een beetje"],["hässlich", "lelijk"],["nachhaltig", "duurzaam"],["schön", "mooi"],["wichtig", "belangrijk"],["Das ist mir egal.", "Dat maakt mij niet uit."],["Es gefällt mir (nicht).", "Het bevalt me (niet)."]]},
+ {id:"l2b", name:"Lijst 2 · B", items:[
+  ["der Alltag", "het dagelijks leven", "r"],["der Mitarbeiter", "de medewerker", "r"],["die Altersgruppe", "de leeftijdsgroep", "r"],["die Aufgabe", "de taak", "r"],["die Kritik", "de kritiek", "r"],["die Wahl", "de verkiezing", "r"],["abstimmen", "stemmen", "r"],["beurteilen", "beoordelen", "r"],["deshalb", "daarom", "r"],["deswegen", "daarom", "r"],["diskutieren", "discussiëren", "r"],["eher", "eerder", "r"],["siegen", "winnen", "r"],["veröffentlichen", "publiceren", "r"],["der Einfluss", "de invloed"],["der Erwachsene, die Erwachsenen", "de volwassene", "", ["der Erwachsene"]],["der Forscher, die Forscher", "de onderzoeker", "", ["der Forscher"]],["der Jugendliche, die Jugendlichen", "de jongere", "", ["der Jugendliche"]],["der Vorschlag, die Vorschläge", "het voorstel", "", ["der Vorschlag"]],["die Stimme", "de stem"],["benutzen", "gebruiken"],["entscheiden", "beslissen"],["seitdem", "sindsdien"],["wählen", "kiezen"]]}
+];
+/*@@END*/
+
+const WORDS = GROUPS.flatMap(g=>g.items.map(([fr,nl,fl="",alt=[]])=>{
+  const f=fl.split(" ");
+  return {fr,nl,alt,grp:g.id,zin:!!g.zin,r:f.includes("r"),mv:f.includes("mv"),g:f.includes("m")?"m":f.includes("v")?"v":""};
+}));
+/* hetzelfde woord in twee lijsten (bv. to assume) krijgt een eigen sleutel */
+{const n={};WORDS.forEach(w=>n[w.fr]=(n[w.fr]||0)+1);WORDS.forEach(w=>w.key=n[w.fr]>1?w.grp+"|"+w.fr:w.fr)}
+
+const KEY = LANG.key;
+const FIRST_CAT = 3, PER_CAT = 5;   // eerste kat na 3 gekende woordjes, daarna elke 5
+const catsFor=m=>m<FIRST_CAT?0:1+Math.floor((m-FIRST_CAT)/PER_CAT);
+const ROUND = 10;
+const FURS = [["#e8913a","#f6c58a"],["#3b3b44","#f3ede2"],["#9a9aa6","#d7d7de"],["#f3ede2","#e8913a"],["#a8754a","#d9b98c"],["#d9b98c","#f3ede2"],["#5b5b66","#e8913a"]];
+const EYES = ["#7ab648","#e9b21c","#4aa3c7","#d98c2b"];
+const NAMES = LANG.names;
+
+let S = load();
+function blank(){return {words:{},fish:0,cats:[],rarePending:0,party:false,sel:GROUPS.map(g=>g.id),items:[]}}
+function load(){try{const s=JSON.parse(localStorage.getItem(KEY));if(s&&s.words){if(!s.items)s.items=[];if(!s.sel||!s.sel.some(id=>GROUPS.find(g=>g.id===id)))s.sel=GROUPS.map(g=>g.id);return s}}catch(e){}return blank()}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+function W(w){return S.words[w.key]||(S.words[w.key]={box:1,wrong:0})}
+const mastered=(list=WORDS)=>list.filter(w=>W(w).box>=5).length;
+const selected=()=>WORDS.filter(w=>S.sel.includes(w.grp));
+const $=s=>document.querySelector(s);
+const esc=t=>String(t).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const rnd=a=>a[Math.floor(Math.random()*a.length)];
+const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+const frLabel=w=>w.fr+(w.g||w.mv?` <span class="tag">${[w.g,w.mv?"mv":""].filter(Boolean).join(" ")}</span>`:"");
+
+/* ---------- katten tekenen ---------- */
+function catSVG(c,cls=""){return `<svg class="${cls}" viewBox="0 0 100 100" aria-hidden="true">${catInner(c)}</svg>`}
+function catInner(c,delay=0){
+  const [f1,f2]=c.fur, st="rgba(30,20,40,.55)";
+  let pat="";
+  if(c.pattern==="tabby") pat=`<path d="M44 30 l2 8 M50 28 v9 M56 30 l-2 8" stroke="${f2}" stroke-width="3" stroke-linecap="round"/><path d="M28 70 q6 -3 10 0 M30 80 q6 -3 10 0 M62 70 q6 -3 10 0" stroke="${f2}" stroke-width="3" fill="none" stroke-linecap="round"/>`;
+  if(c.pattern==="patch") pat=`<ellipse cx="38" cy="40" rx="9" ry="7" fill="${f2}"/><ellipse cx="64" cy="78" rx="11" ry="8" fill="${f2}"/>`;
+  if(c.pattern==="tux") pat=`<ellipse cx="50" cy="78" rx="12" ry="14" fill="${f2}"/><ellipse cx="50" cy="52" rx="8" ry="5" fill="${f2}"/>`;
+  const star=c.rare?`<path d="M80 12 l3 7 7 1 -5 5 1 7 -6 -3 -6 3 1 -7 -5 -5 7 -1z" fill="#f2cf5a" stroke="${st}" stroke-width="1"/><path d="M14 22 l1.5 3.5 3.5 .5 -2.5 2.5 .5 3.5 -3 -1.5 -3 1.5 .5 -3.5 -2.5 -2.5 3.5 -.5z" fill="#f2cf5a"/>`:"";
+  return `
+  <path class="tail" style="animation-delay:-${delay%2.6}s" d="M70 86 q24 -2 20 -26" stroke="${f1}" stroke-width="8" fill="none" stroke-linecap="round"/>
+  <ellipse class="catbody" cx="50" cy="76" rx="24" ry="18" fill="${f1}" stroke="${st}" stroke-width="1.5"/>
+  <polygon points="29,30 33,10 45,24" fill="${f1}" stroke="${st}" stroke-width="1.5" stroke-linejoin="round"/>
+  <polygon points="71,30 67,10 55,24" fill="${f1}" stroke="${st}" stroke-width="1.5" stroke-linejoin="round"/>
+  <polygon points="33,25 35,16 41,23" fill="#f0a7b4"/><polygon points="67,25 65,16 59,23" fill="#f0a7b4"/>
+  <circle cx="50" cy="42" r="22" fill="${f1}" stroke="${st}" stroke-width="1.5"/>
+  ${pat}
+  ${wear(c,"nek",st)}
+  <g class="eyes" style="animation-delay:-${(delay*1.7)%5}s"><ellipse cx="41" cy="42" rx="5" ry="6" fill="${c.eye}"/><ellipse cx="59" cy="42" rx="5" ry="6" fill="${c.eye}"/>
+  <ellipse cx="41" cy="43" rx="1.8" ry="4.5" fill="#1d1726"/><ellipse cx="59" cy="43" rx="1.8" ry="4.5" fill="#1d1726"/>
+  <circle cx="42.5" cy="40" r="1.2" fill="#fff"/><circle cx="60.5" cy="40" r="1.2" fill="#fff"/></g>
+  <path d="M47 50 h6 l-3 3z" fill="#e57a8c"/>
+  <path d="M50 53 q-3 4 -6 2 M50 53 q3 4 6 2" stroke="${st}" stroke-width="1.2" fill="none"/>
+  <path d="M36 51 h-12 M36 54 l-11 3 M64 51 h12 M64 54 l11 3" stroke="${st}" stroke-width="1"/>
+  ${wear(c,"ogen",st)}${wear(c,"hoofd",st)}
+  <ellipse cx="40" cy="92" rx="6" ry="4" fill="${f1}" stroke="${st}" stroke-width="1.2"/><ellipse cx="60" cy="92" rx="6" ry="4" fill="${f1}" stroke="${st}" stroke-width="1.2"/>
+  ${star}`;
+}
+/* ---------- garderobe ---------- */
+const WEAR = [
+  {id:"noeud",    slot:"hoofd", nl:"Strikje",          fr:"le nœud",               en:"the bow",            prijs:6},
+  {id:"fete",     slot:"hoofd", nl:"Feesthoedje",      fr:"le chapeau de fête",    en:"the party hat",      prijs:8},
+  {id:"beret",    slot:"hoofd", nl:"Baret",            fr:"le béret",              en:"the beret",          prijs:10},
+  {id:"bonnet",   slot:"hoofd", nl:"Wintermuts",       fr:"le bonnet",             en:"the woolly hat",     prijs:10},
+  {id:"fleurs",   slot:"hoofd", nl:"Bloemenkrans",     fr:"la couronne de fleurs", en:"the flower crown",   prijs:12},
+  {id:"sorciere", slot:"hoofd", nl:"Heksenhoed",       fr:"le chapeau de sorcière",en:"the witch's hat",    prijs:15},
+  {id:"couronne", slot:"hoofd", nl:"Gouden kroon",     fr:"la couronne",           en:"the crown",          prijs:25},
+  {id:"clochette",slot:"nek",   nl:"Halsband met bel", fr:"le collier à clochette",en:"the collar with a bell",prijs:6},
+  {id:"papillon", slot:"nek",   nl:"Vlinderstrik",     fr:"le nœud papillon",      en:"the bow tie",        prijs:8},
+  {id:"bandana",  slot:"nek",   nl:"Bandana",          fr:"le bandana",            en:"the bandana",        prijs:8},
+  {id:"echarpe",  slot:"nek",   nl:"Sjaal",            fr:"l'écharpe",             en:"the scarf",          prijs:10},
+  {id:"perles",   slot:"nek",   nl:"Parelketting",     fr:"le collier de perles",  en:"the pearl necklace", prijs:15},
+  {id:"lunettes", slot:"ogen",  nl:"Bril",             fr:"les lunettes",          en:"the glasses",        prijs:10},
+  {id:"soleil",   slot:"ogen",  nl:"Zonnebril",        fr:"les lunettes de soleil",en:"the sunglasses",     prijs:12},
+];
+{const d={noeud:"die Schleife",fete:"der Partyhut",beret:"die Baskenmütze",bonnet:"die Wollmütze",fleurs:"der Blumenkranz",sorciere:"der Hexenhut",couronne:"die Krone",clochette:"das Halsband mit Glöckchen",papillon:"die Fliege",bandana:"das Halstuch",echarpe:"der Schal",perles:"die Perlenkette",lunettes:"die Brille",soleil:"die Sonnenbrille"};WEAR.forEach(it=>it.de=d[it.id])}
+const SLOTNAME={hoofd:"Op het hoofd",nek:"Om de nek",ogen:"Op de neus"};
+const ACOL=["#e0475f","#4aa3c7","#7a5bd1","#3f9a5a","#e9a31c","#f08aa8","#2f5fa8"];
+const ACC={
+  noeud:(c,st)=>`<g transform="translate(65 17) rotate(22)"><path d="M0 0 L-9 -6 L-9 6Z M0 0 L9 -6 L9 6Z" fill="${c}" stroke="${st}" stroke-width="1" stroke-linejoin="round"/><circle r="2.8" fill="${c}" stroke="${st}" stroke-width="1"/></g>`,
+  fete:(c,st)=>`<path d="M40 23 L50 0 L60 23Z" fill="${c}" stroke="${st}" stroke-width="1.2" stroke-linejoin="round"/><path d="M45.5 11 L54.5 11 M43 17 L57 17" stroke="#fff8ec" stroke-width="2"/><circle cx="50" cy="1" r="3.2" fill="#ffd45c" stroke="${st}" stroke-width="1"/>`,
+  beret:(c,st)=>`<ellipse cx="47" cy="21" rx="19" ry="7" fill="${c}" stroke="${st}" stroke-width="1.2" transform="rotate(-10 47 21)"/><rect x="45.5" y="11" width="3" height="5" rx="1" fill="${c}"/>`,
+  bonnet:(c,st)=>`<path d="M29 31 Q30 7 50 7 Q70 7 71 31 Z" fill="${c}" stroke="${st}" stroke-width="1.2"/><path d="M38 11 v18 M50 7 v22 M62 11 v18" stroke="rgba(255,255,255,.35)" stroke-width="2"/><rect x="27" y="25" width="46" height="8" rx="4" fill="#fff8ec" stroke="${st}" stroke-width="1"/><circle cx="50" cy="6" r="5.5" fill="#fff8ec" stroke="${st}" stroke-width="1"/>`,
+  fleurs:(c,st)=>Array.from({length:7},(_,i)=>{const x=30+i*6.7,y=25-Math.sin(Math.PI*i/6)*9;return `<circle cx="${x}" cy="${y}" r="4" fill="${i%2?"#ffd45c":c}" stroke="${st}" stroke-width=".8"/><circle cx="${x}" cy="${y}" r="1.4" fill="#fff8ec"/>`}).join("")+`<path d="M33 27 l-4 3 M67 27 l4 3" stroke="#3f9a5a" stroke-width="2.5" stroke-linecap="round"/>`,
+  sorciere:(c,st)=>`<path d="M38 20 L57 -6 L63 20Z" fill="#3a2a4a" stroke="${st}" stroke-width="1.2" stroke-linejoin="round"/><ellipse cx="50" cy="20" rx="24" ry="4.5" fill="#3a2a4a"/><rect x="40" y="14.5" width="22" height="4" fill="${c}"/><rect x="48" y="14" width="5" height="5" fill="none" stroke="#f2c94c" stroke-width="1.3"/>`,
+  couronne:(c,st)=>`<path d="M35 23 L35 7 L42.5 15 L50 4 L57.5 15 L65 7 L65 23Z" fill="#f2c94c" stroke="#a07a10" stroke-width="1.3" stroke-linejoin="round"/><circle cx="50" cy="17" r="2.6" fill="${c}"/><circle cx="40" cy="19" r="1.6" fill="#fff8ec"/><circle cx="60" cy="19" r="1.6" fill="#fff8ec"/>`,
+  clochette:(c,st)=>`<path d="M33 60 Q50 70 67 60" stroke="${c}" stroke-width="4" fill="none" stroke-linecap="round"/><circle cx="50" cy="68.5" r="3.6" fill="#f2c94c" stroke="#a07a10" stroke-width="1"/><path d="M48.5 69.5 h3" stroke="#a07a10" stroke-width="1"/>`,
+  papillon:(c,st)=>`<path d="M50 65 L40.5 59.5 L40.5 70.5Z M50 65 L59.5 59.5 L59.5 70.5Z" fill="${c}" stroke="${st}" stroke-width="1" stroke-linejoin="round"/><circle cx="50" cy="65" r="2.6" fill="${c}" stroke="${st}" stroke-width="1"/>`,
+  bandana:(c,st)=>`<path d="M33 60 Q50 68 67 60 L50 80Z" fill="${c}" stroke="${st}" stroke-width="1" stroke-linejoin="round"/><circle cx="45" cy="66" r="1.3" fill="#fff"/><circle cx="55" cy="66" r="1.3" fill="#fff"/><circle cx="50" cy="72" r="1.3" fill="#fff"/>`,
+  echarpe:(c,st)=>`<path d="M33 60 Q50 70 67 60" stroke="${c}" stroke-width="7" fill="none" stroke-linecap="round"/><path d="M33 60 Q50 70 67 60" stroke="rgba(255,255,255,.4)" stroke-width="1.5" stroke-dasharray="3 4" fill="none"/><rect x="55" y="63" width="7" height="19" rx="2" fill="${c}" transform="rotate(-10 58 63)"/><path d="M58 81 v4 M61 80 v4" stroke="${c}" stroke-width="1.5"/>`,
+  perles:(c,st)=>Array.from({length:9},(_,i)=>{const x=34+i*4,y=60+(1-((x-50)/16)**2)*6;return `<circle cx="${x}" cy="${y}" r="2.3" fill="#fbf7ee" stroke="#c9bfae" stroke-width=".8"/>`}).join(""),
+  lunettes:(c,st)=>`<g fill="rgba(255,255,255,.15)" stroke="${c}" stroke-width="2"><circle cx="41" cy="42" r="7.5"/><circle cx="59" cy="42" r="7.5"/></g><path d="M48.5 41 h3 M33.5 41 l-6 -2.5 M66.5 41 l6 -2.5" stroke="${c}" stroke-width="2" fill="none"/>`,
+  soleil:(c,st)=>`<ellipse cx="41" cy="42" rx="8.5" ry="6.8" fill="#1d1726" stroke="${c}" stroke-width="1.5"/><ellipse cx="59" cy="42" rx="8.5" ry="6.8" fill="#1d1726" stroke="${c}" stroke-width="1.5"/><path d="M49.5 41 h1 M32.5 40 l-5 -2 M67.5 40 l5 -2" stroke="${c}" stroke-width="2"/><path d="M36 39.5 l4.5 -2.2 M54 39.5 l4.5 -2.2" stroke="#fff" stroke-width="1.3" opacity=".65"/>`,
+};
+function wear(c,slot,st){
+  const id=c.acc&&c.acc.wear&&c.acc.wear[slot];
+  if(!id||!ACC[id])return "";
+  return ACC[id]((c.acc.col&&c.acc.col[id])||ACOL[0],st);
+}
+function newCat(rare){
+  const used=S.cats.map(c=>c.name);
+  const free=NAMES.filter(n=>!used.includes(n));
+  return {id:Date.now()+Math.random(),name:rnd(free.length?free:NAMES),
+    fur:rare?["#e9c25a","#fff3c4"]:rnd(FURS),eye:rare?"#4aa3c7":rnd(EYES),
+    pattern:rnd(["tabby","patch","tux","plain"]),rare:!!rare,acc:{own:[],wear:{},col:{}}};
+}
+const FISH=`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12c3-5 9-6 13-2l4-3v10l-4-3c-4 4-10 3-13-2z" fill="var(--accent)"/><circle cx="7" cy="11" r="1.2" fill="var(--ink)"/></svg>`;
+const SPK=`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg>`;
+const PAW=on=>`<svg class="paw ${on?"on":""}" viewBox="0 0 32 32" aria-hidden="true"><path d="M16 15c5 0 9 5 8 9-1 3-5 2-8 2s-7 1-8-2c-1-4 3-9 8-9z"/><ellipse cx="7" cy="12" rx="3" ry="4"/><ellipse cx="12.5" cy="6.5" rx="3" ry="4"/><ellipse cx="19.5" cy="6.5" rx="3" ry="4"/><ellipse cx="25" cy="12" rx="3" ry="4"/></svg>`;
+
+/* Franse stem expliciet kiezen; alleen lang="fr-FR" zetten valt op veel apparaten terug op de Nederlandse standaardstem. */
+let FRV=null;
+function pickVoice(){
+  try{
+    const vs=speechSynthesis.getVoices().filter(v=>LANG.voice.test(v.lang));
+    const score=v=>(LANG.voicePref.test(v.lang)?4:0)+(LANG.voiceNames.test(v.name)?2:0)+(v.localService?1:0);
+    FRV=vs.sort((a,b)=>score(b)-score(a))[0]||null;
+  }catch(e){FRV=null}
+}
+try{pickVoice();speechSynthesis.onvoiceschanged=pickVoice}catch(e){}
+function speak(t){
+  try{
+    if(!FRV)pickVoice();
+    if(!FRV){if(speechSynthesis.getVoices().length)noVoice();return}
+    const u=new SpeechSynthesisUtterance(t.replace(/\.\.\./g,", ").replace(/[()]/g,""));
+    u.voice=FRV;u.lang=FRV.lang;u.rate=.85;speechSynthesis.cancel();speechSynthesis.speak(u);
+  }catch(e){}
+}
+function noVoice(){
+  if(document.getElementById("nv"))return;
+  const p=document.createElement("p");p.id="nv";p.className="note";
+  p.textContent=`Er staat geen ${LANG.adj} stem op dit apparaat, dus de uitspraak werkt nog niet. Voeg een ${LANG.adj} stem toe via de spraakinstellingen van het apparaat en laad de pagina opnieuw.`;
+  const panel=document.querySelector(".panel");if(panel)panel.appendChild(p);
+}
+
+/* ---------- kattenhuis ---------- */
+const ZOLDER_AT = 6, TUIN_AT = 12;
+const ITEMS = [
+  {id:"souris",   fr:"la souris en peluche",    en:"the toy mouse",      nl:"Speelgoedmuis",       prijs:5,  room:"w"},
+  {id:"wol",      fr:"la pelote de laine",      en:"the ball of wool",   nl:"Bolletje wol",        prijs:5,  room:"w"},
+  {id:"tapis",    fr:"le tapis",                en:"the rug",            nl:"Rond tapijt",         prijs:8,  room:"w"},
+  {id:"fanions",  fr:"les fanions",             en:"the bunting",        nl:"Vlaggetjesslinger",   prijs:8,  room:"w"},
+  {id:"plante",   fr:"la plante",               en:"the plant",          nl:"Plant",               prijs:10, room:"w"},
+  {id:"rideaux",  fr:"les rideaux",             en:"the curtains",       nl:"Gordijnen",           prijs:10, room:"w"},
+  {id:"radio",    fr:"la radio",                en:"the radio",          nl:"Radio",               prijs:10, room:"w"},
+  {id:"horloge",  fr:"l'horloge",               en:"the clock",          nl:"Klok (loopt echt!)",  prijs:12, room:"w"},
+  {id:"tableau",  fr:"le tableau",              en:"the painting",       nl:"Schilderij",          prijs:12, room:"w"},
+  {id:"lampe",    fr:"la lampe",                en:"the lamp",           nl:"Hanglamp",            prijs:12, room:"w"},
+  {id:"carton",   fr:"le carton",               en:"the cardboard box",  nl:"Kartonnen doos",      prijs:15, room:"w", plek:"Een kat kan erop zitten"},
+  {id:"bocal",    fr:"le bocal à poissons",     en:"the fishbowl",       nl:"Vissenkom",           prijs:18, room:"w"},
+  {id:"canape",   fr:"le canapé",               en:"the sofa",           nl:"Bank",                prijs:25, room:"w", plek:"Een kat kan erop liggen"},
+  {id:"etoiles",  fr:"les étoiles fluorescentes",en:"the glow-in-the-dark stars",nl:"Glow-in-the-dark sterren",prijs:8, room:"z"},
+  {id:"lanterne", fr:"la lanterne",             en:"the lantern",        nl:"Lantaarn",            prijs:10, room:"z"},
+  {id:"coffre",   fr:"le coffre",               en:"the chest",          nl:"Schatkist",           prijs:12, room:"z", plek:"Een kat kan erop zitten"},
+  {id:"coussins", fr:"les coussins",            en:"the cushions",       nl:"Kussenberg",          prijs:12, room:"z"},
+  {id:"guirlande",fr:"la guirlande lumineuse",  en:"the fairy lights",   nl:"Lichtslinger",        prijs:15, room:"z"},
+  {id:"telescope",fr:"le télescope",            en:"the telescope",      nl:"Telescoop",           prijs:18, room:"z"},
+  {id:"hamac",    fr:"le hamac",                en:"the hammock",        nl:"Hangmat",             prijs:22, room:"z", plek:"Een kat kan erin liggen"},
+  {id:"champignons",fr:"les champignons",       en:"the mushrooms",      nl:"Paddenstoelen",       prijs:6,  room:"t"},
+  {id:"fleurs",   fr:"les fleurs",              en:"the flowers",        nl:"Bloemen",             prijs:10, room:"t"},
+  {id:"papillons",fr:"les papillons",           en:"the butterflies",    nl:"Vlinders",            prijs:12, room:"t"},
+  {id:"herisson", fr:"le hérisson",             en:"the hedgehog",       nl:"Egel",                prijs:12, room:"t"},
+  {id:"lampions", fr:"les lampions",            en:"the paper lanterns", nl:"Lampionnen",          prijs:12, room:"t"},
+  {id:"nichoir",  fr:"le nichoir",              en:"the birdhouse",      nl:"Vogelhuisje",         prijs:15, room:"t"},
+  {id:"chaise",   fr:"la chaise longue",        en:"the deckchair",      nl:"Ligstoel",            prijs:15, room:"t"},
+  {id:"balancoire",fr:"la balançoire",          en:"the swing",          nl:"Schommel",            prijs:20, room:"t", plek:"Een kat kan erop schommelen"},
+  {id:"mare",     fr:"la mare",                 en:"the pond",           nl:"Vijver met vissen",   prijs:25, room:"t"},
+];
+{const d={souris:"die Spielzeugmaus",wol:"das Wollknäuel",tapis:"der Teppich",fanions:"die Wimpelkette",plante:"die Pflanze",rideaux:"die Vorhänge",radio:"das Radio",horloge:"die Uhr",tableau:"das Gemälde",lampe:"die Lampe",carton:"der Karton",bocal:"das Goldfischglas",canape:"das Sofa",etoiles:"die Leuchtsterne",lanterne:"die Laterne",coffre:"die Schatzkiste",coussins:"die Kissen",guirlande:"die Lichterkette",telescope:"das Teleskop",hamac:"die Hängematte",champignons:"die Pilze",fleurs:"die Blumen",papillons:"die Schmetterlinge",herisson:"der Igel",lampions:"die Lampions",nichoir:"das Vogelhäuschen",chaise:"der Liegestuhl",balancoire:"die Schaukel",mare:"der Teich"};ITEMS.forEach(it=>it.de=d[it.id])}
+const ROOMNAME={w:"woonkamer",z:"zolder",t:"tuin"};
+const has=id=>S.items.includes(id);
+const isNight=()=>{const h=new Date().getHours();return h<7||h>=20};
+const roomOpen=r=>r==="w"||(r==="z"&&S.cats.length>=ZOLDER_AT)||(r==="t"&&S.cats.length>=TUIN_AT);
+const spot=(room,fx,fy,s)=>({room,x:fx-50*s,y:fy-95*s,s});
+
+function skyDetails(x,y,w,h,night){
+  return night
+    ? `<circle cx="${x+w*.7}" cy="${y+h*.32}" r="${Math.min(w,h)*.13}" fill="#f6efc8"/><circle cx="${x+w*.7+5}" cy="${y+h*.32-3}" r="${Math.min(w,h)*.12}" fill="#24315a"/>
+       ${[[.2,.3],[.4,.55],[.3,.75],[.85,.7],[.55,.2]].map(([a,b])=>`<circle cx="${x+w*a}" cy="${y+h*b}" r="1.4" fill="#fff"/>`).join("")}`
+    : `<circle cx="${x+w*.78}" cy="${y+h*.28}" r="${Math.min(w,h)*.13}" fill="#ffd45c"/>
+       <g fill="#fff"><ellipse cx="${x+w*.32}" cy="${y+h*.5}" rx="${w*.16}" ry="${h*.08}"/><ellipse cx="${x+w*.42}" cy="${y+h*.45}" rx="${w*.11}" ry="${h*.08}"/></g>`;
+}
+
+function roofPart(oy){
+  return {h:52, svg:`<polygon points="0,${oy+52} 200,${oy+2} 400,${oy+52}" fill="#b5523b"/>
+    <rect x="300" y="${oy+12}" width="22" height="30" fill="#8f3e2c"/><rect x="296" y="${oy+8}" width="30" height="7" fill="#7a3324"/>`, spots:[]};
+}
+function zolderPart(oy,night){
+  const sky=night?"#24315a":"#9fd3f0";
+  const sp=[spot("z",120,oy+186,.42),spot("z",205,oy+188,.42),spot("z",290,oy+186,.42)];
+  let s=`<polygon points="0,${oy+196} 0,${oy+122} 200,${oy+2} 400,${oy+122} 400,${oy+196}" fill="#b5523b"/>
+    <polygon points="14,${oy+196} 14,${oy+128} 200,${oy+18} 386,${oy+128} 386,${oy+196}" fill="#e9d2a9"/>
+    <path d="M200 ${oy+18} V${oy+168} M100 ${oy+77} V${oy+168} M300 ${oy+77} V${oy+168}" stroke="#cfb385" stroke-width="5"/>
+    <circle cx="200" cy="${oy+82}" r="24" fill="${sky}"/>${`<g clip-path="url(#rw)">${skyDetails(176,oy+58,48,48,night)}</g>`}
+    <circle cx="200" cy="${oy+82}" r="24" fill="none" stroke="#fff8ec" stroke-width="5"/><path d="M176 ${oy+82} h48 M200 ${oy+58} v48" stroke="#fff8ec" stroke-width="3"/>
+    <rect x="14" y="${oy+168}" width="372" height="28" fill="#a8794f"/><path d="M14 ${oy+182} H386" stroke="#946a44" stroke-width="2"/>`;
+  if(has("guirlande")){
+    const pts=[];for(let i=0;i<=10;i++){const t=i/10;pts.push([40+t*320, oy+130-Math.sin(t*Math.PI)*52+(i%2?6:0)])}
+    s+=`<path d="M${pts.map(p=>p.join(" ")).join(" L")}" stroke="#6b5a3a" stroke-width="1.5" fill="none"/>`+
+      pts.map((p,i)=>`<circle class="${night?"glow":""}" style="animation-delay:-${i*.3}s" cx="${p[0]}" cy="${p[1]+5}" r="4.5" fill="${["#ffd45c","#f08aa8","#8fd0f0","#9ee08a"][i%4]}"/>`).join("");
+  }
+  if(has("etoiles")) s+=[[60,110],[95,92],[140,64],[265,66],[305,88],[345,108],[170,44],[235,46]].map(([x,y],i)=>`<path class="${night?"glow":""}" style="animation-delay:-${i*.4}s" d="M${x} ${oy+y-5} l1.6 3.4 3.6 .5 -2.6 2.5 .6 3.6 -3.2 -1.7 -3.2 1.7 .6 -3.6 -2.6 -2.5 3.6 -.5z" fill="${night?"#d8ff9a":"#f3eccc"}"/>`).join("");
+  if(has("telescope")) s+=`<path d="M146 ${oy+168} L156 ${oy+136} L166 ${oy+168} M156 ${oy+136} V${oy+168}" stroke="#4a2f1d" stroke-width="2.5" fill="none"/><g transform="rotate(-32 156 ${oy+132})"><rect x="138" y="${oy+126}" width="40" height="11" rx="3" fill="#4a6fa5"/><rect x="176" y="${oy+124}" width="7" height="15" rx="2" fill="#2f4f80"/><rect x="132" y="${oy+128}" width="7" height="7" rx="1" fill="#2f4f80"/></g>`;
+  if(has("coussins")) s+=`<ellipse cx="190" cy="${oy+181}" rx="18" ry="8" fill="#c99af0"/><ellipse cx="222" cy="${oy+182}" rx="17" ry="7.5" fill="#8fd0f0"/><ellipse cx="206" cy="${oy+175}" rx="16" ry="7" fill="#f08aa8"/>`;
+  if(has("lanterne")) s+=`${night?`<circle class="glow" cx="368" cy="${oy+156}" r="22" fill="#ffd45c" opacity=".3"/>`:""}<path d="M360 ${oy+144} q8 -10 16 0" stroke="#4a2f1d" stroke-width="2" fill="none"/><rect x="359" y="${oy+144}" width="18" height="24" rx="3" fill="#4a2f1d"/><rect x="362" y="${oy+148}" width="12" height="16" rx="2" fill="${night?"#ffe08a":"#f3eccc"}"/>`;
+  if(has("coffre")){
+    s+=`<rect x="34" y="${oy+150}" width="56" height="30" rx="3" fill="#8a5a3a"/><path d="M34 ${oy+150} q28 -16 56 0" fill="#a06a44"/><rect x="58" y="${oy+156}" width="8" height="9" fill="#e9c25a"/>`;
+    sp.push(spot("z",62,oy+146,.36));
+  }
+  if(has("hamac")){
+    s+=`<path d="M248 ${oy+100} L262 ${oy+128} M360 ${oy+100} L346 ${oy+128}" stroke="#6b5a3a" stroke-width="2"/>
+      <path d="M262 ${oy+128} Q304 ${oy+158} 346 ${oy+128} Q304 ${oy+146} 262 ${oy+128}" fill="#e07a5f" stroke="#b85d45" stroke-width="2"/>`;
+    sp.push(spot("z",304,oy+144,.38));
+  }
+  return {h:196, svg:s, spots:sp};
+}
+function woonPart(oy,night){
+  const sky=night?"#24315a":"#9fd3f0";
+  const sp=[spot("w",100,oy+82,.36),spot("w",200,oy+112,.34),spot("w",341,oy+92,.38),
+            spot("w",90,oy+216,.44),spot("w",205,oy+220,.44),spot("w",150,oy+228,.44),spot("w",252,oy+228,.44)];
+  let s=`<rect x="0" y="${oy}" width="400" height="196" fill="#f1dfc0"/>
+    ${Array.from({length:10},(_,i)=>`<rect x="${i*40+13}" y="${oy}" width="14" height="190" fill="#ecd5b1"/>`).join("")}
+    <rect x="0" y="${oy+188}" width="400" height="8" fill="#d9c09a"/>
+    <rect x="0" y="${oy+196}" width="400" height="38" fill="#b98a5e"/>
+    <path d="M0 ${oy+209} H400 M0 ${oy+222} H400" stroke="#a47750" stroke-width="1.5"/>
+    <rect x="150" y="${oy+28}" width="100" height="82" fill="${sky}"/>
+    <g clip-path="url(#ww)">${skyDetails(150,oy+28,100,82,night)}</g>
+    <rect x="150" y="${oy+28}" width="100" height="82" fill="none" stroke="#fff8ec" stroke-width="6"/>
+    <path d="M200 ${oy+28} V${oy+110} M150 ${oy+69} H250" stroke="#fff8ec" stroke-width="4"/>
+    <rect x="142" y="${oy+110}" width="116" height="8" rx="2" fill="#fff8ec"/>
+    <rect x="18" y="${oy+82}" width="112" height="7" rx="2" fill="#8a5a3a"/>
+    <path d="M30 ${oy+89} v10 h8 M118 ${oy+89} v10 h-8" stroke="#8a5a3a" stroke-width="3" fill="none"/>
+    <rect x="24" y="${oy+58}" width="7" height="24" fill="#c2453b"/><rect x="32" y="${oy+62}" width="6" height="20" fill="#4f8a4a"/><rect x="39" y="${oy+56}" width="8" height="26" fill="#e9a31c"/><rect x="48" y="${oy+64}" width="10" height="18" rx="1" fill="#6b7fc2" transform="rotate(12 53 ${oy+82})"/>
+    <rect x="318" y="${oy+224}" width="50" height="8" rx="2" fill="#8a5a3a"/>
+    <rect x="335" y="${oy+96}" width="14" height="130" fill="#d9b98c"/>
+    ${Array.from({length:9},(_,i)=>`<path d="M335 ${oy+104+i*13} l14 5" stroke="#b89466" stroke-width="2"/>`).join("")}
+    <rect x="306" y="${oy+90}" width="72" height="9" rx="4" fill="#c97b5a"/>
+    <path d="M370 ${oy+99} v18" stroke="#c94f7c" stroke-width="2"/><circle cx="370" cy="${oy+120}" r="4" fill="#c94f7c"/>`;
+  if(has("rideaux")) s+=`<path d="M128 ${oy+22} H272" stroke="#8a5a3a" stroke-width="3" stroke-linecap="round"/><path d="M134 ${oy+22} h18 q-6 46 2 96 h-20z" fill="#c94f7c"/><path d="M266 ${oy+22} h-18 q6 46 -2 96 h20z" fill="#c94f7c"/><path d="M142 ${oy+26} q-3 40 0 88 M258 ${oy+26} q3 40 0 88" stroke="#a63a63" stroke-width="1.5" fill="none"/>`;
+  if(has("fanions")) s+=`<path d="M100 ${oy+6} Q175 ${oy+24} 250 ${oy+6}" stroke="#6b5a3a" stroke-width="1.2" fill="none"/>`+Array.from({length:8},(_,i)=>{const x=108+i*19,y=oy+6+Math.sin(Math.PI*(x-100)/150)*9;return `<path d="M${x-6} ${y} L${x+6} ${y} L${x} ${y+11}z" fill="${["#e0475f","#ffd45c","#4aa3c7","#3f9a5a"][i%4]}"/>`}).join("");
+  if(has("horloge")){const d=new Date(),ha=((d.getHours()%12)+d.getMinutes()/60)*30,ma=d.getMinutes()*6;
+    s+=`<circle cx="30" cy="${oy+34}" r="13" fill="#fff8ec" stroke="#8a5a3a" stroke-width="3"/>${[0,90,180,270].map(a=>`<path d="M30 ${oy+24} v2" stroke="#2f2340" stroke-width="1.5" transform="rotate(${a} 30 ${oy+34})"/>`).join("")}<path d="M30 ${oy+34} v-6" stroke="#2f2340" stroke-width="2.2" stroke-linecap="round" transform="rotate(${ha} 30 ${oy+34})"/><path d="M30 ${oy+34} v-9" stroke="#2f2340" stroke-width="1.5" stroke-linecap="round" transform="rotate(${ma} 30 ${oy+34})"/><circle cx="30" cy="${oy+34}" r="1.5" fill="#c2453b"/>`}
+  if(has("radio")) s+=`<path d="M246 ${oy+99} l5 -10" stroke="#4a2f1d" stroke-width="1.2"/><rect x="226" y="${oy+98}" width="24" height="13" rx="3" fill="#c97b5a"/><circle cx="233" cy="${oy+104.5}" r="4" fill="#4a2f1d"/><path d="M240 ${oy+102} h7 M240 ${oy+106} h7" stroke="#fff8ec" stroke-width="1.5"/><g class="glow" fill="#7a5bd1"><path d="M256 ${oy+92} v-8 l5 -2 v8" stroke="#7a5bd1" stroke-width="1.3" fill="none"/><circle cx="255" cy="${oy+92}" r="1.8"/><circle cx="260" cy="${oy+90}" r="1.8"/></g>`;
+  if(has("canape")){
+    s+=`<rect x="14" y="${oy+148}" width="108" height="30" rx="10" fill="#6b8fc4"/><rect x="18" y="${oy+168}" width="100" height="22" rx="6" fill="#7fa3d6"/><path d="M68 ${oy+170} v18" stroke="#6b8fc4" stroke-width="1.5"/><rect x="6" y="${oy+162}" width="16" height="30" rx="6" fill="#5b7fb4"/><rect x="114" y="${oy+162}" width="16" height="30" rx="6" fill="#5b7fb4"/><rect x="14" y="${oy+190}" width="5" height="6" fill="#4a2f1d"/><rect x="117" y="${oy+190}" width="5" height="6" fill="#4a2f1d"/>`;
+    sp.push(spot("w",42,oy+176,.36));
+  }
+  if(has("tableau")) s+=`<rect x="264" y="${oy+30}" width="46" height="36" fill="#cfe7f2" stroke="#8a5a3a" stroke-width="4"/><path d="M276 ${oy+48} q10 -9 20 0 q-10 9 -20 0z M296 ${oy+48} l7 -5 v10z" fill="#e8913a"/>`;
+  if(has("lampe")) s+=`${night?`<ellipse class="glow" cx="80" cy="${oy+60}" rx="46" ry="40" fill="#ffe08a" opacity=".35"/>`:""}<path d="M80 ${oy} V${oy+22}" stroke="#6b5a3a" stroke-width="2"/><path d="M64 ${oy+38} L70 ${oy+22} H90 L96 ${oy+38}z" fill="#4f8a4a"/><circle cx="80" cy="${oy+40}" r="4" fill="${night?"#fff3b0":"#f6efc8"}"/>`;
+  if(has("bocal")) s+=`<circle cx="70" cy="${oy+70}" r="12" fill="#bfe3f5" opacity=".9" stroke="#8fc3dc" stroke-width="1.5"/><path d="M64 ${oy+71} q5 -5 10 0 q-5 5 -10 0z M74 ${oy+71} l4 -3 v6z" fill="#e8913a"/>`;
+  if(has("tapis")) s+=`<ellipse cx="205" cy="${oy+222}" rx="72" ry="10" fill="#7fa7c9"/><ellipse cx="205" cy="${oy+222}" rx="56" ry="7" fill="none" stroke="#a9c7e0" stroke-width="2"/>`;
+  s+=`<ellipse cx="90" cy="${oy+214}" rx="34" ry="9" fill="#7a5233"/><path d="M56 ${oy+214} q34 22 68 0 v-2 q-34 14 -68 0z" fill="#a8754a"/><path d="M56 ${oy+214} q34 16 68 0" fill="#a8754a" stroke="#8a5a3a" stroke-width="2"/>
+    <ellipse cx="205" cy="${oy+219}" rx="26" ry="7" fill="#d96a6a"/>`;
+  if(has("wol")) s+=`<path d="M262 ${oy+226} q20 6 34 -2" stroke="#c94f7c" stroke-width="1.5" fill="none"/><circle cx="258" cy="${oy+224}" r="8" fill="#c94f7c"/><path d="M252 ${oy+220} q6 4 12 0 M251 ${oy+226} q7 -3 14 2" stroke="#a63a63" stroke-width="1.2" fill="none"/>`;
+  if(has("souris")) s+=`<path d="M178 ${oy+228} q8 2 11 -3" stroke="#9a9aa6" stroke-width="1.2" fill="none"/><ellipse cx="171" cy="${oy+228}" rx="7.5" ry="4.5" fill="#9a9aa6"/><circle cx="166" cy="${oy+224}" r="2.6" fill="#f0a7b4"/><circle cx="164" cy="${oy+228}" r="1" fill="#1d1726"/>`;
+  if(has("plante")) s+=`<path d="M386 ${oy+200} q-14 -24 -4 -46 M386 ${oy+200} q2 -30 10 -40 M386 ${oy+200} q-24 -12 -28 -30" stroke="#4f8a4a" stroke-width="6" fill="none" stroke-linecap="round"/><path d="M374 ${oy+200} h24 l-3 26 h-18z" fill="#c97b5a"/>`;
+  if(has("carton")){
+    s+=`<rect x="270" y="${oy+198}" width="44" height="30" fill="#c9a06a"/><path d="M270 ${oy+198} l-10 -8 h24 l8 8z M314 ${oy+198} l8 -8 h-24 l-6 8z" fill="#b38955"/><path d="M286 ${oy+212} h12" stroke="#a37a48" stroke-width="2"/>`;
+    sp.push(spot("w",292,oy+200,.4));
+  }
+  return {h:234, svg:s, spots:sp};
+}
+function tuinPart(oy,night){
+  const sp=[spot("t",96,oy+82,.34),spot("t",250,oy+92,.3),spot("t",150,oy+150,.44),spot("t",225,oy+166,.46),
+            spot("t",95,oy+172,.46),spot("t",360,oy+170,.44),spot("t",185,oy+130,.38),spot("t",290,oy+132,.38)];
+  let s=`<rect x="0" y="${oy}" width="400" height="184" fill="${night?"#1f2a4d":"#bfe6f5"}"/>${skyDetails(0,oy,400,110,night)}
+    <rect x="0" y="${oy+112}" width="400" height="72" fill="${night?"#4f7a45":"#8cc66b"}"/>
+    ${Array.from({length:9},(_,i)=>`<rect x="${200+i*22}" y="${oy+90}" width="12" height="34" fill="#fff8ec"/><path d="M${200+i*22} ${oy+90} l6 -7 l6 7" fill="#fff8ec"/>`).join("")}
+    <rect x="196" y="${oy+98}" width="204" height="6" fill="#efe4d0"/><rect x="196" y="${oy+112}" width="204" height="6" fill="#efe4d0"/>
+    <rect x="40" y="${oy+40}" width="20" height="92" fill="#8a5a3a"/><rect x="56" y="${oy+82}" width="70" height="7" rx="3" fill="#8a5a3a"/>
+    <g fill="${night?"#3f6e3a":"#5e9e4f"}"><circle cx="50" cy="${oy+38}" r="34"/><circle cx="22" cy="${oy+56}" r="22"/><circle cx="82" cy="${oy+52}" r="24"/></g>`;
+  if(has("champignons")) s+=[[18,136],[72,134],[64,140]].map(([x,y],i)=>`<rect x="${x-1.5}" y="${oy+y-6}" width="3" height="7" fill="#f3ede2"/><path d="M${x-6+i} ${oy+y-6} q${6-i} -9 ${12-2*i} 0z" fill="#d6453b"/><circle cx="${x-1}" cy="${oy+y-9}" r="1" fill="#fff"/>`).join("");
+  if(has("balancoire")){
+    s+=`<path d="M106 ${oy+89} V${oy+124} M126 ${oy+89} V${oy+124}" stroke="#6b5a3a" stroke-width="1.6"/><rect x="100" y="${oy+123}" width="32" height="5" rx="2" fill="#a8754a"/>`;
+    sp.push(spot("t",116,oy+125,.3));
+  }
+  if(has("chaise")) s+=`<path d="M122 ${oy+162} L132 ${oy+150} H170 L178 ${oy+162} M130 ${oy+152} l-10 -12" stroke="#8a5a3a" stroke-width="2.5" fill="none"/><path d="M120 ${oy+140} L132 ${oy+152} H170 l-2 -4 H134 L124 ${oy+136}z" fill="#4aa3c7"/><path d="M134 ${oy+150} H168" stroke="#fff8ec" stroke-width="2" stroke-dasharray="5 4"/>`;
+  if(has("herisson")) s+=`<path d="M28 ${oy+178} q-2 -16 16 -16 q12 0 14 12z" fill="#7a5233"/><path d="M30 ${oy+168} l-4 -4 M36 ${oy+163} l-2 -6 M44 ${oy+162} l1 -6 M51 ${oy+164} l4 -5" stroke="#5a3a20" stroke-width="2" stroke-linecap="round"/><path d="M56 ${oy+174} q8 0 10 4 q-6 2 -12 0z" fill="#d9b98c"/><circle cx="65" cy="${oy+177}" r="1.5" fill="#1d1726"/><circle cx="58" cy="${oy+174}" r="1" fill="#1d1726"/>`;
+  if(has("lampions")) s+=`<path d="M200 ${oy+86} Q300 ${oy+100} 400 ${oy+86}" stroke="#6b5a3a" stroke-width="1" fill="none"/>`+[214,246,278,310,342,374].map((x,i)=>{const y=oy+86+Math.sin(Math.PI*(x-200)/200)*7;return `${night?`<circle class="glow" cx="${x}" cy="${y+8}" r="10" fill="#ffd45c" opacity=".35"/>`:""}<ellipse cx="${x}" cy="${y+8}" rx="6" ry="7.5" fill="${["#e0475f","#ffd45c","#e9a31c"][i%3]}"/><path d="M${x-6} ${y+8} h12" stroke="rgba(0,0,0,.2)"/>`}).join("");
+  if(has("fleurs")) s+=[[30,170],[120,178],[205,126],[262,128],[330,124],[380,128],[60,150]].map(([x,y],i)=>`<path d="M${x} ${oy+y} v-12" stroke="#3f7a3a" stroke-width="2"/><circle cx="${x}" cy="${oy+y-14}" r="5" fill="${["#f08aa8","#ffd45c","#c99af0","#f2f2f2"][i%4]}"/><circle cx="${x}" cy="${oy+y-14}" r="2" fill="#e9a31c"/>`).join("");
+  if(has("nichoir")) s+=`<rect x="354" y="${oy+60}" width="6" height="32" fill="#8a5a3a"/><rect x="342" y="${oy+42}" width="30" height="22" fill="#e07a5f"/><path d="M338 ${oy+44} l19 -14 l19 14z" fill="#8f3e2c"/><circle cx="357" cy="${oy+52}" r="4" fill="#4a2f1d"/>${night?"":`<path d="M380 ${oy+30} q5 -5 10 0 q5 -5 10 0" stroke="#4a2f1d" stroke-width="1.5" fill="none"/>`}`;
+  if(has("mare")) s+=`<ellipse cx="300" cy="${oy+160}" rx="48" ry="13" fill="#6fb3d9" stroke="#5a9cc0" stroke-width="2"/><path d="M286 ${oy+160} q5 -4 10 0 q-5 4 -10 0z M312 ${oy+157} q5 -4 10 0 q-5 4 -10 0z" fill="#e8913a"/>`;
+  if(has("papillons")&&!night) s+=[[150,60,"#f08aa8"],[240,40,"#ffd45c"]].map(([x,y,c],i)=>`<g class="bpath" style="animation-delay:-${i*3}s"><g class="bfly"><ellipse cx="${x-4}" cy="${oy+y}" rx="5" ry="7" fill="${c}"/><ellipse cx="${x+4}" cy="${oy+y}" rx="5" ry="7" fill="${c}"/><rect x="${x-1}" y="${oy+y-5}" width="2" height="10" fill="#3a2a2a"/></g></g>`).join("");
+  return {h:184, svg:s, spots:sp};
+}
+
+let walkT=null, catPos=[];
+function stopWalk(){if(walkT){clearInterval(walkT);walkT=null}}
+function houseSVG(){
+  const night=isNight(), n=S.cats.length;
+  const parts=[]; let y=0;
+  const add=f=>{const p=f(y,night);parts.push(p);y+=p.h};
+  add(n>=ZOLDER_AT?zolderPart:roofPart);
+  add(woonPart);
+  if(n>=TUIN_AT) add(tuinPart); else {parts.push({h:16,svg:`<rect x="0" y="${y}" width="400" height="16" fill="#8cc66b"/>`,spots:[]});y+=16}
+  let spots=parts.flatMap(p=>p.spots);
+  // reserveplekken als er meer katten dan plekken zijn
+  const lastRoom=n>=TUIN_AT?"t":"w";
+  for(let i=0;spots.length<n+2;i++){const s=lastRoom==="t"?spot("t",40+(i*67)%330,y-10-(i%2)*14,.4):spot("w",40+(i*61)%320,y-24,.4);spots.push(s)}
+  // katten om de beurt over de open kamers verdelen
+  const lists=["w","z","t"].map(r=>spots.filter(s=>s.room===r)).filter(l=>l.length), order=[];
+  for(let i=0;order.length<spots.length;i++)lists.forEach(l=>{if(l[i])order.push(l[i])});
+  catPos=S.cats.map((c,i)=>order[i]);
+  const cats=S.cats.map((c,i)=>{const p=catPos[i];
+    return `<g class="mover" data-i="${i}" tabindex="0" role="button" aria-label="${esc(c.name)} aankleden" style="transform:translate(${p.x}px,${p.y}px) scale(${p.s})"><rect x="-15" y="-10" width="130" height="115" fill="transparent"/>${catInner(c,i*1.3)}</g>`}).join("");
+  return {spots:order, svg:`<svg class="scene" viewBox="0 0 400 ${y}" role="img" aria-label="Het kattenhuis met ${n} kat${n===1?"":"ten"}">
+    <defs><clipPath id="ww"><rect x="150" y="${parts[0].h+28}" width="100" height="82"/></clipPath><clipPath id="rw"><circle cx="200" cy="82" r="24"/></clipPath></defs>
+    ${parts.map(p=>p.svg).join("")}
+    ${night?`<rect x="0" y="0" width="400" height="${y}" fill="#1d1640" opacity=".18" pointer-events="none"/>`:""}
+    <g id="catlayer">${cats}</g>
+    ${n?"":`<g><rect x="90" y="${parts[0].h+140}" width="220" height="44" rx="12" fill="#fff8ec" opacity=".92"/><text x="200" y="${parts[0].h+158}" text-anchor="middle" font-family="Gluten, sans-serif" font-size="13" fill="#2f2340">Het huis is nog leeg.</text><text x="200" y="${parts[0].h+175}" text-anchor="middle" font-size="11" fill="#2f2340">Ken ${FIRST_CAT} woordjes en de eerste kat komt!</text></g>`}
+  </svg>`};
+}
+function startWalk(spots){
+  stopWalk();
+  if(S.cats.length<1)return;
+  try{if(matchMedia("(prefers-reduced-motion: reduce)").matches)return}catch(e){}
+  walkT=setInterval(()=>{
+    const layer=document.getElementById("catlayer");if(!layer){stopWalk();return}
+    const i=Math.floor(Math.random()*S.cats.length), cur=catPos[i];
+    const free=spots.filter(s=>s.room===cur.room&&!catPos.includes(s));
+    if(!free.length)return;
+    const to=rnd(free);catPos[i]=to;
+    const g=layer.querySelector(`[data-i="${i}"]`);
+    if(g){g.style.transform=`translate(${to.x}px,${to.y}px) scale(${to.s})`;layer.appendChild(g)}
+  },3500);
+}
+function petCat(g){
+  const i=+g.dataset.i, c=S.cats[i], p=catPos[i], layer=document.getElementById("catlayer");
+  const cx=p.x+50*p.s, cy=p.y+10*p.s;
+  const t=document.createElementNS("http://www.w3.org/2000/svg","g");
+  t.innerHTML=`<g class="svgheart"><path d="M${cx} ${cy+6} c-9 -7 -9 -15 -3 -16 c2 0 3 1 3 3 c0 -2 1 -3 3 -3 c6 1 6 9 -3 16z" fill="#e0475f"/>
+    <rect class="namebubble" x="${cx-36}" y="${cy-30}" width="72" height="20" rx="10" fill="#fff8ec" opacity=".95"/>
+    <text class="namebubble" x="${cx}" y="${cy-16}" text-anchor="middle" fill="${c.rare?"#a07a10":"#2f2340"}">${esc(c.name)}</text></g>`;
+  layer.appendChild(t);setTimeout(()=>t.remove(),1400);
+  setTimeout(()=>wardrobe(i),380);
+}
+function wardrobe(i){
+  const c=S.cats[i]; if(!c)return;
+  c.acc=c.acc||{own:[],wear:{},col:{}};
+  stopWalk();
+  let o=document.getElementById("wr");
+  if(!o){o=document.createElement("div");o.className="overlay";o.id="wr";document.body.appendChild(o)}
+  const prevScroll=o.querySelector(".modal")?o.querySelector(".modal").scrollTop:0;
+  const prev=(it)=>{const col=c.acc.col[it.id]||ACOL[(WEAR.indexOf(it)*3)%ACOL.length];
+    return catSVG({...c,rare:false,acc:{wear:{[it.slot]:it.id},col:{[it.id]:col}}})};
+  o.innerHTML=`<div class="modal wide" role="dialog" aria-label="Garderobe van ${esc(c.name)}">
+    <div class="row" style="justify-content:space-between"><h2>Garderobe</h2><div class="fish">${FISH}<span>${S.fish}</span></div></div>
+    <div class="wardrobe-top">${catSVG(c)}<div class="nmrow"><label for="wn" class="small muted">Naam</label><input type="text" id="wn" value="${esc(c.name)}" maxlength="16"><span class="small muted">Koop iets en het gaat meteen aan. Wat je al hebt, kun je gratis aan- en uittrekken.</span></div></div>
+    ${["hoofd","nek","ogen"].map(sl=>`<div class="slot"><h3>${SLOTNAME[sl]}</h3><div class="wgrid">${WEAR.filter(it=>it.slot===sl).map(it=>{
+      const own=c.acc.own.includes(it.id), on=c.acc.wear[sl]===it.id;
+      const btn=own?`<button data-w="${it.id}" class="${on?"wearing":"plain"}">${on?"Draagt ze":"Aantrekken"}</button>`
+                   :`<button data-b="${it.id}" ${S.fish>=it.prijs?"":"disabled"}>${FISH}${it.prijs}</button>`;
+      return `<div class="witem ${on?"on":""}">${prev(it)}<div class="nlname">${esc(it.nl)}</div><div class="fr">${esc(it[LANG.code])}</div>${btn}</div>`}).join("")}</div></div>`).join("")}
+    <button class="btn" id="wdone">Klaar</button></div>`;
+  o.querySelector(".modal").scrollTop=prevScroll;
+  const nm=o.querySelector("#wn");
+  nm.onchange=()=>{const v=nm.value.trim();if(v){c.name=v;save()}};
+  o.querySelectorAll("[data-b]").forEach(b=>b.onclick=()=>{
+    const it=WEAR.find(x=>x.id===b.dataset.b);
+    if(!it||S.fish<it.prijs)return;
+    S.fish-=it.prijs;c.acc.own.push(it.id);c.acc.col[it.id]=rnd(ACOL);c.acc.wear[it.slot]=it.id;save();wardrobe(i);
+  });
+  o.querySelectorAll("[data-w]").forEach(b=>b.onclick=()=>{
+    const it=WEAR.find(x=>x.id===b.dataset.w);
+    c.acc.wear[it.slot]=c.acc.wear[it.slot]===it.id?null:it.id;save();wardrobe(i);
+  });
+  o.querySelector("#wdone").onclick=()=>{const v=nm.value.trim();if(v)c.name=v;save();o.remove();home()};
+}
+function buy(id){
+  const it=ITEMS.find(x=>x.id===id);
+  if(!it||has(id)||S.fish<it.prijs||!roomOpen(it.room))return;
+  S.fish-=it.prijs;S.items.push(id);save();home();
+  setTimeout(()=>{const h=document.querySelector(".house");if(h)h.scrollIntoView({behavior:"smooth",block:"start"})},50);
+}
+
+/* ---------- huiskamer ---------- */
+function home(){
+  stopWalk();
+  const sel=selected(), m=mastered(), n=WORDS.length, ms=mastered(sel), nc=S.cats.length;
+  const boxes=[1,2,3,4,5].map(b=>sel.filter(w=>Math.min(W(w).box,5)===b).length);
+  const nextAt=m<FIRST_CAT?FIRST_CAT:FIRST_CAT+catsFor(m)*PER_CAT, prevAt=m<FIRST_CAT?0:nextAt-PER_CAT;
+  const need=nextAt-prevAt, toNext=m-prevAt, allDone=m===n, selDone=sel.length&&ms===sel.length;
+  const H=houseSVG();
+  const nextRoom=nc<ZOLDER_AT?`Bij ${ZOLDER_AT} katten komt de zolder erbij`:nc<TUIN_AT?`Bij ${TUIN_AT} katten komt de tuin erbij`:"Het hele huis en de tuin zijn open";
+  $("#app").innerHTML=`
+  <div class="top"><h1>${LANG.title}</h1><div class="fish" title="Brokjes">${FISH}<span>${S.fish}</span></div></div>
+  <div><div class="house">${H.svg}</div>
+    <div class="houseinfo"><span>${nc?"Tik op een kat om haar aan te kleden.":""}</span><span>${nextRoom}</span></div></div>
+  <div class="panel">
+    <h2>${allDone?"Alles gekend!":"Op weg naar de volgende kat"}</h2>
+    ${allDone?`<p>Alle ${n} woordjes${GROUPS.some(g=>g.zin)?" en zinnen":""} zitten in bakje 5. Oefen af en toe om ze vast te houden.</p>`:`<div class="paws" aria-label="${toNext} van ${need}">${Array.from({length:need},(_,i)=>PAW(i<toNext)).join("")}<span class="muted small">nog ${need-toNext} · totaal ${m} van ${n} gekend</span></div>`}
+  </div>
+  <div class="panel">
+    <h2 style="font-size:1.1rem">Wat wil je oefenen?</h2>
+    <div class="chips">${GROUPS.map(g=>{const ws=WORDS.filter(w=>w.grp===g.id);return `<button class="chip" aria-pressed="${S.sel.includes(g.id)}" data-g="${g.id}">${esc(g.name)} <span>${mastered(ws)}/${ws.length}</span></button>`}).join("")}</div>
+    <div class="bar">${boxes.map((c,i)=>`<div><b>${c}</b>${i<4?"bakje "+(i+1):"gekend"}</div>`).join("")}</div>
+    <p class="note" style="margin:10px 0 14px">${LANG.note}</p>
+    <div class="row"><button class="btn" id="go" ${sel.length?"":"disabled"}>${selDone?"Herhalen":"Oefenen"}</button><button class="ghost" id="lst">Woordenlijst</button></div>
+  </div>
+  <div class="panel">
+    <div class="row" style="justify-content:space-between"><h2 style="font-size:1.1rem">${LANG.shop}</h2><span class="small muted">Spulletjes voor het huis. Kleren en accessoires: tik op een kat.</span></div>
+    ${["w","z","t"].map(r=>{const its=ITEMS.filter(it=>it.room===r), got=its.filter(it=>has(it.id)).length, open=roomOpen(r);
+      return `<details class="shopgroup" ${r==="w"?"open":""}><summary>${ROOMNAME[r][0].toUpperCase()+ROOMNAME[r].slice(1)} <span class="small muted">${open?`${got} van ${its.length}`:"nog dicht"}</span></summary>
+      <div class="shop">${its.map(it=>{
+        const own=has(it.id), can=S.fish>=it.prijs;
+        return `<div class="item ${own?"owned":""}"><div class="nlname">${esc(it.nl)}</div><div class="fr">${esc(it[LANG.code])}</div>
+          <div class="state">${own?"In huis":!open?`De ${ROOMNAME[r]} is nog dicht`:it.plek||""}</div>
+          ${own?"":`<button data-buy="${it.id}" ${open&&can?"":"disabled"}>${FISH}${it.prijs}</button>`}</div>`}).join("")}</div></details>`}).join("")}
+  </div>`;
+  $("#go").onclick=startRound; $("#lst").onclick=listView;
+  document.querySelectorAll(".chip").forEach(b=>b.onclick=()=>{
+    const id=b.dataset.g;
+    S.sel=S.sel.includes(id)?S.sel.filter(x=>x!==id):[...S.sel,id];save();home();
+  });
+  document.querySelectorAll("[data-buy]").forEach(b=>b.onclick=()=>buy(b.dataset.buy));
+  document.querySelectorAll(".mover").forEach(g=>{
+    g.addEventListener("click",()=>petCat(g));
+    g.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();petCat(g)}});
+  });
+  startWalk(H.spots);
+}
+
+/* ---------- oefenronde ---------- */
+let Q=[],qi=0,review=false;
+function startRound(){
+  const sel=selected(), open=sel.filter(w=>W(w).box<5);
+  review=!open.length;
+  const pool=review?shuffle(sel):shuffle(open).sort((a,b)=>W(a).box-W(b).box);
+  Q=pool.slice(0,Math.min(ROUND,pool.length)).map(w=>({w,retry:false}));
+  if(!Q.length)return home();
+  qi=0;ask();
+}
+function modeFor(w){if(w.r)return"fr2nl";if(review)return"type";const b=W(w).box;return b===1?"fr2nl":b===2?"nl2fr":"type"}
+const ART=LANG.art;
+function normRaw(s){return s.replace(/[’‘`´]/g,"'").replace(/[()?!.,…;:¿¡"«»–]/g," ").replace(/ - /g," ").replace(/\u00a0/g," ")
+  .replace(/\s+/g," ").replace(/\b([a-zA-ZäöüÄÖÜ]) ?' ?/g,"$1'").trim()}
+function norm(s){return normRaw(s.toLowerCase())}
+const caseKey=s=>s?s[0].toLowerCase()+s.slice(1):s;
+const strip=s=>s.normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/œ/g,"oe").replace(/ß/g,"ss");
+function expand(s){const m=s.match(/^(.*?)\(([^)]*)\)(.*)$/);if(!m)return[s];return[...expand(m[1]+m[3]),...expand(m[1]+m[2]+m[3])]}
+const variantsC=w=>[w.fr,...w.alt].flatMap(expand).map(x=>caseKey(normRaw(x)));
+const variants=w=>[w.fr,...w.alt].flatMap(expand).map(norm);
+const sameNl=w=>WORDS.filter(x=>x.nl===w.nl);
+const pool=(w,key)=>WORDS.filter(x=>x!==w&&x.zin===w.zin&&x.nl!==w.nl&&x.fr!==w.fr&&x[key]!==w[key]);
+
+function ask(){
+  if(qi>=Q.length)return roundEnd();
+  const {w}=Q[qi], mode=modeFor(w);
+  const dots=Q.map((_,i)=>`<span class="${i<qi?"done":""}"></span>`).join("");
+  const label={fr2nl:"Wat betekent het?",nl2fr:`Kies het ${LANG.adj} woord`,type:`Typ in het ${LANG.name}`}[mode];
+  const one=w.zin?" one":"";
+  let body="";
+  if(mode==="fr2nl"){
+    const opts=shuffle([w.nl,...[...new Set(shuffle(pool(w,"nl")).map(x=>x.nl))].slice(0,3)]);
+    body=`<div class="prompt${w.zin?" zin":""}">${frLabel(w)} <button class="speak" id="spk" aria-label="Uitspreken">${SPK}</button></div>
+      <div class="opts${one}">${opts.map(o=>`<button class="opt">${esc(o)}</button>`).join("")}</div>`;
+  }else if(mode==="nl2fr"){
+    let d=[];
+    const m=LANG.code==="fr"&&w.fr.match(/^(le|la) (.*)$/);
+    if(m)d.push((m[1]==="le"?"la ":"le ")+m[2]);
+    const mde=LANG.code==="de"&&w.fr.match(/^(der|die|das) ([^,]*)$/);
+    if(mde)["der","die","das"].filter(x=>x!==mde[1]).forEach(x=>d.push(x+" "+mde[2]));
+    d.push(...shuffle(pool(w,"fr")).map(x=>x.fr));
+    const opts=shuffle([w.fr,...[...new Set(d)].slice(0,3)]);
+    body=`<div class="prompt${w.zin?" zin":""}">${esc(w.nl)}</div>
+      <div class="opts${one}">${opts.map(o=>`<button class="opt">${esc(o)}</button>`).join("")}</div>`;
+  }else{
+    const needsArt=!w.zin&&!!ART&&ART.test(w.fr), isVerb=LANG.toVerb&&/^to /.test(w.fr);
+    const extra=[w.g==="m"?"mannelijk":w.g==="v"?"vrouwelijk":"",w.mv?"meervoud":""].filter(Boolean).join(", ");
+    const plural=/, (der|die|das) /.test(w.fr)?" Het meervoud hoeft niet.":"";
+    const hint=LANG.code==="de"?(needsArt?"Met lidwoord, en het zelfstandig naamwoord met een hoofdletter."+plural:"Let op de spelling en de umlauts."):LANG.code!=="fr"?(isVerb?"Let op de spelling, en begin met <b>to</b>.":"Let op de spelling."):w.zin?"Let op de accenten. Leestekens en hoofdletters mag je overslaan.":needsArt?"Vergeet het lidwoord niet!":"Let op de accenten.";
+    body=`<div class="prompt${w.zin?" zin":""}">${esc(w.nl)}</div>
+      <p class="hint">${hint}${extra?` (${extra})`:""}</p>
+      <form id="tf" autocomplete="off"><input type="text" id="inp" autocapitalize="${LANG.caseSensitive?"sentences":"off"}" spellcheck="false" aria-label="Jouw antwoord" placeholder="${needsArt?(LANG.code==="de"?"der / die / das …":"le / la / l' / les …"):isVerb?"to …":""}">
+      ${LANG.keys.length?`<div class="keys">${LANG.keys.map(k=>`<button type="button" class="key">${k}</button>`).join("")}</div>`:""}
+      <button class="btn" type="submit">Controleer</button></form>`;
+  }
+  $("#app").innerHTML=`<div class="qhead"><button class="ghost" id="stop">Stoppen</button><div class="dots">${dots}</div><div class="fish">${FISH}<span>${S.fish}</span></div></div>
+  <div class="panel"><div class="mode">${review?"Herhaling · ":""}${w.r?"Herkennen · ":""}${label}</div>${body}<div id="fb"></div></div>`;
+  $("#stop").onclick=home;
+  if($("#spk")){$("#spk").onclick=()=>speak(w.fr);speak(w.fr)}
+  document.querySelectorAll(".opt").forEach(b=>b.onclick=()=>{
+    const want=mode==="fr2nl"?w.nl:w.fr, ok=b.textContent===want;
+    document.querySelectorAll(".opt").forEach(x=>{x.disabled=true;if(x.textContent===want)x.classList.add("good")});
+    if(!ok)b.classList.add("bad");
+    result(w,ok,ok?null:{type:"pick"});
+  });
+  if($("#tf")){
+    const inp=$("#inp");inp.focus();
+    document.querySelectorAll(".key").forEach(k=>k.addEventListener("pointerdown",e=>e.preventDefault()));
+    document.querySelectorAll(".key").forEach(k=>k.onclick=()=>{const p=inp.selectionStart??inp.value.length;inp.value=inp.value.slice(0,p)+k.textContent+inp.value.slice(inp.selectionEnd??p);inp.focus();inp.setSelectionRange(p+1,p+1)});
+    $("#tf").onsubmit=e=>{e.preventDefault();if(!inp.value.trim())return;inp.disabled=true;
+      document.querySelectorAll(".key,#tf .btn").forEach(x=>x.disabled=true);check(w,inp.value)};
+  }
+}
+function check(w,raw){
+  const a=norm(raw);
+  const hit=sameNl(w).find(x=>variants(x).includes(a));
+  if(hit&&LANG.caseSensitive&&!variantsC(hit).includes(caseKey(normRaw(raw))))return result(w,false,{type:"hoofdletter",typed:raw.trim()});
+  if(hit)return result(w,true,hit!==w?{also:w.fr,typedWord:hit.fr}:null);
+  if(LANG.toVerb&&!/^to /.test(a)){const hit2=sameNl(w).find(x=>variants(x).includes("to "+a));if(hit2)return LANG.toRequired?result(w,false,{type:"geento",typed:raw.trim()}):result(w,true,{noTo:hit2.fr})}
+  const cands=variants(w);
+  const acc=cands.find(e=>strip(e)===strip(a));
+  if(acc)return result(w,false,{type:"accent",typed:raw.trim(),e:acc});
+  if(!w.zin&&ART){
+    const aa=(a.match(ART)||[""])[0], ar=a.slice(aa.length);
+    for(const e of cands){
+      const ea=(e.match(ART)||[""])[0], er=e.slice(ea.length);
+      if(!ea)continue;
+      if(!aa&&strip(ar)===strip(er))return result(w,false,{type:"geenlw",typed:raw.trim()});
+      if(aa&&aa!==ea&&strip(ar)===strip(er))return result(w,false,{type:"lw",typed:raw.trim()});
+    }
+  }
+  result(w,false,{type:"spel",typed:raw.trim()});
+}
+function markAccents(e,typed){
+  const t=norm(typed);
+  if(t.length!==e.length)return esc(e);
+  return [...e].map((ch,i)=>ch!==t[i]?`<mark>${esc(ch)}</mark>`:esc(ch)).join("");
+}
+function result(w,ok,info){
+  const st=W(w), before=st.box;
+  let msg="";
+  if(ok){
+    S.fish++;
+    st.box=Math.min(5,st.box+1);
+    if(before<5&&st.box===5&&st.wrong>=3)S.rarePending++;
+    const also=info&&info.also?`<div class="small">Jij typte <b>${esc(info.typedWord)}</b>, ook goed. In de lijst staat hier ook <b>${esc(info.also)}</b> bij.</div>`:"";
+    const noTo=info&&info.noTo?`<div class="small">Goed! In de lijst staat het met <b>to</b> ervoor: <b>${esc(info.noTo)}</b>.</div>`:"";
+    msg=`<div class="fb ok"><div class="big">${rnd(LANG.praise)}</div><div>+1 brokje${st.box===5&&before<5?" · dit is nu <b>gekend</b>!":""}</div>${also}${noTo}</div>`;
+  }else{
+    st.wrong++;
+    if(!review||st.box<5)st.box=Math.max(1,st.box-2); else st.box=w.r?2:3;
+    const why={hoofdletter:"Bijna! Let op de hoofdletters.",geento:"Bijna! Je bent <b>to</b> vergeten.",geenlw:"Je bent het lidwoord vergeten.",lw:"Bijna! Het lidwoord klopt niet.",accent:LANG.code==="de"?"Bijna! Let op de umlauts (ä, ö, ü) en de ß.":"Bijna! Kijk goed naar de accenten.",spel:"Nog niet goed.",pick:"Helaas, dat was het niet."}[info.type];
+    msg=`<div class="fb no"><div class="big">${why}</div>
+      <div>Goed is: <span class="answer">${esc(w.fr)}</span> = ${esc(w.nl)}</div>
+      ${info.type==="accent"?`<div class="small">Hier zat het: <span class="answer" style="font-size:1.15rem">${markAccents(info.e,info.typed)}</span></div>`:""}
+      ${info.typed?`<div class="small muted">Jij typte: ${esc(info.typed)}</div>`:""}
+      <div class="small muted">Dit komt straks nog een keer terug.</div></div>`;
+    if(!Q[qi].retry){Q.splice(Math.min(qi+3,Q.length),0,{w,retry:true})}
+  }
+  save();
+  $("#fb").innerHTML=msg+`<div class="row" style="margin-top:12px;justify-content:space-between"><button class="speak" id="spk2" aria-label="Uitspreken">${SPK}</button><button class="btn" id="next">Verder</button></div>`;
+  $(".qhead .fish span").textContent=S.fish;
+  $("#spk2").onclick=()=>speak(w.fr);
+  $("#next").focus({preventScroll:true});
+  try{$("#fb").scrollIntoView({behavior:"smooth",block:"nearest"})}catch(e){}
+  $("#next").onclick=()=>{qi++;if(!adoptCheck(ask))ask()};
+}
+function adoptCheck(then){
+  const due=catsFor(mastered())+S.rarePending;
+  if(S.cats.length<due){
+    const rare=S.rarePending>0&&S.cats.filter(c=>c.rare).length<S.rarePending;
+    const c=newCat(rare);S.cats.push(c);save();adoptModal(c,then);return true;
+  }
+  if(!S.party&&mastered()===WORDS.length){S.party=true;save();partyModal(then);return true}
+  return false;
+}
+function adoptModal(c,then){
+  const o=document.createElement("div");o.className="overlay";
+  o.innerHTML=`<div class="modal" role="dialog" aria-label="Nieuwe kat">
+    <h2>${c.rare?"Een zeldzame gouden kat!":"Er komt een kat bij je wonen!"}</h2>
+    ${catSVG(c,"bigcat")}
+    <p class="small muted">${c.rare?"Omdat je een lastig woordje toch onder de knie kreeg.":(S.cats.filter(x=>!x.rare).length===1?`Je kent je eerste ${FIRST_CAT} woordjes helemaal.`:`Je kent weer ${PER_CAT} woordjes helemaal.`)}</p>
+    <label for="cn" class="small">Hoe heet ze?</label>
+    <input type="text" id="cn" value="${esc(c.name)}" maxlength="16">
+    <button class="btn" id="ok">Welkom thuis!</button></div>`;
+  document.body.appendChild(o);
+  o.querySelector("#ok").onclick=()=>{const v=o.querySelector("#cn").value.trim();if(v)c.name=v;save();o.remove();then()};
+}
+function partyModal(then){
+  const o=document.createElement("div");o.className="overlay";
+  o.innerHTML=`<div class="modal"><h2>${LANG.party}</h2>
+    <div class="row" style="justify-content:center">${S.cats.slice(0,6).map(c=>catSVG(c)).join("").replace(/<svg /g,'<svg style="width:64px;height:64px" ')}</div>
+    <p>Je kent álle ${WORDS.length} woordjes${GROUPS.some(g=>g.zin)?" en zinnen":""}, ${LANG.allText}. Alle katten vieren feest!</p>
+    <button class="btn" id="ok">Miauw!</button></div>`;
+  document.body.appendChild(o);o.querySelector("#ok").onclick=()=>{o.remove();then()};
+}
+function roundEnd(){
+  if(adoptCheck(roundEnd))return;
+  const sel=selected();
+  $("#app").innerHTML=`<div class="panel" style="text-align:center;display:flex;flex-direction:column;gap:12px;align-items:center">
+    <h2>Ronde klaar!</h2><p>Van wat je nu oefent ken je er <b>${mastered(sel)}</b> van de ${sel.length}. Je hebt <b>${S.fish}</b> brokjes voor je katten.</p>
+    <div class="row" style="justify-content:center"><button class="btn" id="again">Nog een ronde</button><button class="ghost" id="h">Naar het kattenhuis</button></div></div>`;
+  $("#again").onclick=startRound;$("#h").onclick=home;
+}
+
+/* ---------- lijst ---------- */
+function listView(){
+  $("#app").innerHTML=`<div class="top"><h1>Woordenlijst</h1><button class="ghost" id="back">Terug</button></div>
+  ${GROUPS.map(g=>`<div class="panel tablewrap"><h2 style="font-size:1.1rem">${esc(g.name)}</h2><table><thead><tr><th>${LANG.name}</th><th>Nederlands</th><th>Bakje</th><th>Fout</th></tr></thead><tbody>
+  ${WORDS.filter(w=>w.grp===g.id).map(w=>{const s=W(w);return `<tr><td>${frLabel(w)}${w.r?' <span class="tag">herkennen</span>':""}</td><td>${esc(w.nl)}</td><td class="lvl">${s.box>=5?"gekend":s.box}</td><td class="lvl">${s.wrong}</td></tr>`}).join("")}</tbody></table></div>`).join("")}
+  <div class="panel"><h2 style="font-size:1.05rem">Opnieuw beginnen</h2><p class="small muted">Zet alle woordjes terug naar bakje 1. De katten en brokjes blijven.</p>
+  <div class="row" id="rz"><button class="ghost" id="reset">Woordjes resetten</button></div></div>`;
+  $("#back").onclick=home;
+  $("#reset").onclick=()=>{$("#rz").innerHTML=`<span class="small">Zeker weten?</span><button class="ghost" id="yes">Ja, resetten</button><button class="ghost" id="no">Nee</button>`;
+    $("#yes").onclick=()=>{S.words={};S.party=false;save();listView()};$("#no").onclick=listView};
+}
+home();
+</script>
+</body>
+</html>
