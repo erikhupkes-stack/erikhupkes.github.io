@@ -1,0 +1,805 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Rennmaus-Revier</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap">
+<style>
+.back{display:inline-block;font:inherit;font-size:.9rem;color:var(--muted);text-decoration:none;padding:4px 0}
+.back:hover,.back:focus-visible{color:var(--ink);text-decoration:underline}
+.backbar{max-width:660px;margin:0 auto;padding-top:10px;padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px))}
+/* Layout: één kolom; bovenaan het gerbilterrarium in doorsnede (gangen in het zand), daaronder voortgang, onderwerpen en de winkel. Oefenen vervangt het scherm. */
+:root{
+  --bg:#e9f0f3;       /* lucht boven de steppe */
+  --card:#fbfdfd;
+  --ink:#22313a;
+  --muted:#5b6c75;
+  --line:#d1dce1;
+  --accent:#d9822b;   /* gerbilvacht (agouti) */
+  --accent-ink:#22313a;
+  --leaf:#3f8f5a;
+  --bad:#c2453b;
+  --sand:#ead2a0;
+  --display:"Baloo 2", "Trebuchet MS", system-ui, sans-serif;
+  --body:"Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#162026;--card:#1f2c33;--ink:#eef4f6;--muted:#a7b8c0;--line:#34454f;--accent:#f0a04f;--accent-ink:#162026;--leaf:#6cc488;--bad:#ef7a6f;--sand:#5c4a2c;color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#162026;--card:#1f2c33;--ink:#eef4f6;--muted:#a7b8c0;--line:#34454f;--accent:#f0a04f;--accent-ink:#162026;--leaf:#6cc488;--bad:#ef7a6f;--sand:#5c4a2c;color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.5}
+.wrap{max-width:660px;margin:0 auto;padding-block:16px 48px;
+  padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));
+  display:flex;flex-direction:column;gap:16px}
+h1,h2,h3,h4{font-family:var(--display);font-weight:800;line-height:1.15;margin:0;text-wrap:balance}
+h1{font-size:2rem}
+h2{font-size:1.3rem}
+h3{font-size:1.2rem;margin-bottom:6px}
+h4{font-size:1.02rem;margin:12px 0 4px}
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.seeds{display:flex;align-items:center;gap:6px;font-weight:700;font-variant-numeric:tabular-nums;background:var(--card);border:1.5px solid var(--line);border-radius:999px;padding:4px 12px;flex:none}
+.seeds svg{width:18px;height:22px}
+.panel{background:var(--card);border:1.5px solid var(--line);border-radius:18px;padding:18px}
+.muted{color:var(--muted)}
+.small{font-size:.88rem}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+
+.tank{border-radius:16px;overflow:hidden;line-height:0;background:#cfe3ea}
+.tank svg{width:100%;height:auto;display:block}
+.tankinfo{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:.86rem;color:var(--muted);margin-top:6px}
+.gb{cursor:pointer;outline:none;transition:transform 2.4s ease-in-out}
+.gb:focus-visible .gbody{stroke:#d9822b;stroke-width:4}
+.gtail{transform-box:fill-box;transform-origin:100% 0%;animation:tail 1.8s ease-in-out infinite alternate}
+@keyframes tail{from{transform:rotate(-6deg)}to{transform:rotate(8deg)}}
+.geye{transform-box:fill-box;transform-origin:center;animation:blink 4.6s infinite}
+@keyframes blink{0%,94%,100%{transform:scaleY(1)}97%{transform:scaleY(.1)}}
+.hop{animation:hop .5s ease-out 2}
+@keyframes hop{0%,100%{transform:translateY(0)}45%{transform:translateY(-16px)}}
+.spin{transform-box:view-box;animation:spin 1.1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.svgheart{animation:svgfloat 1.4s ease-out forwards;pointer-events:none}
+@keyframes svgfloat{from{opacity:1;transform:translateY(0)}to{opacity:0;transform:translateY(-30px)}}
+.glow{animation:glow 2.6s ease-in-out infinite alternate}
+@keyframes glow{from{opacity:.45}to{opacity:.85}}
+
+.paws{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.seedpip{width:22px;height:28px}
+.seedpip path{fill:var(--line)}
+.seedpip.on path{fill:var(--accent)}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.chip{font:inherit;font-size:.92rem;border:1.5px solid var(--line);background:var(--bg);color:var(--ink);border-radius:999px;padding:6px 12px;cursor:pointer}
+.chip span{font-variant-numeric:tabular-nums;color:var(--muted);font-size:.82rem}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.chip[aria-pressed="true"] span{color:var(--accent-ink)}
+.btn{font:inherit;font-family:var(--display);font-weight:800;font-size:1.15rem;border:0;border-radius:14px;padding:10px 20px;background:var(--accent);color:var(--accent-ink);cursor:pointer;box-shadow:0 3px 0 color-mix(in srgb,var(--accent) 55%, #000)}
+.btn:active{transform:translateY(2px);box-shadow:0 1px 0 color-mix(in srgb,var(--accent) 55%, #000)}
+.btn:disabled{opacity:.5;cursor:default}
+.ghost{font:inherit;background:none;border:1.5px solid var(--line);color:var(--ink);border-radius:12px;padding:8px 14px;cursor:pointer}
+.btn:focus-visible,.ghost:focus-visible,.chip:focus-visible,.opt:focus-visible,.key:focus-visible,input:focus-visible,.item button:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+
+/* oefenen */
+.qhead{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.dots{display:flex;gap:4px;flex-wrap:wrap;justify-content:center}
+.dots span{width:10px;height:10px;border-radius:50%;background:var(--line)}
+.dots span.done{background:var(--accent)}
+.mode{font-size:.76rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:700}
+.ins{margin:4px 0 12px;font-weight:700}
+.sent{font-size:1.18rem;line-height:2.2}
+.bw{white-space:nowrap}
+.stem{font-weight:700}
+.fb a{color:inherit;font-weight:700}
+input.blank:focus-visible{outline:2.5px solid var(--accent);outline-offset:1px}
+input.blank{font:inherit;font-size:1.05rem;border:0;border-bottom:2.5px solid var(--accent);background:color-mix(in srgb,var(--accent) 10%, var(--card));color:var(--ink);border-radius:6px 6px 0 0;padding:0 4px;margin:0 2px;max-width:100%}
+input.blank.ok{border-color:var(--leaf);background:color-mix(in srgb,var(--leaf) 16%, var(--card))}
+input.blank.bad{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 13%, var(--card));text-decoration:line-through}
+.nl{font-style:italic;color:var(--muted);font-size:.92rem;margin-top:8px}
+.keys{display:flex;flex-wrap:wrap;gap:6px;margin:14px 0 12px}
+.key{font:inherit;font-size:1.1rem;min-width:42px;padding:6px 8px;border-radius:10px;border:1.5px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer}
+.q{font-family:var(--display);font-size:2.1rem;text-align:center;padding:12px 0 14px}
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media (max-width:440px){.opts{grid-template-columns:1fr}}
+.opt{font:inherit;font-size:1.02rem;padding:12px 10px;border-radius:14px;border:2px solid var(--line);background:var(--bg);color:var(--ink);cursor:pointer}
+.opt.good{border-color:var(--leaf);background:color-mix(in srgb,var(--leaf) 20%, var(--bg))}
+.opt.bad{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 15%, var(--bg))}
+.fb{border-radius:14px;padding:12px 14px;margin-top:14px;display:flex;flex-direction:column;gap:6px}
+.fb.ok{background:color-mix(in srgb,var(--leaf) 16%, var(--card))}
+.fb.no{background:color-mix(in srgb,var(--bad) 11%, var(--card))}
+.fb .big{font-family:var(--display);font-weight:800;font-size:1.25rem}
+.fb ul{margin:0;padding-left:20px}
+.fb li{margin:2px 0}
+.ans{font-weight:700}
+.tag{display:inline-block;font-size:.75rem;font-weight:700;border-radius:999px;padding:0 8px;background:color-mix(in srgb,var(--bad) 18%, transparent);color:var(--ink);margin-left:4px}
+
+/* uitleg */
+.tabs{display:flex;flex-wrap:wrap;gap:8px}
+.uitleg p,.uitleg li{max-width:65ch}
+.uitleg ul,.uitleg ol{padding-left:22px;margin:4px 0}
+.tw{overflow-x:auto;margin:8px 0}
+table.gt{border-collapse:collapse;font-size:.95rem;min-width:100%}
+table.gt th,table.gt td{border:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}
+table.gt thead th{background:color-mix(in srgb,var(--accent) 22%, var(--card));font-family:var(--display)}
+table.gt tbody th{background:color-mix(in srgb,var(--line) 45%, var(--card));white-space:nowrap}
+table.gt small{font-weight:400;color:var(--muted)}
+
+/* winkel */
+.shop{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-top:10px}
+.item{border:1.5px solid var(--line);border-radius:14px;padding:10px 12px;display:flex;flex-direction:column;gap:5px;background:var(--bg)}
+.item .de{font-style:italic;color:var(--muted);font-size:.85rem;line-height:1.2}
+.item .nm{font-weight:700;line-height:1.2}
+.item .state{font-size:.82rem;color:var(--muted)}
+.item button{font:inherit;font-size:.92rem;display:flex;align-items:center;justify-content:center;gap:4px;border-radius:10px;padding:6px 8px;border:0;background:var(--accent);color:var(--accent-ink);cursor:pointer;font-weight:700}
+.item button svg{width:14px;height:18px}
+.item button svg path{fill:currentColor}
+.item button:disabled{background:var(--line);color:var(--muted);cursor:default}
+.item.owned{border-color:var(--leaf)}
+.item.owned .state{color:var(--leaf);font-weight:700}
+
+/* vensters */
+.overlay{position:fixed;inset:0;background:color-mix(in srgb,#0d1418 55%, transparent);display:grid;place-items:center;z-index:20;
+  padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px))}
+.modal{background:var(--card);border-radius:22px;padding:20px;max-width:380px;width:100%;text-align:center;display:flex;flex-direction:column;gap:12px;align-items:center}
+.modal svg.big{width:200px;height:auto;overflow:visible;animation:pop .5s cubic-bezier(.3,1.6,.5,1)}
+@keyframes pop{from{transform:scale(.3)}to{transform:scale(1)}}
+.modal input{font:inherit;font-size:1.15rem;padding:8px 12px;border-radius:12px;border:2px solid var(--line);background:var(--bg);color:var(--ink);width:100%}
+@media (max-width:480px){
+  body{font-size:16px}
+  .wrap{padding-block:10px 32px;gap:14px}
+  h1{font-size:1.6rem}
+  .panel{padding:14px;border-radius:16px}
+  .sent{font-size:1.06rem;line-height:2.15}
+  .q{font-size:1.8rem;padding:6px 0 10px}
+  .keys{gap:5px;margin:10px 0}
+  .key{min-width:0;flex:1 0 calc(14% - 5px);padding:8px 0}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="backbar"><a class="back" href="../index.html">← Alle spellen</a></div>
+<div class="wrap" id="app"></div>
+
+<script>
+/* ===== ONDERWERPEN EN OPGAVEN =====
+   Invulzinnen: [[antwoord|waarom|hint]]. Het antwoord is de uitgang die na de letters vóór [[ komt
+   (d[[em]] → dem). Meerdere goede antwoorden: muss/soll. Een lege uitgang ([[|…]]) betekent: het woord blijft zoals het is. */
+const TOPICS = [
+ {id:"hsw",   name:"haben, sein, werden"},
+ {id:"stark", name:"Sterke werkwoorden"},
+ {id:"modal", name:"Modale werkwoorden"},
+ {id:"lidw",  name:"Lidwoorden & naamvallen"},
+ {id:"vz",    name:"Voorzetsels"},
+ {id:"mv",    name:"Meervoud"},
+];
+
+const RAW = [];
+const B=(t,ins,txt,nl,extra)=>RAW.push({t,kind:"blank",ins,txt,nl,...(extra||{})});
+const MC=(t,ins,q,opts,a,why,nl)=>RAW.push({t,kind:"mc",ins,q,opts,a,why,nl});
+
+/* ---------- haben, sein, werden ---------- */
+const HSW_INS="Vul de goede vorm van haben, sein of werden in (tegenwoordige tijd).";
+B("hsw","Vervoeg haben in de tegenwoordige tijd.","<b>haben</b>: ich [[habe]] · du [[hast]] · er/sie/es [[hat]] · wir [[haben]] · ihr [[habt]] · sie/Sie [[haben]]");
+B("hsw","Vervoeg sein in de tegenwoordige tijd.","<b>sein</b>: ich [[bin]] · du [[bist]] · er/sie/es [[ist]] · wir [[sind]] · ihr [[seid]] · sie/Sie [[sind]]");
+B("hsw","Vervoeg werden in de tegenwoordige tijd.","<b>werden</b>: ich [[werde]] · du [[wirst]] · er/sie/es [[wird]] · wir [[werden]] · ihr [[werdet]] · sie/Sie [[werden]]");
+B("hsw",HSW_INS,"Hallo Paul, ich [[habe|ich → habe|heb]] lange nichts mehr von dir gehört. Seit wir zusammen Urlaub in Spanien gemacht [[haben|wir → haben|hebben]].","Hallo Paul, ik heb lang niets meer van je gehoord. Sinds we samen op vakantie in Spanje zijn geweest.");
+B("hsw",HSW_INS,"Es [[ist|es → ist|is]] toll, einen so guten Freund wie dich zu haben. [[Wirst|du → wirst (werden = zullen)|zal]] du mir schreiben, was du seitdem erlebt [[hast|du → hast|hebt]]?","Het is geweldig om zo'n goede vriend als jij te hebben. Zul je me schrijven wat je sindsdien hebt meegemaakt?");
+B("hsw",HSW_INS,"Ich [[bin|ich → bin|ben]] sehr neugierig darauf. [[Hat|deine Schule = er/sie/es → hat|Heeft]] deine Schule wieder normal angefangen oder [[habt|ihr → habt|hebben]] ihr seit Schulbeginn nur Online-Unterricht?","Ik ben erg benieuwd. Is je school weer normaal begonnen of hebben jullie sinds het begin van het schooljaar alleen online les?");
+B("hsw",HSW_INS,"Meine Schule [[hat|meine Schule = sie → hat|heeft]] alle beide Unterrichtsformen eingeführt. Die Lehrer [[sind|die Lehrer = sie (mv) → sind|zijn]] schon ganz gut im Online-Unterrichten. [[Bist|du → bist|Ben]] du damit in deiner Schule zufrieden?","Mijn school heeft allebei de lesvormen ingevoerd. De leraren zijn al heel goed in online lesgeven. Ben jij daar op jouw school tevreden mee?");
+B("hsw",HSW_INS,"Bald [[sind|die Weihnachtsferien = sie (mv) → sind|zijn]] die Weihnachtsferien. Was [[hast|du → hast|heb]] du vor? Ich [[habe|ich → habe|heb]] Lust, mich mit dir zu treffen. Dann [[werden|wir → werden (zullen)|zullen]] wir neue Pläne für die Sommerferien machen.","Binnenkort is het kerstvakantie. Wat ben je van plan? Ik heb zin om met je af te spreken. Dan zullen we nieuwe plannen voor de zomervakantie maken.");
+B("hsw",HSW_INS,"[[Hast|du → hast|Heb]] du eigentlich schon den neuen Film von Leonardo DiCaprio gesehen? Er [[wird|er → wird|wordt]] sehr gut im Internet besprochen. Lass schnell von dir hören! Dein Stefan","Heb je eigenlijk de nieuwe film van Leonardo DiCaprio al gezien? Hij wordt heel goed besproken op internet. Laat snel van je horen! Je Stefan");
+
+/* ---------- sterke werkwoorden ---------- */
+const STARK=[
+ // [infinitief, vertaling, du, er, gebiedende wijs of "", waarom]
+ ["schlafen","slapen","schläfst","schläft","","a → ä bij du en er/sie/es"],
+ ["halten","houden","hältst","hält","","a → ä; stam op -t: du hältst, er hält (geen extra -t)"],
+ ["fallen","vallen","fällst","fällt","","a → ä"],
+ ["lassen","laten","lässt","lässt","","a → ä; stam op -ss: du lässt"],
+ ["stoßen","stoten","stößt","stößt","","o → ö; stam op -ß: du stößt"],
+ ["laufen","lopen","läufst","läuft","","au → äu"],
+ ["saufen","zuipen","säufst","säuft","","au → äu"],
+ ["fahren","rijden, varen","fährst","fährt","","a → ä"],
+ ["tragen","dragen","trägst","trägt","","a → ä"],
+ ["fangen","vangen","fängst","fängt","","a → ä"],
+ ["laden","laden","lädst","lädt","","a → ä; er lädt"],
+ ["brechen","breken","brichst","bricht","brich","e → i (na de e staan 2 medeklinkers)"],
+ ["helfen","helpen","hilfst","hilft","hilf","e → i (na de e staan 2 medeklinkers)"],
+ ["gelten","gelden","giltst","gilt","","e → i; stam op -t: du giltst, er gilt"],
+ ["essen","eten","isst","isst","iss","e → i (2 medeklinkers); du isst"],
+ ["lesen","lezen","liest","liest","lies","e → ie (na de e staat 1 medeklinker); du liest"],
+ ["sehen","zien","siehst","sieht","sieh","e → ie (1 medeklinker)"],
+ ["geben","geven","gibst","gibt","gib","uitzondering: lange e, toch e → i"],
+ ["nehmen","nemen","nimmst","nimmt","nimm","uitzondering: e → i, en de m wordt mm"],
+ ["treten","trappen","trittst","tritt","tritt","uitzondering: e → i, en de t wordt tt"],
+ ["gehen","gaan","gehst","geht","","geen klinkerwisseling: gehen is gewoon regelmatig in de o.t.t."],
+ ["stehen","staan","stehst","steht","","geen klinkerwisseling: regelmatig in de o.t.t."],
+ ["bewegen","bewegen","bewegst","bewegt","","geen klinkerwisseling: bewegen is een zwak werkwoord"],
+];
+STARK.forEach(([inf,nl,du,er,imp,why])=>{
+  B("stark","Vul de du- en er/sie/es-vorm in"+(imp?", en de gebiedende wijs (enkelvoud).":"."),
+    `<b>${inf}</b> <span class="muted">(${nl})</span><br>du [[${du}|${why}]] · er/sie/es [[${er}|${why}]]`+(imp?` · gebiedende wijs: [[${imp}|gebiedende wijs enkelvoud: ook e → ${imp.includes("ie")?"ie":"i"}]]!`:""));
+});
+STARK.forEach(([inf,nl])=>{
+  const others=STARK.filter(x=>x[0]!==inf&&x[1]!==nl).map(x=>x[1]);
+  MC("stark","Wat betekent dit werkwoord?",inf,null,nl,"",null);
+});
+
+/* ---------- modale werkwoorden ---------- */
+[["können","kunnen"],["mögen","mogen, lusten, graag hebben"],["dürfen","mogen (toestemming hebben)"],["müssen","moeten"],
+ ["sollen","moeten (opdracht of advies), zullen"],["wollen","willen"],["wissen","weten"],["möchten","zou(den) graag willen"]]
+ .forEach(([de,nl])=>MC("modal","Wat betekent dit werkwoord?",de,null,nl,"",null));
+[["können","kann","kannst","kann","können","könnt","können"],
+ ["mögen","mag","magst","mag","mögen","mögt","mögen"],
+ ["dürfen","darf","darfst","darf","dürfen","dürft","dürfen"],
+ ["müssen","muss","musst","muss","müssen","müsst","müssen"],
+ ["sollen","soll","sollst","soll","sollen","sollt","sollen"],
+ ["wollen","will","willst","will","wollen","wollt","wollen"],
+ ["wissen","weiß","weißt","weiß","wissen","wisst","wissen"],
+ ["möchten","möchte","möchtest","möchte","möchten","möchtet","möchten"]]
+ .forEach(([v,a,b,c,d,e,f])=>B("modal","Vervoeg het werkwoord in de tegenwoordige tijd.",
+   `<b>${v}</b>: ich [[${a}]] · du [[${b}]] · er/sie/es [[${c}]] · wir [[${d}]] · ihr [[${e}]] · sie/Sie [[${f}]]`));
+B("modal","Vul de goede vorm in. Kies uit: können, mögen, dürfen, müssen, sollen, wollen, wissen, möchten.",
+ "Stefanie ist 16. Sobald sie 17 Jahre alt ist, [[möchte|zou willen = möchten; sie → möchte|zou willen]] sie ihren Führerschein machen. „Ich habe die Dinge noch nie gemocht. [[Weißt|weten = wissen; du → weißt|weten]] du, wie sie stinken?“",
+ "Stefanie is 16. Zodra ze 17 is, wil ze haar rijbewijs halen. 'Ik heb die dingen nooit leuk gevonden. Weet je hoe ze stinken?'");
+B("modal","Vul de goede vorm in. Kies uit: können, mögen, dürfen, müssen, sollen, wollen, wissen, möchten.",
+ "Jugendliche in Deutschland [[dürfen|mogen (toestemming) = dürfen; Jugendliche = sie → dürfen|mogen]] seit 2008 schon mit 17 Jahren Fahrstunden nehmen. Aber auch nach bestandener Prüfung [[muss|moeten = müssen; ein Erwachsener = er → muss|moeten]] immer ein Erwachsener neben dem jungen Fahrer im Auto dabei sein.",
+ "Jongeren in Duitsland mogen sinds 2008 al met 17 jaar rijles nemen. Maar ook na het examen moet er altijd een volwassene naast de jonge bestuurder in de auto zitten.");
+const MS="Kies tussen müssen en sollen, en vul de goede vorm in.";
+B("modal",MS,"Wie spät [[müssen|het is nodig om de vlucht te halen → müssen; Sie → müssen]] Sie am Flughafen sein, um den Flug nicht zu verpassen?","Hoe laat moet u op het vliegveld zijn om de vlucht niet te missen?");
+B("modal",MS,"Wenn man nach Asien reist, [[soll/muss|allebei goed: soll = het wordt aangeraden, muss = het is verplicht; man → soll / muss]] man gegen Hepatitis geimpft sein.","Als je naar Azië reist, moet je tegen hepatitis ingeënt zijn.");
+B("modal",MS,"Man [[soll|de politie geeft een advies → sollen; man → soll]] beim Radfahren keine Musik hören, rät die Polizei.","Je moet tijdens het fietsen geen muziek luisteren, adviseert de politie.");
+B("modal",MS,"Wir [[müssen|het is echt nodig, anders stopt de auto → müssen; wir → müssen]] echt schnell tanken, sonst stoppt das Auto mitten auf der Straße.","We moeten echt snel tanken, anders stopt de auto midden op straat.");
+const ME="Vertaal het werkwoord en vul de goede vorm in.";
+B("modal",ME,"[[Darf|mogen (toestemming) = dürfen; ich → darf|mogen]] ich bitte auf die Toilette, Frau Hahn?","Mag ik naar de wc, mevrouw Hahn?");
+B("modal",ME,"[[Weißt|weten = wissen; du → weißt|weten]] du, dass ich heute ins Krankenhaus gehen [[muss|moeten = müssen; ich → muss|moeten]]?","Weet je dat ik vandaag naar het ziekenhuis moet?");
+B("modal",ME,"[[Können|kunnen = können; Sie → können|kunnen]] Sie uns bitte bei den Hausaufgaben helfen, Herr Müller?","Kunt u ons alstublieft helpen met het huiswerk, meneer Müller?");
+B("modal",ME,"[[Wollt|willen = wollen; ihr → wollt|willen]] ihr mit ins Kino gehen?","Willen jullie mee naar de bioscoop?");
+B("modal",ME,"[[Soll|moeten als vraag/aanbod = sollen; ich → soll|moeten]] ich dich im Zentrum abholen?","Moet ik je in het centrum ophalen?");
+B("modal",ME,"Wir [[möchten|zou graag willen = möchten; wir → möchten|zou graag willen]] gerne eine Bratwurst mit Pommes.","Wij willen graag een braadworst met friet.");
+B("modal",ME,"[[Wisst|weten = wissen; ihr → wisst|weten]] ihr schon, dass wir einen neuen Mathelehrer bekommen?","Weten jullie al dat we een nieuwe wiskundeleraar krijgen?");
+B("modal",ME,"Martina und Klaus [[können|kunnen = können; Martina und Klaus = sie → können|kunnen]] zusammen viel Spaß erleben.","Martina en Klaus kunnen samen veel plezier hebben.");
+B("modal",ME,"[[Willst|willen = wollen; du → willst|willen]] du wirklich nicht mit in das Museum gehen?","Wil je echt niet mee naar het museum?");
+
+/* ---------- lidwoorden & naamvallen ---------- */
+const LI="Vul de goede uitgang in (of typ het hele woord).";
+const LV="Vul de goede uitgang in. Let op de voorzetsels: die gaan voor!";
+B("lidw",LI,"D[[er|wie koopt? → onderwerp, 1e nv m → der]] Junge (m) kauft ein[[|wat koopt de jongen? → lijdend vw, 4e nv o → ein]] Buch (o).","De jongen koopt een boek.");
+B("lidw",LI,"Die Lehrerin (v) schreibt d[[em|AAN de leerling → meewerkend vw, 3e nv m → dem]] Schüler (m) ein[[en|wat schrijft ze? → lijdend vw, 4e nv m → einen]] Brief (m).","De lerares schrijft de leerling een brief.");
+B("lidw",LI,"Die Frau kauft ein[[en|wat koopt de vrouw? → lijdend vw, 4e nv m → einen]] Hund (m).","De vrouw koopt een hond.");
+B("lidw",LI,"D[[er|onderwerp, 1e nv m → der]] Mann (m) kauft ein[[en|lijdend vw, 4e nv m → einen]] Computer (m).","De man koopt een computer.");
+B("lidw",LI,"Der Mann schenkt d[[em|VOOR het kind → meewerkend vw, 3e nv o → dem]] Kind (o) ein[[en|lijdend vw, 4e nv m → einen]] Computer (m).","De man geeft het kind een computer cadeau.");
+B("lidw",LI,"Mein[[|onderwerp, 1e nv m: ein-groep zoals ein → mein]] Mann (m) kauft unser[[em|meewerkend vw, 3e nv m → unserem]] Sohn (m) ein[[en|lijdend vw, 4e nv m → einen]] Computer (m).","Mijn man koopt onze zoon een computer.");
+B("lidw",LI,"Dies[[er|onderwerp, 1e nv m: der-groep zoals der → dieser]] Mann (m) kauft all[[en|meewerkend vw, 3e nv mv → den → allen]] Kinder[[n|3e nv meervoud: het zelfstandig naamwoord krijgt -n → Kindern]] (mv) ein[[en|lijdend vw, 4e nv m → einen]] Lolly (m).","Deze man koopt alle kinderen een lolly.");
+B("lidw",LV,"Der Vater geht mit d[[em|mit = altijd 3e nv; o → dem]] Kind (o) ins Kino.","De vader gaat met het kind naar de bioscoop.");
+B("lidw",LV,"Der Mann geht ohne d[[as|ohne = altijd 4e nv; o → das]] Kind (o) ins Kino.","De man gaat zonder het kind naar de bioscoop.");
+B("lidw",LI,"D[[ie|onderwerp, 1e nv mv → die]] Kinder (mv) geben d[[er|AAN oma → meewerkend vw, 3e nv v → der]] Oma (v) ein[[e|lijdend vw, 4e nv v → eine]] Blume (v).","De kinderen geven oma een bloem.");
+B("lidw",LI,"Kein[[|onderwerp, 1e nv m: ein-groep → kein]] Schüler (m) hat sein[[e|lijdend vw, 4e nv mv → die → seine]] Hausaufgaben (mv) gemacht.","Geen enkele leerling heeft zijn huiswerk gemaakt.");
+B("lidw",LI,"Welch[[es|lijdend vw, 4e nv o: der-groep zoals das → welches]] Buch (o) liest du?","Welk boek lees jij?");
+B("lidw",LI,"Ich gebe jed[[em|AAN elk kind → meewerkend vw, 3e nv o: der-groep zoals dem → jedem]] Kind (o) ein[[en|lijdend vw, 4e nv m → einen]] Apfel (m).","Ik geef elk kind een appel.");
+B("lidw",LV,"Wir besuchen unser[[e|lijdend vw, 4e nv mv → die → unsere]] Großeltern (mv) mit unser[[em|mit = altijd 3e nv; m → unserem]] Hund (m).","Wij bezoeken onze grootouders met onze hond.");
+B("lidw",LI,"Die Mutter kauft ihr[[er|VOOR haar dochter → meewerkend vw, 3e nv v → ihrer]] Tochter (v) ein[[|lijdend vw, 4e nv o → ein]] Fahrrad (o).","De moeder koopt haar dochter een fiets.");
+// oefenstencil voorzetsels met een vaste naamval
+B("lidw",LV,"Mein[[e|onderwerp, 1e nv v → meine]] Mutter (v) kauft für ihr[[en|für = altijd 4e nv; m → ihren]] Yogakurs (m) ein[[en|lijdend vw, 4e nv m → einen]] Trainingsanzug (m) ohne ein[[e|ohne = altijd 4e nv; v → eine]] Kapuze (v).","Mijn moeder koopt voor haar yogacursus een trainingspak zonder capuchon.");
+B("lidw",LV,"Mit unser[[em|mit = altijd 3e nv; m → unserem]] Lehrer (m) fahren wir zu ein[[em|zu = altijd 3e nv; o → einem]] Konzert (o) von d[[em|von = altijd 3e nv; m → dem]] Direktor (m) und sein[[en|von = 3e nv; mv → den → seinen]] Kinder[[n|3e nv meervoud: het zelfstandig naamwoord krijgt -n → Kindern]] (mv).","Met onze docent gaan we naar een concert van de directeur en zijn kinderen.");
+B("lidw",LV,"Nach d[[er|nach = altijd 3e nv; v → der]] Schule (v) werden d[[ie|onderwerp, 1e nv mv → die]] Schüler (mv) zu ihr[[en|zu = altijd 3e nv; mv → den → ihren]] Freunden (mv) fahren.","Na school gaan de leerlingen naar hun vrienden.");
+B("lidw",LV,"Durch mein[[en|durch = altijd 4e nv; m → meinen]] Karatesport (m) habe ich viel über d[[as|über, geen stilstand/tijd/verplaatsing → 7/2-regel: über = 4e nv; o → das]] Verhalten (o) von d[[en|von = altijd 3e nv; mv → den]] Menschen (mv) gelernt.","Door mijn karatesport heb ik veel over het gedrag van mensen geleerd.");
+B("lidw",LV,"Ihr[[e|onderwerp, 1e nv v → ihre]] Klassenkameradin (v) holt aus d[[er|aus = altijd 3e nv; v → der]] Tasche (v) ein[[en|lijdend vw, 4e nv m → einen]] Taschenrechner (m) für d[[ie|für = altijd 4e nv; v → die]] Mathearbeit (v).","Haar klasgenote haalt uit de tas een rekenmachine voor de wiskundetoets.");
+B("lidw",LV,"Sein[[e|onderwerp, 1e nv mv → seine]] Schüler (mv) machen in d[[em|in, stilstand (in de les) → 3e nv; m → dem]] Unterricht (m) ein[[e|lijdend vw, 4e nv v → eine]] Aufgabe (v) über d[[ie|über → 7/2-regel: 4e nv; mv → die]] Vulkanausbrüche (mv) auf d[[er|auf, stilstand (op het eiland) → 3e nv; v → der]] schönen Insel (v) Sizilien.","Zijn leerlingen maken in de les een opdracht over de vulkaanuitbarstingen op het mooie eiland Sicilië.");
+B("lidw",LV,"An dies[[em|an + bepaalde tijd → 3e nv; m → diesem]] Montag (m) kommt ein[[e|onderwerp, 1e nv v → eine]] Klasse (v) aus d[[em|aus = altijd 3e nv; o → dem]] fernen Spanien (o) für ein[[e|für = altijd 4e nv; v → eine]] Woche (v) in d[[ie|in + verplaatsing (naar Nederland) → 4e nv; mv → die]] Niederlande (mv).","Aanstaande maandag komt een klas uit het verre Spanje een week naar Nederland.");
+B("lidw",LV,"Mit d[[em|mit = altijd 3e nv; m → dem]] Bus (m) fahren all[[e|onderwerp, 1e nv mv → die → alle]] Jugendlichen (mv) ohne ihr[[e|ohne = altijd 4e nv; mv → die → ihre]] Eltern (mv) an d[[en|an + verplaatsing (naar het strand) → 4e nv; m → den]] Strand (m) und zu d[[en|zu = altijd 3e nv; mv → den]] großen Städten (mv) wie Den Haag und Amsterdam.","Met de bus gaan alle jongeren zonder hun ouders naar het strand en naar de grote steden zoals Den Haag en Amsterdam.");
+B("lidw",LV,"D[[er|onderwerp, 1e nv m → der]] Bus (m) fährt auf d[[em|auf, op de weg (geen eindpunt) → 3e nv; m → dem]] Weg (m) durch ein[[en|durch = altijd 4e nv; m → einen]] Tunnel (m) und über d[[ie|über + verplaatsing (de brug over) → 4e nv; v → die]] Brienenoordbrücke (v).","De bus rijdt onderweg door een tunnel en over de Brienenoordbrug.");
+B("lidw",LV,"Spät an dies[[em|an + bepaalde tijd → 3e nv; m → diesem]] Ausflugstag (m) kommen d[[ie|onderwerp, 1e nv mv → die]] Lehrer (mv) und ihr[[e|onderwerp, 1e nv mv → ihre]] Schüler (mv) wieder bei d[[em|bei = altijd 3e nv; o → dem]] Schulgebäude (o) an.","Laat op deze schoolreisdag komen de docenten en hun leerlingen weer bij het schoolgebouw aan.");
+
+/* ---------- voorzetsels ---------- */
+const VZ3=[["mit","met"],["nach","na, naar"],["bei","bij"],["seit","sinds"],["von","van"],["zu","naar, tot"],["aus","uit"],["außer","behalve"],["entgegen","tegen ... in"],["gegenüber","tegenover"]];
+const VZ4=[["durch","door"],["für","voor"],["ohne","zonder"],["um","om"],["bis","tot"],["gegen","tegen"],["entlang","langs"]];
+const VZ34=[["in","in"],["an","aan"],["auf","op"],["hinter","achter"],["neben","naast"],["über","over, boven"],["unter","onder"],["vor","voor"],["zwischen","tussen"]];
+const NVOPTS=["altijd 3e naamval","altijd 4e naamval","3e of 4e naamval"];
+VZ3.forEach(([d,n])=>MC("vz","Welke naamval hoort bij dit voorzetsel?",d,NVOPTS,NVOPTS[0],`${d} (${n}) hoort bij de voorzetsels met altijd de 3e naamval.`));
+VZ4.forEach(([d,n])=>MC("vz","Welke naamval hoort bij dit voorzetsel?",d,NVOPTS,NVOPTS[1],`${d} (${n}) hoort bij de voorzetsels met altijd de 4e naamval.`));
+VZ34.forEach(([d,n])=>MC("vz","Welke naamval hoort bij dit voorzetsel?",d,NVOPTS,NVOPTS[2],`${d} (${n}) kan 3e of 4e naamval zijn: plaats of tijd → 3e, richting/verplaatsing → 4e.`));
+const V34="Vul het lidwoord in. Stilstand of tijd → 3e naamval, verplaatsing → 4e naamval.";
+B("vz",V34,"Das Kind sitzt auf d[[em|zitten = stilstand (waar?) → 3e nv; m → dem]] Tisch (m).","Het kind zit op de tafel.");
+B("vz",V34,"Das Kind springt auf d[[en|van de grond óp de tafel = verplaatsing → 4e nv; m → den]] Tisch (m).","Het kind springt op de tafel.");
+B("vz",V34,"Ich laufe in d[[em|je weet niet waar ik naartoe loop (geen eindpunt) → 3e nv; o → dem]] Klassenzimmer (o) herum.","Ik loop rond in het lokaal.");
+B("vz",V34,"Ich gehe in d[[ie|ergens heengaan = verplaatsing → 4e nv; v → die]] Schule (v).","Ik ga naar school.");
+B("vz",V34,"Die Katze liegt unter d[[em|liggen = stilstand → 3e nv; o → dem]] Bett (o).","De kat ligt onder het bed.");
+B("vz",V34,"Die Katze läuft unter d[[as|ze loopt eronder = verplaatsing → 4e nv; o → das]] Bett (o).","De kat loopt onder het bed (gaat eronder).");
+B("vz",V34,"Ich hänge das Bild an d[[ie|ik hang het ergens heen = verplaatsing → 4e nv; v → die]] Wand (v).","Ik hang het schilderij aan de muur.");
+B("vz",V34,"Das Bild hängt an d[[er|het hangt daar = stilstand → 3e nv; v → der]] Wand (v).","Het schilderij hangt aan de muur.");
+B("vz",V34,"Wir stellen die Lampe neben d[[as|we zetten hem ergens neer = verplaatsing → 4e nv; o → das]] Sofa (o).","We zetten de lamp naast de bank.");
+B("vz",V34,"Die Lampe steht neben d[[em|staan = stilstand → 3e nv; o → dem]] Sofa (o).","De lamp staat naast de bank.");
+B("vz",V34,"Der Hund legt sich vor d[[ie|hij gaat ergens liggen = verplaatsing → 4e nv; v → die]] Tür (v).","De hond gaat voor de deur liggen.");
+B("vz",V34,"Der Hund schläft vor d[[er|slapen = stilstand → 3e nv; v → der]] Tür (v).","De hond slaapt voor de deur.");
+B("vz",V34,"Das Flugzeug fliegt über d[[ie|het vliegt over de stad heen = verplaatsing → 4e nv; v → die]] Stadt (v).","Het vliegtuig vliegt over de stad.");
+B("vz",V34,"Die Lampe hängt über d[[em|hangen = stilstand → 3e nv; m → dem]] Tisch (m).","De lamp hangt boven de tafel.");
+B("vz",V34,"Vor d[[em|bepaalde tijd (vóór de les) → 3e nv; m → dem]] Unterricht (m) trinke ich Tee.","Voor de les drink ik thee.");
+B("vz",V34,"Das Heft liegt zwischen d[[en|liggen = stilstand → 3e nv; mv → den (+n: Büchern)]] Büchern (mv).","Het schrift ligt tussen de boeken.");
+B("vz",V34,"Er legt das Heft zwischen d[[ie|hij legt het ergens neer = verplaatsing → 4e nv; mv → die]] Bücher (mv).","Hij legt het schrift tussen de boeken.");
+const V72="Geen stilstand, tijd of verplaatsing? Gebruik de 7/2-regel: auf en über → 4e naamval, de andere 7 → 3e naamval.";
+B("vz",V72,"Ich warte auf d[[en|wachten op: 7/2-regel, auf → 4e nv; m → den]] Bus (m).","Ik wacht op de bus.");
+B("vz",V72,"Wir sprechen über d[[en|praten over: 7/2-regel, über → 4e nv; m → den]] Film (m).","We praten over de film.");
+B("vz",V72,"Ich habe Angst vor d[[em|bang voor: 7/2-regel, vor → 3e nv; m → dem]] Hund (m).","Ik ben bang voor de hond.");
+
+/* ---------- meervoud ---------- */
+const MV=[
+ ["der Hund","Hunde","m: -e"],["der Tisch","Tische","m: -e"],["der Baum","Bäume","m: umlaut op a/o/u + -e"],["der Gast","Gäste","m: umlaut + -e"],
+ ["der Stuhl","Stühle","m: umlaut + -e"],["der Zug","Züge","m: umlaut + -e"],["der Lehrer","Lehrer","m op -er: geen uitgang"],["der Schüler","Schüler","m op -er: geen uitgang"],
+ ["der Vogel","Vögel","m op -el: geen uitgang, wel umlaut"],["der Apfel","Äpfel","m op -el: geen uitgang, wel umlaut"],["der Garten","Gärten","m op -en: geen uitgang, wel umlaut"],
+ ["der Bruder","Brüder","m op -er: geen uitgang, wel umlaut"],["der Student","Studenten","persoon op -t: + -en"],["der Junge","Jungen","m op -e: + -n"],
+ ["die Tür","Türen","v: + -en"],["die Frau","Frauen","v: + -en"],["die Zeitung","Zeitungen","v: + -en"],["die Uhr","Uhren","v: + -en"],
+ ["die Lampe","Lampen","v op -e: alleen + -n"],["die Schule","Schulen","v op -e: alleen + -n"],["die Blume","Blumen","v op -e: alleen + -n"],
+ ["die Freundin","Freundinnen","v op -in: + -nen"],["die Lehrerin","Lehrerinnen","v op -in: + -nen"],
+ ["das Heft","Hefte","o: + -e"],["das Jahr","Jahre","o: + -e"],["das Spiel","Spiele","o: + -e"],
+ ["das Buch","Bücher","o met korte klinker: umlaut + -er"],["das Haus","Häuser","o: umlaut + -er"],["das Land","Länder","o: umlaut + -er"],["das Glas","Gläser","o: umlaut + -er"],["das Kind","Kinder","o: + -er"],
+ ["das Mädchen","Mädchen","o op -chen: geen uitgang"],["das Brötchen","Brötchen","o op -chen: geen uitgang"],["das Fenster","Fenster","o op -er: geen uitgang"],["das Zimmer","Zimmer","o op -er: geen uitgang"],
+ ["das Auto","Autos","leenwoord: + -s"],["das Handy","Handys","leenwoord: + -s"],["das Foto","Fotos","leenwoord: + -s"],
+];
+MV.forEach(([ev,mv,why])=>B("mv","Schrijf het meervoud op, met lidwoord.",`${ev} → [[die ${mv}|${why}; meervoud altijd die → die ${mv}]]`,null,{strict:true,plural:true}));
+/* ================================== */
+
+/* ===== UITLEG PER ONDERWERP ===== */
+const NVTABEL=`<div class="tw"><table class="gt"><thead><tr><th></th><th>m</th><th>v</th><th>o</th><th>mv</th></tr></thead><tbody>
+<tr><th>1e nv<br><small>onderwerp</small></th><td>der<br>ein</td><td>die<br>eine</td><td>das<br>ein</td><td>die<br>keine</td></tr>
+<tr><th>3e nv<br><small>meewerkend vw</small></th><td>dem<br>einem</td><td>der<br>einer</td><td>dem<br>einem</td><td>den (+n)<br>keinen (+n)</td></tr>
+<tr><th>4e nv<br><small>lijdend vw</small></th><td>den<br>einen</td><td>die<br>eine</td><td>das<br>ein</td><td>die<br>keine</td></tr></tbody></table></div>`;
+const UITLEG={
+hsw:`<h3>haben, sein en werden</h3>
+<div class="tw"><table class="gt"><thead><tr><th></th><th>haben<br><small>hebben</small></th><th>sein<br><small>zijn</small></th><th>werden<br><small>worden, zullen</small></th></tr></thead><tbody>
+<tr><th>ich</th><td>habe</td><td>bin</td><td>werde</td></tr><tr><th>du</th><td>hast</td><td>bist</td><td>wirst</td></tr>
+<tr><th>er/sie/es</th><td>hat</td><td>ist</td><td>wird</td></tr><tr><th>wir</th><td>haben</td><td>sind</td><td>werden</td></tr>
+<tr><th>ihr</th><td>habt</td><td>seid</td><td>werdet</td></tr><tr><th>sie/Sie</th><td>haben</td><td>sind</td><td>werden</td></tr></tbody></table></div>
+<p>Zoek eerst het onderwerp: <i>die Lehrer</i> = sie (meervoud) → <b>sind</b>. <i>Meine Schule</i> = sie (enkelvoud) → <b>hat</b>.</p>
+<p><b>werden</b> gebruik je ook voor de toekomst: <i>Wir werden neue Pläne machen</i> = we zullen nieuwe plannen maken.</p>`,
+stark:`<h3>Sterke werkwoorden in de tegenwoordige tijd</h3>
+<p>De uitgangen zijn gewoon: ich stam+<b>e</b>, du stam+<b>st</b>, er/sie/es stam+<b>t</b>, wir stam+<b>en</b>, ihr stam+<b>t</b>, sie/Sie stam+<b>en</b>. Alleen bij <b>du</b> en <b>er/sie/es</b> verandert bij sterke werkwoorden de klinker.</p>
+<h4>a, au, o → ä, äu, ö</h4>
+<p>fahren → du f<b>ä</b>hrst, er f<b>ä</b>hrt · laufen → du l<b>äu</b>fst, er l<b>äu</b>ft · stoßen → du st<b>ö</b>ßt, er st<b>ö</b>ßt</p>
+<h4>e → i of ie (e/i-Wechsel)</h4>
+<p>Ook in de gebiedende wijs (enkelvoud).</p>
+<ul><li><b>1 medeklinker</b> na de eerste e → <b>ie</b>: lesen → du liest, er liest, lies!</li>
+<li><b>2 of meer medeklinkers</b> na de eerste e → <b>i</b>: helfen → du hilfst, er hilft, hilf!</li>
+<li>Uitzonderingen met toch <b>i</b>: geben → gibst, gibt, gib! · nehmen → nimmst, nimmt, nimm! · treten → trittst, tritt, tritt!</li></ul>
+<h4>Stam op -d of -t</h4>
+<p>Bij du komt <b>-st</b> (niet -est): halten → du hältst, gelten → du giltst. Bij er/sie/es komt er geen extra -t: er hält, er gilt, er lädt.</p>
+<p>Let op: <b>gehen, stehen</b> en <b>bewegen</b> zijn in de tegenwoordige tijd gewoon regelmatig: du gehst, er steht.</p>`,
+modal:`<h3>Modale hulpwerkwoorden (en wissen)</h3>
+<div class="tw"><table class="gt"><thead><tr><th></th><th>können</th><th>mögen</th><th>dürfen</th><th>müssen</th></tr></thead><tbody>
+<tr><th>ich</th><td>kann</td><td>mag</td><td>darf</td><td>muss</td></tr><tr><th>du</th><td>kannst</td><td>magst</td><td>darfst</td><td>musst</td></tr>
+<tr><th>er/sie/es</th><td>kann</td><td>mag</td><td>darf</td><td>muss</td></tr><tr><th>wir</th><td>können</td><td>mögen</td><td>dürfen</td><td>müssen</td></tr>
+<tr><th>ihr</th><td>könnt</td><td>mögt</td><td>dürft</td><td>müsst</td></tr><tr><th>sie/Sie</th><td>können</td><td>mögen</td><td>dürfen</td><td>müssen</td></tr></tbody></table></div>
+<div class="tw"><table class="gt"><thead><tr><th></th><th>sollen</th><th>wollen</th><th>wissen</th><th>möchten</th></tr></thead><tbody>
+<tr><th>ich</th><td>soll</td><td>will</td><td>weiß</td><td>möchte</td></tr><tr><th>du</th><td>sollst</td><td>willst</td><td>weißt</td><td>möchtest</td></tr>
+<tr><th>er/sie/es</th><td>soll</td><td>will</td><td>weiß</td><td>möchte</td></tr><tr><th>wir</th><td>sollen</td><td>wollen</td><td>wissen</td><td>möchten</td></tr>
+<tr><th>ihr</th><td>sollt</td><td>wollt</td><td>wisst</td><td>möchtet</td></tr><tr><th>sie/Sie</th><td>sollen</td><td>wollen</td><td>wissen</td><td>möchten</td></tr></tbody></table></div>
+<p>Let op: bij ich en er/sie/es is de vorm hetzelfde en zonder uitgang (ich kann, er kann).</p>
+<ul><li><b>können</b> = kunnen · <b>mögen</b> = lusten, graag hebben · <b>dürfen</b> = mogen (toestemming)</li>
+<li><b>müssen</b> = moeten (het is nodig of verplicht) · <b>sollen</b> = moeten (een opdracht of advies van iemand anders)</li>
+<li><b>wollen</b> = willen · <b>möchten</b> = zou graag willen · <b>wissen</b> = weten</li></ul>`,
+lidw:`<h3>Lidwoordvervoeging</h3>${NVTABEL}
+<h4>Zo vind je de naamval</h4>
+<ol><li><b>Voorzetsel?</b> Dat gaat voor, kijk bij Voorzetsels.</li>
+<li><b>Onderwerp</b> (1e nv): wie/wat + persoonsvorm? <i>Wie koopt? → der Junge.</i></li>
+<li><b>Meewerkend voorwerp</b> (3e nv): kun je er AAN of VOOR voor denken? <i>Hij schrijft (aan) dem Schüler een brief.</i></li>
+<li><b>Lijdend voorwerp</b> (4e nv): wie/wat + persoonsvorm + onderwerp? <i>Wat koopt de vrouw? → einen Hund.</i></li></ol>
+<h4>Woorden die meedoen</h4>
+<p><b>Ein-groep</b> (uitgang zoals ein): kein, mein, dein, sein, ihr, unser, euer, Ihr. <i>Mein Mann kauft unserem Sohn einen Computer.</i></p>
+<p><b>Der-groep</b> (uitgang zoals der/die/das): jed-, jen-, solch-, welch-, dies-, manch-, all-. <i>Dieser Mann kauft allen Kindern einen Lolly.</i></p>
+<p>3e naamval meervoud: het zelfstandig naamwoord krijgt <b>-n</b>: den Kinder<b>n</b>.</p>`,
+vz:`<h3>Voorzetsels</h3>
+<div class="tw"><table class="gt"><thead><tr><th>altijd 3e nv</th><th>altijd 4e nv</th><th>3e of 4e nv</th></tr></thead><tbody>
+<tr><td>mit · met</td><td>durch · door</td><td>in · in</td></tr><tr><td>nach · na, naar</td><td>für · voor</td><td>an · aan</td></tr>
+<tr><td>bei · bij</td><td>ohne · zonder</td><td>auf · op</td></tr><tr><td>seit · sinds</td><td>um · om</td><td>hinter · achter</td></tr>
+<tr><td>von · van</td><td>bis · tot</td><td>neben · naast</td></tr><tr><td>zu · naar, tot</td><td>gegen · tegen</td><td>über · over, boven</td></tr>
+<tr><td>aus · uit</td><td>entlang · langs</td><td>unter · onder</td></tr><tr><td>außer · behalve</td><td></td><td>vor · voor</td></tr>
+<tr><td>entgegen · tegen in</td><td></td><td>zwischen · tussen</td></tr><tr><td>gegenüber · tegenover</td><td></td><td></td></tr></tbody></table></div>
+<h4>3e of 4e naamval?</h4>
+<p><b>Stap 1</b></p><ul><li>Stilstand (zijn, zich bevinden, je kunt vragen <i>waar?</i>) → <b>3e</b>: Das Kind sitzt auf <b>dem</b> Tisch.</li>
+<li>Bepaalde tijd → <b>3e</b>: an <b>diesem</b> Montag, vor <b>dem</b> Unterricht.</li>
+<li>Je weet het eindpunt niet → <b>3e</b>: Ich laufe in <b>dem</b> Klassenzimmer herum.</li>
+<li>Verplaatsing, doelgerichte beweging, ergens heengaan → <b>4e</b>: Das Kind springt auf <b>den</b> Tisch.</li></ul>
+<p><b>Stap 2</b>: geen van allemaal? Gebruik de <b>7/2-regel</b>: auf en über → 4e naamval, de andere 7 → 3e naamval. <i>Ich warte auf den Bus.</i></p>${NVTABEL}`,
+mv:`<h3>Meervoud van het zelfstandig naamwoord</h3>
+<p>Het lidwoord in het meervoud is <b>altijd die</b>, ook als het woord in het enkelvoud der of das heeft. En: zelfstandige naamwoorden altijd met een hoofdletter.</p>
+<h4>Mannelijk (der)</h4><ul><li>Vaak <b>-e</b>, en op a/o/u vaak een umlaut: der Hund → die Hunde, der Baum → die Bäume, der Gast → die Gäste</li>
+<li>Op <b>-el, -er, -en</b>: meestal geen uitgang, soms wel een umlaut: der Lehrer → die Lehrer, der Vogel → die Vögel</li>
+<li>Personen op -t en woorden op -e: <b>-(e)n</b>: der Student → die Studenten, der Junge → die Jungen</li></ul>
+<h4>Vrouwelijk (die)</h4><ul><li>Meestal <b>-en</b>, of alleen <b>-n</b> als het woord al op -e eindigt: die Tür → die Türen, die Lampe → die Lampen</li>
+<li>Op <b>-in</b> → <b>-innen</b>: die Freundin → die Freundinnen</li></ul>
+<h4>Onzijdig (das)</h4><ul><li><b>-e</b>: das Heft → die Hefte</li><li>Umlaut + <b>-er</b>: das Buch → die Bücher, das Kind → die Kinder</li>
+<li>Op <b>-el, -en, -er, -chen, -lein</b>: geen uitgang: das Mädchen → die Mädchen</li><li>Leenwoorden: <b>-s</b>: das Auto → die Autos</li></ul>`,
+};
+
+
+/* ===== SPEL ===== */
+const KEY="rennmaus-de-v1", FIRST=3, EVERY=8, MAXG=12;
+function hash(s){let h=5381;for(let i=0;i<s.length;i++)h=((h<<5)+h+s.charCodeAt(i))|0;return (h>>>0).toString(36)}
+/* afleiders voor meerkeuze zonder vaste opties */
+const ITEMS=RAW.map(r=>{
+  const it={...r,id:r.t+":"+hash(r.txt||r.q+"|"+r.a)};
+  if(it.kind==="mc"&&!it.opts){
+    const pool=[...new Set(RAW.filter(x=>x.kind==="mc"&&x.t===r.t&&!x.opts&&x.a!==r.a).map(x=>x.a))];
+    it.pool=pool;
+  }
+  return it;
+});
+const $=s=>document.querySelector(s);
+const esc=t=>String(t).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const rnd=a=>a[Math.floor(Math.random()*a.length)];
+const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+
+let S=load();
+function blank(){return {it:{},seeds:0,gerbils:[],items:[],sel:TOPICS.map(t=>t.id),gold:0}}
+function load(){try{const s=JSON.parse(localStorage.getItem(KEY));if(s&&s.it){const b=blank();for(const k in b)if(s[k]===undefined)s[k]=b[k];return s}}catch(e){}return blank()}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+const ST=it=>S.it[it.id]||(S.it[it.id]={s:0,w:0,ok:false});
+const known=(list=ITEMS)=>list.filter(it=>S.it[it.id]&&S.it[it.id].ok).length;
+const ofTopic=t=>ITEMS.filter(it=>it.t===t);
+const selected=()=>ITEMS.filter(it=>S.sel.includes(it.t));
+const gerbilsFor=m=>m<FIRST?0:Math.min(MAXG,1+Math.floor((m-FIRST)/EVERY));
+const goldFor=m=>{const after=FIRST+(MAXG-1)*EVERY;return m<after+EVERY?0:Math.floor((m-after)/EVERY)};
+
+/* ---------- tekeningen ---------- */
+const SEED=`<svg viewBox="0 0 18 24" aria-hidden="true"><path d="M9 1c5 4 7 10 6 15-1 4-4 6-6 7-2-1-5-3-6-7C2 11 4 5 9 1z" fill="#3a3a3a"/><path d="M9 4c2 3 3 7 2.5 11" stroke="#fff" stroke-width="1.6" fill="none" opacity=".75"/></svg>`;
+const PIP=on=>`<svg class="seedpip ${on?"on":""}" viewBox="0 0 18 24" aria-hidden="true"><path d="M9 1c5 4 7 10 6 15-1 4-4 6-6 7-2-1-5-3-6-7C2 11 4 5 9 1z"/></svg>`;
+const COATS=[
+  {n:"agouti", fur:"#b9844f",dark:"#6e4a2c",belly:"#f3e6cc",eye:"#1d1726"},
+  {n:"zwart",  fur:"#3d363a",dark:"#211c1f",belly:"#5c5156",eye:"#0d0d0d"},
+  {n:"wit",    fur:"#f7f2e8",dark:"#d9d0c0",belly:"#fffbf3",eye:"#c2414b"},
+  {n:"grijs",  fur:"#9b9ba6",dark:"#5d5d68",belly:"#e8e8ee",eye:"#1d1726"},
+  {n:"crème",  fur:"#ead09f",dark:"#c39b5c",belly:"#fff6e2",eye:"#c2414b"},
+  {n:"bont",   fur:"#b9844f",dark:"#6e4a2c",belly:"#f3e6cc",eye:"#1d1726",spot:true},
+  {n:"goud",   fur:"#d9a441",dark:"#9a6d1c",belly:"#fbeccb",eye:"#1d1726"},
+];
+const GNAMES=["Krümel","Flitzer","Sandy","Nuss","Popcorn","Zimt","Hoppel","Wuschel","Erdnuss","Dattel","Mokka","Sesam","Kiesel","Muffin","Schoko","Haferflocke","Kringel","Pepita","Mandel","Brösel"];
+function gerbilInner(g,delay=0){
+  const c=COATS[g.coat]||COATS[0], st="rgba(40,28,18,.45)";
+  return `<g class="gtail" style="animation-delay:-${delay%1.8}s"><path d="M20 46 Q2 54 -20 42" stroke="${c.fur}" stroke-width="4" fill="none" stroke-linecap="round"/><path d="M-19 42 q-7 -3 -10 -10" stroke="${c.dark}" stroke-width="6.5" fill="none" stroke-linecap="round"/></g>
+  <ellipse class="gbody" cx="46" cy="40" rx="30" ry="18" fill="${c.fur}" stroke="${st}" stroke-width="1.5"/>
+  ${c.spot?`<ellipse cx="38" cy="33" rx="10" ry="7" fill="#fbf6ec"/><ellipse cx="58" cy="44" rx="6" ry="5" fill="#fbf6ec"/>`:""}
+  <ellipse cx="49" cy="50" rx="22" ry="7.5" fill="${c.belly}"/>
+  <ellipse cx="28" cy="53" rx="11" ry="6.5" fill="${c.fur}" stroke="${st}" stroke-width="1.2"/>
+  <ellipse cx="23" cy="58" rx="10" ry="2.6" fill="#f0b8b8"/><ellipse cx="66" cy="57" rx="4.5" ry="2.4" fill="#f0b8b8"/>
+  <circle cx="74" cy="32" r="15" fill="${c.fur}" stroke="${st}" stroke-width="1.5"/>
+  <ellipse cx="86" cy="36" rx="9.5" ry="8" fill="${c.fur}"/>
+  <ellipse cx="67" cy="17" rx="6" ry="8" fill="${c.fur}" stroke="${st}" stroke-width="1.2"/><ellipse cx="67" cy="18" rx="3.3" ry="5" fill="#f0b8b8"/>
+  <g class="geye" style="animation-delay:-${(delay*1.7)%4.6}s"><circle cx="79" cy="29" r="4.2" fill="${c.eye}"/><circle cx="80.4" cy="27.6" r="1.4" fill="#fff"/></g>
+  <circle cx="94.5" cy="35" r="2.3" fill="#e57a8c"/>
+  <path d="M90 37 l13 -4 M90 39 l13 2 M90 38 l14 -1" stroke="${st}" stroke-width=".8"/>`;
+}
+const gerbilSVG=(g,cls="")=>`<svg class="${cls}" viewBox="-34 0 140 64" aria-hidden="true">${gerbilInner(g)}</svg>`;
+
+/* winkel */
+const SHOP=[
+ {id:"heu",     de:"das Heu",          nl:"Hooi",                prijs:10},
+ {id:"schild",  de:"das Namensschild", nl:"Naambordje",          prijs:10},
+ {id:"rolle",   de:"die Papprolle",    nl:"Kartonnen rolletje",  prijs:12},
+ {id:"zweig",   de:"der Kauzweig",     nl:"Knaagtakje",          prijs:12},
+ {id:"napf",    de:"der Futternapf",   nl:"Voerbakje",           prijs:15},
+ {id:"flasche", de:"die Wasserflasche",nl:"Waterfles",           prijs:15},
+ {id:"steine",  de:"die Steine",       nl:"Stenen",              prijs:20},
+ {id:"kork",    de:"die Korkröhre",    nl:"Kurken tunnel",       prijs:20},
+ {id:"sand",    de:"das Sandbad",      nl:"Zandbad",             prijs:25, plek:"Een gerbil kan erin badderen"},
+ {id:"bruecke", de:"die Brücke",       nl:"Brug",                prijs:25, plek:"Een gerbil kan erop zitten"},
+ {id:"nest",    de:"das Kuschelnest",  nl:"Knuffelnestje",       prijs:30, plek:"In de eerste holkamer"},
+ {id:"lampe",   de:"die Lampe",        nl:"Lamp",                prijs:30},
+ {id:"haenge",  de:"die Hängematte",    nl:"Hangmat",            prijs:35, plek:"Een gerbil kan erin liggen"},
+ {id:"haus",    de:"das Holzhaus",     nl:"Houten huisje",       prijs:40, plek:"Een gerbil kan op het dak zitten"},
+ {id:"etage",   de:"die Etage",        nl:"Verdieping",          prijs:45, plek:"Een gerbil kan erop zitten"},
+ {id:"leiter",  de:"die Leiter",       nl:"Laddertje",           prijs:20, needs:"etage"},
+ {id:"steppe",  de:"das Steppenbild",  nl:"Achtergrond: de steppe",prijs:50},
+ {id:"laufrad", de:"das Laufrad",      nl:"Loopwiel",            prijs:60, plek:"Een gerbil rent erin"},
+];
+const has=id=>S.items.includes(id);
+
+/* gangen in het zand: [x1,y1,x2,y2], in volgorde van graven */
+const SEGS=[[135,122,140,155],[140,155,178,172],[178,172,222,180],[222,180,256,166],[256,166,280,122],[140,155,104,188],[104,188,80,222],
+ [222,180,232,222],[232,222,270,240],[232,222,190,248],[190,248,146,262],[256,166,304,190],[304,190,340,204],[340,204,352,248],
+ [352,248,334,282],[80,222,58,266],[146,262,172,288],[270,240,262,282],[340,204,366,168]];
+const CHAMB=[{x:198,y:180,seg:2},{x:72,y:232,seg:6},{x:284,y:246,seg:8},{x:132,y:266,seg:10},{x:354,y:208,seg:12},
+ {x:322,y:288,seg:14},{x:54,y:282,seg:15},{x:186,y:294,seg:16},{x:258,y:294,seg:17},{x:368,y:160,seg:18}];
+const segsShown=()=>Math.min(SEGS.length,1+Math.round((SEGS.length-1)*known()/ITEMS.length));
+/* vaste korrels in het zand */
+const GRAINS=(()=>{let s=7,r=()=>(s=(s*16807)%2147483647)/2147483647;return Array.from({length:150},()=>[14+r()*372,130+r()*184,0.6+r()*1.4,r()<.5])})();
+
+function tankSVG(){
+  const n=segsShown(), dug=SEGS.slice(0,n);
+  const chambers=CHAMB.filter(c=>c.seg<n);
+  let s=`<defs><linearGradient id="sandg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ecd6a6"/><stop offset="1" stop-color="#d4b277"/></linearGradient>
+    <linearGradient id="skyg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#bfe0ee"/><stop offset="1" stop-color="#e6f2f4"/></linearGradient></defs>
+  <rect x="0" y="0" width="400" height="330" fill="#f2efe8"/>
+  <rect x="8" y="14" width="384" height="306" rx="6" fill="url(#skyg)"/>`;
+  if(has("steppe")) s+=`<circle cx="320" cy="48" r="16" fill="#ffd45c"/><path d="M8 104 Q60 70 120 92 Q170 64 230 88 Q300 60 392 96 V124 H8z" fill="#c9b27a"/><path d="M8 112 Q80 90 150 106 Q240 84 392 110 V124 H8z" fill="#b39b62"/>
+    ${[[40,98],[96,92],[262,86],[350,94]].map(([x,y])=>`<path d="M${x} ${y} l-4 -10 M${x} ${y} l0 -12 M${x} ${y} l4 -10" stroke="#7d8f4a" stroke-width="1.6"/>`).join("")}
+    <path d="M60 40 q6 -4 12 0 q6 -4 12 0" stroke="#5b6c75" stroke-width="1.4" fill="none"/>`;
+  if(has("lampe")) s+=`<path class="glow" d="M300 18 L250 124 H370 L340 18z" fill="#ffe9a8" opacity=".5"/>`;
+  /* zand */
+  s+=`<path d="M8 126 Q60 118 110 124 Q170 130 230 122 Q300 116 392 125 V320 H8z" fill="url(#sandg)"/>`;
+  s+=GRAINS.map(([x,y,r,d])=>`<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r.toFixed(1)}" fill="${d?"#c5a265":"#f3e2bb"}"/>`).join("");
+  /* gangen */
+  const segPath=dug.map(([a,b,c,d])=>`M${a} ${b} L${c} ${d}`).join(" ");
+  s+=`<path d="${segPath}" stroke="#8a5e31" stroke-width="17" stroke-linecap="round" fill="none"/>`+
+     chambers.map(c=>`<ellipse cx="${c.x}" cy="${c.y}" rx="26" ry="14" fill="#8a5e31"/>`).join("")+
+     `<path d="${segPath}" stroke="#6e4826" stroke-width="12" stroke-linecap="round" fill="none"/>`+
+     chambers.map(c=>`<ellipse cx="${c.x}" cy="${c.y+1}" rx="22" ry="10.5" fill="#6e4826"/>`).join("");
+  if(has("nest")&&chambers.length) {const c=chambers[0];s+=`<ellipse cx="${c.x}" cy="${c.y+6}" rx="20" ry="5" fill="#d8c46a"/>`+Array.from({length:9},(_,i)=>`<path d="M${c.x-18+i*4.5} ${c.y+8} q3 -6 7 -3" stroke="#bfa94a" stroke-width="1.4" fill="none"/>`).join("")}
+  /* ingangen */
+  s+=`<ellipse cx="135" cy="124" rx="11" ry="4" fill="#5a3a1e"/>`+(n>4?`<ellipse cx="280" cy="123" rx="11" ry="4" fill="#5a3a1e"/>`:"");
+  /* spullen */
+  if(has("kork")) s+=`<rect x="20" y="126" width="54" height="17" rx="8" fill="#b07a45"/><ellipse cx="22" cy="134.5" rx="5" ry="8" fill="#4a2f1d"/>${[30,40,52,63].map(x=>`<circle cx="${x}" cy="${130+(x%3)*3}" r="1.6" fill="#8a5a2f"/>`).join("")}`;
+  if(has("steine")) s+=`<ellipse cx="24" cy="118" rx="12" ry="8" fill="#9aa0a6"/><ellipse cx="40" cy="120" rx="9" ry="6" fill="#b5b9bd"/><ellipse cx="18" cy="110" rx="7" ry="5" fill="#82888e"/>`;
+  if(has("etage")){
+    s+=`<path d="M174 70 V124 M226 70 V124" stroke="#8a5a3a" stroke-width="4"/><rect x="164" y="62" width="72" height="9" rx="3" fill="#a8754a"/>`;
+    if(has("leiter")) s+=`<path d="M244 124 L232 68 M256 124 L244 68" stroke="#c99a63" stroke-width="3"/>${[0,1,2,3,4].map(i=>{const t=.12+i*.19,y=124-56*t;return `<path d="M${244-12*t} ${y} L${256-12*t} ${y}" stroke="#c99a63" stroke-width="2.5"/>`}).join("")}`;
+  }
+  if(has("haenge")){const top=has("etage")?71:18;s+=`<path d="M178 ${top} L182 96 M222 ${top} L218 96" stroke="#6b5a3a" stroke-width="1.4"/><path d="M182 96 Q200 114 218 96 Q200 106 182 96z" fill="#4aa3c7" stroke="#2f7fa0" stroke-width="1.5"/>`}
+  if(has("laufrad")) s+=`<path d="M60 82 L42 124 M60 82 L78 124" stroke="#5b6c75" stroke-width="4"/><circle cx="60" cy="82" r="33" fill="rgba(255,255,255,.35)" stroke="#d9822b" stroke-width="5"/>
+    <g class="spin" style="transform-origin:60px 82px">${[0,45,90,135].map(a=>`<path d="M60 49 V115" stroke="#d9822b" stroke-width="1.6" transform="rotate(${a} 60 82)"/>`).join("")}</g><circle cx="60" cy="82" r="4" fill="#5b6c75"/>`;
+  if(has("napf")) s+=`<path d="M98 116 h26 l-3 8 h-20z" fill="#4aa3c7"/><ellipse cx="111" cy="116" rx="13" ry="3" fill="#2f7fa0"/>${[103,108,113,118].map((x,i)=>`<ellipse cx="${x}" cy="${114.5-(i%2)}" rx="1.8" ry="2.6" fill="#3a3a3a"/>`).join("")}`;
+  if(has("bruecke")) s+=`<path d="M112 125 Q135 92 160 125" stroke="#a8754a" stroke-width="7" fill="none"/>${[0,1,2,3,4,5].map(i=>{const t=i/5,x=112+48*t,y=125-33*4*t*(1-t)*.98;return `<path d="M${x} ${y-4} v8" stroke="#7a5233" stroke-width="2"/>`}).join("")}`;
+  if(has("sand")) s+=`<ellipse cx="186" cy="121" rx="22" ry="5" fill="#e3ddd0"/><path d="M164 121 q22 9 44 0 v-3 q-22 7 -44 0z" fill="#cfc8b9"/><ellipse cx="186" cy="119.5" rx="18" ry="3" fill="#f7ecd0"/>`;
+  if(has("heu")) s+=`<path d="M206 124 q4 -20 16 -18 q10 -8 18 6 q6 2 4 12z" fill="#d8c46a"/>${[0,1,2,3,4,5,6].map(i=>`<path d="M${210+i*5} 124 q${i%2?3:-3} -10 ${i%2?-2:4} -16" stroke="#b5a046" stroke-width="1.3" fill="none"/>`).join("")}`;
+  if(has("rolle")) s+=`<rect x="244" y="109" width="28" height="15" rx="2" fill="#c9a06a"/><ellipse cx="272" cy="116.5" rx="4" ry="7.5" fill="#8a6a3e"/><path d="M250 109 l8 15 M258 109 l8 15" stroke="#b38955" stroke-width="1.2"/>`;
+  if(has("haus")) s+=`<rect x="304" y="92" width="56" height="32" fill="#c99a63"/><path d="M304 100 H360 M304 108 H360 M304 116 H360" stroke="#b38550" stroke-width="1.2"/><polygon points="298,95 332,72 366,95" fill="#8a5a3a"/><path d="M324 124 v-12 a8 8 0 0 1 16 0 v12z" fill="#4a2f1d"/>`;
+  if(has("zweig")) s+=`<path d="M292 128 L342 120" stroke="#8a5a3a" stroke-width="4.5" stroke-linecap="round"/><path d="M318 124 l8 -8 M330 122 l4 -6" stroke="#8a5a3a" stroke-width="2.5" stroke-linecap="round"/><ellipse cx="327" cy="115" rx="4" ry="2" fill="#7fae5a" transform="rotate(-30 327 115)"/>`;
+  if(has("flasche")) s+=`<rect x="370" y="34" width="14" height="52" rx="5" fill="rgba(150,205,235,.75)" stroke="#5b8fa8" stroke-width="1.4"/><rect x="370" y="60" width="14" height="26" rx="4" fill="rgba(90,170,220,.55)"/><path d="M377 86 L372 108" stroke="#8c979c" stroke-width="3" stroke-linecap="round"/><circle cx="371.5" cy="110" r="2" fill="#8cc6ea"/>`;
+  /* glas en deksel */
+  s+=`<path d="M30 16 L80 16 L28 320 L8 320 Z M110 16 L124 16 L72 320 L62 320 Z" fill="#fff" opacity=".13"/>
+  <rect x="8" y="14" width="384" height="306" rx="6" fill="none" stroke="#5f7480" stroke-width="5"/>
+  <rect x="2" y="6" width="396" height="12" rx="4" fill="#5f7480"/>${Array.from({length:24},(_,i)=>`<path d="M${14+i*16} 8 v8" stroke="#8ea2ac" stroke-width="1.5"/>`).join("")}
+  <rect x="0" y="320" width="400" height="10" fill="#8a6a4a"/>`;
+  if(has("lampe")) s+=`<path d="M300 6 h40 l-6 -6 h-28z" fill="#c2453b"/><rect x="312" y="0" width="16" height="6" fill="#8a2f28"/>`;
+  if(has("schild")&&S.gerbils.length){const t=S.gerbils.slice(0,4).map(g=>g.name).join(" · ")+(S.gerbils.length>4?" …":"");
+    s+=`<rect x="16" y="298" width="${Math.min(220,30+t.length*6.2)}" height="17" rx="4" fill="#fff8ec" stroke="#a8754a" stroke-width="1.5"/><text x="24" y="310.5" font-size="10.5" font-family="Baloo 2, sans-serif" font-weight="800" fill="#4a2f1d">${esc(t)}</text>`}
+  return {svg:s,chambers};
+}
+/* plekken waar gerbils kunnen zitten */
+function spotsList(chambers){
+  const sp=[];
+  chambers.forEach(c=>sp.push({x:c.x,y:c.y+9,s:.34,u:1}));
+  if(has("laufrad")) sp.push({x:60,y:114,s:.32,run:1});
+  if(has("haus")) sp.push({x:332,y:77,s:.36});
+  if(has("etage")) sp.push({x:200,y:62,s:.36});
+  if(has("bruecke")) sp.push({x:136,y:96,s:.34});
+  if(has("sand")) sp.push({x:186,y:121,s:.34});
+  if(has("haenge")) sp.push({x:200,y:104,s:.32});
+  [96,160,214,262,300,350,40].forEach(x=>sp.push({x,y:124,s:.38}));
+  return sp;
+}
+let gpos=[],walkT=null;
+function stopWalk(){if(walkT){clearInterval(walkT);walkT=null}}
+const place=p=>`translate(${p.x}px,${p.y}px) scale(${p.f?-p.s:p.s},${p.s}) translate(-50px,-58px)`;
+function houseHTML(){
+  const T=tankSVG(), sp=spotsList(T.chambers);
+  const order=[];const u=sp.filter(p=>p.u),o=sp.filter(p=>!p.u);
+  for(let i=0;order.length<sp.length;i++){if(o[i])order.push(o[i]);if(u[i])order.push(u[i])}
+  gpos=S.gerbils.map((g,i)=>({...order[i%order.length],f:i%3===1}));
+  const gs=S.gerbils.map((g,i)=>`<g class="gb" data-i="${i}" tabindex="0" role="button" aria-label="${esc(g.name)}" style="transform:${place(gpos[i])}"><g class="hopg">${gerbilInner(g,i*1.3)}</g></g>`).join("");
+  return {spots:order,svg:`<svg viewBox="0 0 400 330" role="img" aria-label="Het gerbilterrarium met ${S.gerbils.length} gerbil${S.gerbils.length===1?"":"s"}">${T.svg}<g id="glayer">${gs}</g>
+  ${S.gerbils.length?"":`<rect x="92" y="150" width="216" height="46" rx="12" fill="#fff8ec" opacity=".94"/><text x="200" y="169" text-anchor="middle" font-family="Baloo 2, sans-serif" font-weight="800" font-size="14" fill="#22313a">Het terrarium is nog leeg.</text><text x="200" y="186" text-anchor="middle" font-size="11" fill="#22313a">Ken ${FIRST} opgaven en je eerste gerbil komt!</text>`}</svg>`};
+}
+function startWalk(spots){
+  stopWalk();
+  if(S.gerbils.length<1)return;
+  try{if(matchMedia("(prefers-reduced-motion: reduce)").matches)return}catch(e){}
+  walkT=setInterval(()=>{
+    const layer=document.getElementById("glayer");if(!layer){stopWalk();return}
+    const i=Math.floor(Math.random()*S.gerbils.length);
+    const free=spots.filter(p=>!gpos.some(q=>q.x===p.x&&q.y===p.y));
+    if(!free.length)return;
+    const to={...rnd(free),f:Math.random()<.5};gpos[i]=to;
+    const g=layer.querySelector(`[data-i="${i}"]`);if(g){g.style.transform=place(to);layer.appendChild(g)}
+  },3200);
+}
+
+/* ---------- beginscherm ---------- */
+function home(){
+  stopWalk();closeModal();
+  const m=known(), n=ITEMS.length, ng=S.gerbils.length, sel=selected(), ms=known(sel);
+  const nextAt=m<FIRST?FIRST:FIRST+gerbilsFor(m)*EVERY, prevAt=m<FIRST?0:nextAt-EVERY, need=nextAt-prevAt, got=m-prevAt;
+  const H=houseHTML(), full=ng>=MAXG;
+  $("#app").innerHTML=`
+  <div class="top"><h1>Rennmaus-Revier</h1><div class="seeds" title="Zonnebloempitten">${SEED}<span>${S.seeds}</span></div></div>
+  <div><div class="tank">${H.svg}</div>
+    <div class="tankinfo"><span>${ng?"Tik op een gerbil om haar te aaien of te voeren.":""}</span><span>${SEGS.length>segsShown()?"Hoe meer je kent, hoe verder ze graven.":"Alle gangen zijn gegraven!"}</span></div></div>
+  <div class="panel">
+    <h2>${m===n?"Alles gekend!":full?"Op weg naar een gouden pit":"Op weg naar de volgende gerbil"}</h2>
+    ${m===n?`<p>Je kent alle ${n} opgaven. Herhaal af en toe om ze vast te houden.</p>`:`<div class="paws" aria-label="${got} van ${need}">${Array.from({length:need},(_,i)=>PIP(i<got)).join("")}<span class="muted small">nog ${need-got} · ${m} van ${n} opgaven gekend</span></div>`}
+    <p class="small muted" style="margin:8px 0 0">Een opgave is gekend als je hem twee keer achter elkaar goed hebt.</p>
+  </div>
+  <div class="panel">
+    <h2 style="font-size:1.12rem">Wat wil je oefenen?</h2>
+    <div class="chips">${TOPICS.map(t=>{const l=ofTopic(t.id);return `<button class="chip" aria-pressed="${S.sel.includes(t.id)}" data-t="${t.id}">${esc(t.name)} <span>${known(l)}/${l.length}</span></button>`}).join("")}</div>
+    <div class="row" style="margin-top:14px"><button class="btn" id="go" ${sel.length?"":"disabled"}>${sel.length&&ms===sel.length?"Herhalen":"Oefenen"}</button><button class="ghost" id="uit">Uitleg</button></div>
+  </div>
+  <div class="panel">
+    <div class="row" style="justify-content:space-between"><h2 style="font-size:1.12rem">Der Laden</h2><span class="small muted">Spullen voor het terrarium</span></div>
+    <div class="shop">${SHOP.map(it=>{
+      const own=has(it.id), lock=it.needs&&!has(it.needs), can=S.seeds>=it.prijs;
+      return `<div class="item ${own?"owned":""}"><div class="nm">${esc(it.nl)}</div><div class="de">${esc(it.de)}</div>
+        <div class="state">${own?"In het terrarium":lock?"Eerst de verdieping kopen":it.plek||""}</div>
+        ${own?"":`<button data-buy="${it.id}" ${!lock&&can?"":"disabled"}>${SEED}${it.prijs}</button>`}</div>`}).join("")}</div>
+  </div>`;
+  $("#go").onclick=startRound;$("#uit").onclick=()=>uitleg(S.sel[0]||TOPICS[0].id);
+  document.querySelectorAll(".chip").forEach(b=>b.onclick=()=>{const t=b.dataset.t;S.sel=S.sel.includes(t)?S.sel.filter(x=>x!==t):[...S.sel,t];save();home()});
+  document.querySelectorAll("[data-buy]").forEach(b=>b.onclick=()=>{
+    const it=SHOP.find(x=>x.id===b.dataset.buy);if(!it||has(it.id)||S.seeds<it.prijs)return;
+    S.seeds-=it.prijs;S.items.push(it.id);save();home();window.scrollTo({top:0,behavior:"smooth"});
+  });
+  document.querySelectorAll(".gb").forEach(g=>{
+    g.addEventListener("click",()=>gerbilModal(+g.dataset.i));
+    g.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();gerbilModal(+g.dataset.i)}});
+  });
+  startWalk(H.spots);
+}
+function closeModal(){const o=document.getElementById("ov");if(o)o.remove()}
+function modal(html){closeModal();const o=document.createElement("div");o.className="overlay";o.id="ov";o.innerHTML=`<div class="modal" role="dialog">${html}</div>`;document.body.appendChild(o);return o}
+function gerbilModal(i){
+  const g=S.gerbils[i];if(!g)return;
+  const o=modal(`<h2>${esc(g.name)}</h2>${gerbilSVG(g,"big")}
+    <label for="gn" class="small muted">Naam</label><input id="gn" type="text" maxlength="16" value="${esc(g.name)}">
+    <div class="row" style="justify-content:center"><button class="btn" id="feed" ${S.seeds>=3?"":"disabled"}>Voeren · 3 ${SEED.replace('<svg','<svg style="width:14px;height:18px;vertical-align:-3px"')}</button><button class="ghost" id="close">Klaar</button></div>
+    <p class="small muted" id="fmsg" style="margin:0">Een gerbil eet graag zonnebloempitten. Ze springt van blijdschap.</p>`);
+  const big=o.querySelector("svg.big");
+  o.querySelector("#feed").onclick=()=>{
+    if(S.seeds<3)return;S.seeds-=3;save();
+    big.classList.remove("hop");void big.getBoundingClientRect();big.classList.add("hop");
+    o.querySelector("#fmsg").textContent=rnd(["Mmm, lecker!","Ze knabbelt vrolijk.","Danke schön!","Ze maakt een sprongetje."]);
+    o.querySelector("#feed").disabled=S.seeds<3;
+  };
+  o.querySelector("#close").onclick=()=>{const v=o.querySelector("#gn").value.trim();if(v){g.name=v;save()}home()};
+}
+
+/* ---------- uitleg ---------- */
+function uitleg(t){
+  stopWalk();
+  $("#app").innerHTML=`<div class="top"><h1>Uitleg</h1><button class="ghost" id="back">Terug</button></div>
+  <div class="tabs">${TOPICS.map(x=>`<button class="chip" aria-pressed="${x.id===t}" data-t="${x.id}">${esc(x.name)}</button>`).join("")}</div>
+  <div class="panel uitleg">${UITLEG[t]||""}</div>
+  <div class="row"><button class="btn" id="go2">Oefen dit onderwerp</button></div>`;
+  $("#back").onclick=home;
+  document.querySelectorAll(".tabs .chip").forEach(b=>b.onclick=()=>uitleg(b.dataset.t));
+  $("#go2").onclick=()=>{S.sel=[t];save();startRound()};
+}
+
+/* ---------- oefenen ---------- */
+let Q=[],qi=0,review=false,lastInput=null;
+function startRound(){
+  const sel=selected();if(!sel.length)return home();
+  const open=sel.filter(it=>!ST(it).ok);
+  review=!open.length;
+  const pool=review?shuffle(sel):shuffle(open).sort((a,b)=>(ST(b).w>0)-(ST(a).w>0)||ST(b).s-ST(a).s);
+  Q=pool.slice(0,8).map(it=>({it,retry:false}));qi=0;ask();
+}
+const LET=/[A-Za-zÄÖÜäöüß]*$/;
+function parse(txt){
+  const blanks=[];let html="";
+  const parts=txt.split(/\[\[(.*?)\]\]/);
+  for(let i=0;i<parts.length;i++){
+    if(i%2===0){html+=parts[i];continue}
+    const [ans,why="",cue=""]=parts[i].split("|");
+    const stem=html.match(LET)[0];html=html.slice(0,html.length-stem.length);
+    const alts=ans.split("/");
+    const len=stem?Math.max(3.5,...alts.map(a=>a.length+2)):Math.max(4,...alts.map(a=>a.length+1.5));
+    blanks.push({stem,alts,why,cue});
+    html+=`<span class="bw">${stem?`<span class="stem">${esc(stem)}</span>`:""}<input class="blank" data-b="${blanks.length-1}" style="width:${len}ch" autocapitalize="off" autocomplete="off" spellcheck="false" aria-label="${esc(cue||"invullen")}" placeholder="${esc(cue)}"></span>`;
+  }
+  return {html,blanks};
+}
+function ask(){
+  if(qi>=Q.length)return roundEnd();
+  const {it}=Q[qi], topic=TOPICS.find(t=>t.id===it.t);
+  const dots=Q.map((_,i)=>`<span class="${i<qi?"done":""}"></span>`).join("");
+  let body="";
+  if(it.kind==="mc"){
+    const opts=it.opts?it.opts.slice():shuffle([it.a,...shuffle(it.pool).slice(0,3)]);
+    body=`<div class="q">${esc(it.q)}</div><div class="opts">${opts.map(o=>`<button class="opt">${esc(o)}</button>`).join("")}</div>`;
+  }else{
+    const P=parse(it.txt);it._p=P;
+    body=`<div class="sent">${P.html}</div>${it.nl?`<div class="nl">${esc(it.nl)}</div>`:""}
+      <div class="keys">${["ä","ö","ü","ß","Ä","Ö","Ü"].map(k=>`<button type="button" class="key">${k}</button>`).join("")}</div>
+      <button class="btn" id="chk">Controleer</button>`;
+  }
+  $("#app").innerHTML=`<div class="qhead"><button class="ghost" id="stop">Stoppen</button><div class="dots">${dots}</div><div class="seeds">${SEED}<span>${S.seeds}</span></div></div>
+  <div class="panel"><div class="mode">${review?"Herhaling · ":""}${esc(topic.name)}</div><div class="ins">${esc(it.ins)}</div>${body}<div id="fb"></div></div>`;
+  $("#stop").onclick=home;
+  if(it.kind==="mc"){
+    document.querySelectorAll(".opt").forEach(b=>b.onclick=()=>{
+      const ok=b.textContent===it.a;
+      document.querySelectorAll(".opt").forEach(x=>{x.disabled=true;if(x.textContent===it.a)x.classList.add("good")});
+      if(!ok)b.classList.add("bad");
+      result(it,ok,ok?"":`<div>Goed is: <span class="ans">${esc(it.a)}</span></div>${it.why?`<div class="small">${esc(it.why)}</div>`:""}`, it.why&&ok?`<div class="small">${esc(it.why)}</div>`:"");
+    });
+  }else{
+    const ins=[...document.querySelectorAll("input.blank")];
+    lastInput=ins[0];ins.forEach(x=>x.addEventListener("focus",()=>lastInput=x));
+    ins.forEach((x,i)=>x.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();if(ins[i+1])ins[i+1].focus();else check(it)}}));
+    try{ins[0].focus({preventScroll:true})}catch(e){}
+    document.querySelectorAll(".key").forEach(k=>{k.addEventListener("pointerdown",e=>e.preventDefault());k.onclick=()=>{
+      const inp=lastInput;if(!inp||inp.disabled)return;const p=inp.selectionStart??inp.value.length;
+      inp.value=inp.value.slice(0,p)+k.textContent+inp.value.slice(inp.selectionEnd??p);inp.focus();inp.setSelectionRange(p+1,p+1)}});
+    $("#chk").onclick=()=>check(it);
+  }
+}
+const clean=s=>s.replace(/ /g," ").replace(/\s+/g," ").trim();
+const strip=s=>s.normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/ß/g,"ss");
+function judge(b,raw,strict,plural){
+  const t=clean(raw);if(!t)return {ok:false,why:"leeg"};
+  const forms=b.alts.flatMap(a=>{const full=b.stem+a;return a&&b.stem?[full,a]:[full]});
+  if(b.alts.some(a=>a==="")) forms.push("-");
+  if(forms.includes(t))return {ok:true};
+  const lo=t.toLowerCase();
+  const cf=x=>x?x[0].toLowerCase()+x.slice(1):x;
+  if(forms.some(f=>cf(f)===cf(t)))return {ok:true};
+  if(forms.some(f=>f.toLowerCase()===lo))return strict?{ok:false,why:"hoofdletter"}:{ok:true};
+  if(forms.some(f=>strip(f.toLowerCase())===strip(lo)))return {ok:false,why:"umlaut"};
+  if(plural&&forms.some(f=>f.replace(/^die /,"").toLowerCase()===lo))return {ok:false,why:"geendie"};
+  return {ok:false,why:"fout"};
+}
+const WHYLBL={leeg:"niet ingevuld",hoofdletter:"let op de hoofdletter",umlaut:"let op de umlaut of ß",geendie:"lidwoord die vergeten",fout:""};
+function check(it){
+  const P=it._p, ins=[...document.querySelectorAll("input.blank")];
+  if(ins.every(x=>!clean(x.value))){ins[0].focus();return}
+  const res=P.blanks.map((b,i)=>judge(b,ins[i].value,it.strict,it.plural));
+  ins.forEach((x,i)=>{x.disabled=true;x.classList.add(res[i].ok?"ok":"bad")});
+  document.querySelectorAll(".key,#chk").forEach(x=>x.disabled=true);
+  const ok=res.every(r=>r.ok);
+  const wrong=P.blanks.map((b,i)=>({b,r:res[i],typed:clean(ins[i].value)})).filter(x=>!x.r.ok);
+  const fix=wrong.map(({b,r,typed})=>`<li><span class="ans">${esc(b.stem+b.alts[0])}</span>${b.alts.length>1?` <span class="muted">(of ${esc(b.alts.slice(1).map(a=>b.stem+a).join(", "))})</span>`:""}${WHYLBL[r.why]?`<span class="tag">${WHYLBL[r.why]}</span>`:""}${b.why?`<div class="small">${esc(b.why)}</div>`:""}</li>`).join("");
+  const right=ok?P.blanks.filter(b=>b.why).slice(0,3).map(b=>`<li><span class="ans">${esc(b.stem+b.alts[0])}</span> <span class="small">${esc(b.why)}</span></li>`).join(""):"";
+  result(it,ok,wrong.length?`<div>${wrong.length===1?"Dit moet anders:":`Deze ${wrong.length} moeten anders:`}</div><ul>${fix}</ul>`:"",right?`<ul class="small">${right}</ul>`:"");
+}
+function result(it,ok,wrongHtml,okHtml){
+  const st=ST(it);let msg="",extra="";
+  if(ok){
+    S.seeds+=1;st.s++;
+    if(!st.ok&&st.s>=2){st.ok=true;S.seeds+=2;extra=" · <b>gekend!</b> +2"}
+    msg=`<div class="fb ok"><div class="big">${rnd(["Sehr gut!","Super!","Toll!","Prima!","Klasse!"])}</div><div>+1 zonnebloempit${extra}${!st.ok?" · nog één keer goed en je kent hem":""}</div>${okHtml||""}</div>`;
+  }else{
+    st.s=0;st.w++;
+    msg=`<div class="fb no"><div class="big">Bijna!</div>${wrongHtml}<div class="small muted">Deze komt straks nog een keer terug. <a href="#" id="tip">Uitleg bekijken</a></div></div>`;
+    if(!Q[qi].retry)Q.splice(Math.min(qi+3,Q.length),0,{it,retry:true});
+  }
+  save();
+  $("#fb").innerHTML=msg+`<div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn" id="next">Verder</button></div>`;
+  document.querySelectorAll(".qhead .seeds span").forEach(x=>x.textContent=S.seeds);
+  const tip=document.getElementById("tip");
+  if(tip)tip.onclick=e=>{e.preventDefault();const o=modal(`<div class="uitleg" style="text-align:left;max-height:70vh;overflow:auto;width:100%">${UITLEG[it.t]}</div><button class="btn" id="tclose">Terug naar de opgave</button>`);o.querySelector(".modal").style.maxWidth="560px";o.querySelector("#tclose").onclick=closeModal};
+  $("#next").focus({preventScroll:true});
+  try{$("#fb").scrollIntoView({behavior:"smooth",block:"nearest"})}catch(e){}
+  $("#next").onclick=()=>{qi++;if(!adopt(ask))ask()};
+}
+function adopt(then){
+  const m=known();
+  if(S.gerbils.length<gerbilsFor(m)){
+    const used=S.gerbils.map(g=>g.name),free=GNAMES.filter(n=>!used.includes(n));
+    const g={name:rnd(free.length?free:GNAMES),coat:S.gerbils.length===0?0:Math.floor(Math.random()*COATS.length)};
+    S.gerbils.push(g);save();
+    const o=modal(`<h2>Er komt een gerbil bij!</h2>${gerbilSVG(g,"big")}<p class="small muted" style="margin:0">${S.gerbils.length===1?`Je kent je eerste ${FIRST} opgaven.`:`Je kent weer ${EVERY} opgaven.`} Gerbils wonen graag samen.</p>
+      <label for="an" class="small">Hoe heet ze?</label><input id="an" type="text" maxlength="16" value="${esc(g.name)}"><button class="btn" id="aok">Willkommen!</button>`);
+    o.querySelector("#aok").onclick=()=>{const v=o.querySelector("#an").value.trim();if(v)g.name=v;save();closeModal();then()};
+    return true;
+  }
+  if(goldFor(m)>S.gold){
+    S.gold=goldFor(m);S.seeds+=15;save();
+    const o=modal(`<h2>Een gouden zonnebloempit!</h2><svg class="big" viewBox="0 0 18 24" style="width:80px"><path d="M9 1c5 4 7 10 6 15-1 4-4 6-6 7-2-1-5-3-6-7C2 11 4 5 9 1z" fill="#e9b21c" stroke="#a07a10"/></svg><p class="small muted" style="margin:0">Het terrarium zit vol gerbils. Voor elke ${EVERY} gekende opgaven krijg je nu 15 extra pitten.</p><button class="btn" id="aok">Super!</button>`);
+    o.querySelector("#aok").onclick=()=>{closeModal();then()};return true;
+  }
+  return false;
+}
+function roundEnd(){
+  if(adopt(roundEnd))return;
+  const sel=selected();
+  $("#app").innerHTML=`<div class="panel" style="text-align:center;display:flex;flex-direction:column;gap:12px;align-items:center">
+    <h2>Ronde klaar!</h2><p>Van wat je nu oefent ken je er <b>${known(sel)}</b> van de ${sel.length}. Je hebt <b>${S.seeds}</b> zonnebloempitten.</p>
+    <div class="row" style="justify-content:center"><button class="btn" id="again">Nog een ronde</button><button class="ghost" id="h">Naar het terrarium</button></div></div>`;
+  $("#again").onclick=startRound;$("#h").onclick=home;
+}
+home();
+</script>
+</body>
+</html>
