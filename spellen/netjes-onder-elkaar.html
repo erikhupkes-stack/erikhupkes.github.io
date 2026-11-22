@@ -1,0 +1,1674 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<script>
+/* iOS-hulp: vult functies aan die oudere iPhones/iPads missen en laat fouten op het scherm zien. Bewust in oud JavaScript (ES5). */
+(function(){
+  var AP = Array.prototype;
+  if (!AP.flat) AP.flat = function(d){ d = d === undefined ? 1 : d; return d > 0 ? this.reduce(function(a, v){ return a.concat(Array.isArray(v) ? v.flat(d - 1) : v); }, []) : this.slice(); };
+  if (!AP.flatMap) AP.flatMap = function(f, t){ return this.map(f, t).flat(1); };
+  if (!AP.includes) AP.includes = function(x){ return this.indexOf(x) !== -1 || (x !== x && this.some(function(v){ return v !== v; })); };
+  if (!Object.fromEntries) Object.fromEntries = function(it){ var o = {}; Array.from(it).forEach(function(p){ o[p[0]] = p[1]; }); return o; };
+  if (!Object.values) Object.values = function(o){ return Object.keys(o).map(function(k){ return o[k]; }); };
+  if (!Object.entries) Object.entries = function(o){ return Object.keys(o).map(function(k){ return [k, o[k]]; }); };
+  if (!String.prototype.padStart) String.prototype.padStart = function(n, s){ var t = String(this); s = s === undefined ? ' ' : String(s); while (t.length < n) t = s + t; return t.slice(t.length - Math.max(n, String(this).length)); };
+  if (typeof window.TextEncoder === 'undefined') window.TextEncoder = function(){};
+  if (!window.TextEncoder.prototype.encode) window.TextEncoder.prototype.encode = function(str){
+    var bin = unescape(encodeURIComponent(String(str))), out = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+    return out;
+  };
+  if (window.NodeList && !NodeList.prototype.forEach) NodeList.prototype.forEach = AP.forEach;
+
+  var shown = false;
+  function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]; }); }
+  function show(msg){
+    if (shown) return; shown = true;
+    var ios = navigator.userAgent.match(/OS (\d+)_(\d+)/), dev = ios ? 'iOS ' + ios[1] + '.' + ios[2] : navigator.platform || '';
+    var d = document.createElement('div');
+    d.setAttribute('role', 'alert');
+    d.style.cssText = 'position:fixed;left:12px;right:12px;bottom:12px;z-index:99999;background:#C9334F;color:#fff;font:600 15px/1.4 -apple-system,system-ui,sans-serif;padding:12px 14px;border-radius:14px;box-shadow:0 6px 0 rgba(0,0,0,.25)';
+    d.innerHTML = '<b>Het spel loopt vast op dit apparaat.</b><br>Maak een schermafbeelding en laat die aan je docent zien.'
+      + '<div style="font-weight:400;font-size:13px;margin-top:6px;word-break:break-word">' + esc(msg) + '<br>' + esc(dev) + '<br>' + esc(navigator.userAgent.slice(0, 160)) + '</div>';
+    (document.body || document.documentElement).appendChild(d);
+  }
+  window.__hoekReport = show;
+  var here = location.href.split('#')[0];
+  window.onerror = function(m, src, line, col){
+    if (!m || /^Script error\.?$/.test(m)) return;            // fouten uit scripts van andere sites negeren
+    if (src && src.split('#')[0] !== here) return;             // alleen fouten uit deze pagina
+    show(m + (line ? ' (regel ' + line + (col ? ':' + col : '') + ')' : ''));
+  };
+  window.addEventListener('load', function(){
+    setTimeout(function(){ if (!window.__hoekOK) show('Het spel is niet gestart: het script kon niet worden uitgevoerd.'); }, 2500);
+  });
+})();
+</script>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Netjes onder elkaar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Patrick+Hand&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#BCD2E8; --sky:#CFE0F5; --card:#FFFFFF; --field:#EEF3F9;
+  --ink:#24274F; --ink-soft:#50557F; --accent:#7578C6; --accent-dark:#45488A;
+  --gold:#F5B83A; --good:#23885A; --bad:#C9334F; --heart:#E5486B; --shadow:rgba(30,35,80,.22);
+  --paper:#FFFDF5; --rule:#C7D7EE; --margin:#EAA0AE; --pen:#1F3A93; --pen-soft:#6A7BB8;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#1B1F3D; --sky:#232850; --card:#272C55; --field:#1F2448;
+    --ink:#ECEEFF; --ink-soft:#B4B8E4; --accent:#8E91E3; --accent-dark:#4C4F94;
+    --good:#5CD39A; --bad:#FF7A93; --heart:#FF6B88; --shadow:rgba(0,0,0,.35);
+    --paper:#262B52; --rule:#3B4278; --margin:#9C4A60; --pen:#C9D6FF; --pen-soft:#8C98D0;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#1B1F3D; --sky:#232850; --card:#272C55; --field:#1F2448;
+  --ink:#ECEEFF; --ink-soft:#B4B8E4; --accent:#8E91E3; --accent-dark:#4C4F94;
+  --good:#5CD39A; --bad:#FF7A93; --heart:#FF6B88; --shadow:rgba(0,0,0,.35);
+  --paper:#262B52; --rule:#3B4278; --margin:#9C4A60; --pen:#C9D6FF; --pen-soft:#8C98D0;
+}
+*,*::before,*::after{box-sizing:border-box}
+[hidden]{display:none !important}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);overflow:hidden;font-family:'Baloo 2',ui-rounded,'Segoe UI',system-ui,sans-serif;
+  -webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none;touch-action:manipulation;overscroll-behavior:none}
+#app{position:fixed;top:0;right:0;bottom:0;left:0;display:flex;flex-direction:column;
+  padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px);
+  max-width:620px;margin:0 auto;background:linear-gradient(var(--sky),var(--bg))}
+.hand{font-family:'Patrick Hand','Comic Sans MS','Segoe Print',cursive}
+/* bovenbalk */
+.hud{display:flex;align-items:center;gap:8px;padding:10px 12px 6px}
+.pill{background:var(--card);border-radius:14px;padding:4px 10px 1px;box-shadow:0 3px 0 var(--shadow);font-weight:800;font-size:1rem;line-height:1.5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.pill small{font-weight:700;color:var(--ink-soft);font-size:.75rem;margin-right:3px}
+.gates{display:flex;gap:4px;align-items:center}
+.gate{width:16px;height:22px;border-radius:8px 8px 3px 3px;background:var(--card);box-shadow:inset 0 0 0 2px var(--accent);position:relative;overflow:hidden}
+.gate i{position:absolute;left:0;right:0;bottom:0;height:0;background:var(--gold);transition:height .3s}
+.gate.half i{height:50%}
+.gate.open{background:var(--good);box-shadow:none}
+.hearts{display:flex;gap:2px}
+.hearts svg{width:20px;height:20px}
+.hearts svg.lost{opacity:.25}
+.hearts svg.pop{animation:hpop .5s}
+@keyframes hpop{0%{transform:scale(1)}40%{transform:scale(1.5)}100%{transform:scale(1)}}
+.spacer{flex:1}
+.iconbtn{font:inherit;font-weight:800;border:0;background:var(--card);color:var(--ink);border-radius:12px;width:38px;height:34px;box-shadow:0 3px 0 var(--shadow);cursor:pointer;flex:none}
+/* opgave */
+.task{margin:2px 12px 8px;background:var(--card);border-radius:16px;box-shadow:0 4px 0 var(--accent-dark);padding:6px 14px 4px;display:flex;align-items:baseline;gap:10px}
+.task .lab{font-weight:800;color:var(--ink-soft);font-size:.95rem;white-space:nowrap}
+.task .som{font-weight:800;font-size:1.6rem;line-height:1.3;white-space:nowrap}
+.task .mode{margin-left:auto;font-size:.8rem;font-weight:800;color:var(--accent-dark);background:var(--field);border-radius:8px;padding:1px 7px 0;white-space:nowrap}
+/* schrift */
+.paper{position:relative;flex:1;min-height:150px;margin:0 12px 8px;border-radius:6px 6px 14px 14px;overflow:auto;-webkit-overflow-scrolling:touch;
+  background-color:var(--paper);
+  background-image:linear-gradient(90deg,transparent 46px,var(--margin) 46px,var(--margin) 48px,transparent 48px),
+    repeating-linear-gradient(transparent 0,transparent 43px,var(--rule) 43px,var(--rule) 44px);
+  background-attachment:local;box-shadow:0 4px 0 var(--shadow);padding:10px 0 20px}
+.row{position:relative;height:44px;display:flex;align-items:flex-end;padding:0 10px 2px 60px;font-size:1.75rem;line-height:1;color:var(--pen);white-space:nowrap}
+.row .nr{position:absolute;left:8px;bottom:6px;font-size:1.15rem;color:var(--pen-soft)}
+.row .tx{display:inline-block;padding:2px 6px 0;border:3px solid transparent;border-radius:8px;transition:border-color .25s}
+.row.new .tx{animation:write .35s ease-out}
+@keyframes write{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:none}}
+.row.bad{color:var(--bad)}
+.row.bad .tx{text-decoration:line-through;text-decoration-thickness:2px}
+.row.kriebel{height:22px;margin:-22px 0 0;font-size:1.15rem;padding-left:150px;transform:rotate(-3deg)}
+.row .ans{display:inline-block;margin-left:4px;padding:2px 6px 0;border:3px solid transparent;border-radius:8px;transition:border-color .25s}
+.row .badans{color:var(--bad);margin-left:6px;text-decoration:line-through;text-decoration-thickness:2px}
+.row.boxed:not(.hasans) .tx,.row.boxed .ans{border-color:var(--pen)}
+.row.markable{cursor:pointer}
+.row.markable .tx{background:rgba(117,120,198,.12)}
+.row.markable:hover .tx{border-color:var(--pen-soft)}
+.row.boxwrong:not(.hasans) .tx{border-color:var(--bad)}
+.row.typing .tx{min-width:40px}
+.caret{display:inline-block;width:2px;height:1.2em;background:var(--pen);vertical-align:-0.15em;margin-left:2px;animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+.stamp{position:absolute;right:14px;top:10px;font-weight:800;font-size:1.2rem;color:var(--good);border:3px solid var(--good);border-radius:10px;padding:2px 10px 0;transform:rotate(8deg);opacity:0;transition:opacity .2s}
+.stamp.show{opacity:1}
+/* bedieningspaneel */
+.panel{margin:0 12px 12px;background:var(--card);border-radius:20px;box-shadow:0 6px 0 var(--accent-dark);padding:8px 10px 10px}
+.prompt{display:flex;align-items:center;gap:8px;min-height:40px}
+.prompt .q{font-weight:800;font-size:1.05rem;line-height:1.2;flex:1}
+.klaar{font:inherit;font-weight:800;font-size:1.05rem;border:0;border-radius:12px;padding:8px 14px 5px;background:var(--gold);color:#24274F;box-shadow:0 4px 0 #B07A12;cursor:pointer;flex:none}
+.klaar:active{transform:translateY(2px);box-shadow:0 2px 0 #B07A12}
+.opts{display:flex;flex-direction:column;gap:8px;margin-top:6px}
+.opt{font:inherit;display:flex;align-items:center;gap:10px;width:100%;min-height:58px;border:0;border-radius:14px;background:var(--paper);color:var(--pen);
+  box-shadow:inset 0 0 0 2px var(--rule),0 4px 0 var(--shadow);padding:6px 12px;cursor:pointer;text-align:left}
+.opt .k{flex:none;width:26px;height:26px;border-radius:8px;background:var(--field);color:var(--ink-soft);font-family:'Baloo 2',system-ui,sans-serif;font-weight:800;font-size:.95rem;line-height:28px;text-align:center}
+.opt .pre{color:var(--pen-soft);opacity:.75}
+.opt .tx{font-size:1.6rem;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.opt:active{transform:translateY(2px);box-shadow:inset 0 0 0 2px var(--rule),0 2px 0 var(--shadow)}
+.opt:focus-visible,.btn:focus-visible,.iconbtn:focus-visible,.klaar:focus-visible,.key:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.hint{color:var(--ink-soft);font-weight:700;font-size:.95rem;text-align:center;padding:14px 4px}
+/* toetsenbord */
+.keys{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:6px}
+.key{font:inherit;font-weight:800;font-size:1.35rem;height:50px;border:0;border-radius:12px;background:var(--field);color:var(--ink);box-shadow:0 3px 0 var(--shadow);cursor:pointer;padding:0}
+.key.op{background:var(--paper);color:var(--pen)}
+.key.ok{background:var(--accent);color:#fff;box-shadow:0 3px 0 var(--accent-dark);font-size:1.05rem}
+.key:active{transform:translateY(2px);box-shadow:0 1px 0 var(--shadow)}
+.msg{min-height:0;color:var(--bad);font-weight:700;font-size:.92rem;line-height:1.2}
+.banner{position:fixed;left:50%;top:36%;transform:translate(-50%,-50%);background:var(--card);border-radius:16px;padding:10px 18px 7px;font-weight:800;font-size:1.35rem;
+  box-shadow:0 5px 0 var(--accent-dark);z-index:15;white-space:nowrap;opacity:0;transition:opacity .25s;pointer-events:none}
+.banner.show{opacity:1}
+/* overlays */
+.overlay{position:fixed;top:0;right:0;bottom:0;left:0;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(20,24,60,.45);z-index:20;overflow:auto}
+.overlay[hidden]{display:none}
+.card{background:var(--card);color:var(--ink);border-radius:22px;padding:20px;width:min(460px,100%);box-shadow:0 8px 0 var(--accent-dark);max-height:100%;overflow:auto;-webkit-user-select:text;user-select:text}
+.card h1{margin:0;font-size:2rem;line-height:1.05}
+.card h2{margin:0 0 6px;font-size:1.5rem;line-height:1.1}
+.card p{margin:8px 0;line-height:1.35}
+.sub{color:var(--ink-soft);font-weight:700;margin-top:2px}
+.fields{display:flex;gap:10px;margin:12px 0 4px}
+.fields label{display:flex;flex-direction:column;font-weight:700;font-size:.95rem;flex:1}
+.fields label:last-child{flex:0 0 110px}
+input,select{font:inherit;font-size:1.05rem;padding:7px 10px 4px;border-radius:12px;border:2px solid var(--accent);background:var(--field);color:var(--ink);width:100%}
+.btn{font:inherit;font-weight:800;font-size:1.1rem;background:var(--accent);color:#fff;border:0;border-radius:14px;padding:10px 18px 7px;box-shadow:0 4px 0 var(--accent-dark);cursor:pointer}
+.btn.quiet{background:var(--field);color:var(--ink);box-shadow:0 4px 0 var(--shadow)}
+.btn:active{transform:translateY(2px);box-shadow:0 2px 0 var(--accent-dark)}
+.btnrow{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+.error{color:var(--bad);font-weight:700}
+.mini{background-color:var(--paper);border-radius:10px;padding:6px 0 8px;margin:8px 0;
+  background-image:linear-gradient(90deg,transparent 30px,var(--margin) 30px,var(--margin) 32px,transparent 32px),
+    repeating-linear-gradient(transparent 0,transparent 33px,var(--rule) 33px,var(--rule) 34px)}
+.mini .row{height:34px;font-size:1.4rem;padding-left:42px}
+.mini .row .nr{display:none}
+.levels{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0 4px}
+.lvl{font:inherit;text-align:left;border:0;border-radius:14px;background:var(--field);color:var(--ink);padding:8px 10px 5px;box-shadow:0 3px 0 var(--shadow);cursor:pointer}
+.lvl b{display:block;font-size:1rem;line-height:1.1}
+.lvl span{font-size:.8rem;color:var(--ink-soft);font-weight:700}
+.lvl.sel{box-shadow:inset 0 0 0 3px var(--accent),0 3px 0 var(--shadow)}
+.lvl[disabled]{opacity:.45;cursor:default}
+.why .lp{background:var(--field);border-radius:12px;padding:8px 12px 6px;line-height:1.4;font-weight:600}
+.why .badline{font-size:1.5rem;color:var(--bad);text-align:center;margin:6px 0;text-decoration:line-through}
+.stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin:12px 0}
+.stat{background:var(--field);border-radius:12px;padding:6px 8px 3px;text-align:center}
+.stat b{display:block;font-size:1.5rem;line-height:1.1}
+.stat span{font-size:.8rem;color:var(--ink-soft);font-weight:700}
+.stars{font-size:2.2rem;text-align:center;letter-spacing:6px;color:var(--gold);line-height:1}
+.stars .off{color:var(--field)}
+.traps{margin:6px 0 0;padding:0;list-style:none}
+.traps li{display:flex;justify-content:space-between;gap:10px;padding:4px 0;border-bottom:1px solid var(--field)}
+.traps li b{color:var(--bad)}
+.ckbar{display:flex;gap:6px;justify-content:center;margin:4px 0}
+.ckbar i{width:16px;height:16px;border-radius:50%;background:var(--field)}
+.ckbar i.on{background:var(--heart)}
+.ckfb{background:var(--field);border-radius:12px;padding:8px 12px 6px;line-height:1.35;font-weight:600;margin-top:8px}
+.ckfb b.g{color:var(--good)} .ckfb b.f{color:var(--bad)}
+.qr{display:block;width:min(300px,100%);margin:10px auto;background:#fff;border-radius:12px;padding:8px}
+.qr svg{display:block;width:100%;height:auto}
+.codeinfo{text-align:center;font-weight:700;color:var(--ink-soft);font-size:.95rem}
+@media (max-height:640px){
+  .row{height:38px;font-size:1.5rem}
+  .paper{background-image:linear-gradient(90deg,transparent 46px,var(--margin) 46px,var(--margin) 48px,transparent 48px),repeating-linear-gradient(transparent 0,transparent 37px,var(--rule) 37px,var(--rule) 38px)}
+  .opt{min-height:50px} .opt .tx{font-size:1.4rem} .key{height:44px} .task .som{font-size:1.4rem}
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="hud">
+    <div class="pill" id="hudLevel"><small>level</small>1</div>
+    <div class="gates" id="hudGates" aria-label="Poorten"></div>
+    <div class="spacer"></div>
+    <div class="hearts" id="hudHearts" aria-label="Levens"></div>
+    <button class="iconbtn" id="btnPause" aria-label="Pauze">II</button>
+  </div>
+  <div class="task">
+    <span class="lab" id="taskLab">Opgave 1a</span>
+    <span class="som hand" id="taskSom"></span>
+    <span class="mode" id="taskMode" hidden>typen</span>
+  </div>
+  <div class="paper" id="paper" aria-label="Schrift"><div class="stamp" id="stamp">Netjes!</div><div id="rows"></div></div>
+  <div class="panel">
+    <div class="prompt"><div class="q" id="prompt">Neem de som over.</div><button class="klaar" id="btnKlaar" hidden>Klaar</button></div>
+    <div class="msg" id="msg"></div>
+    <div class="opts" id="opts"></div>
+    <div class="keys" id="keys" hidden></div>
+  </div>
+</div>
+<div class="banner" id="banner"></div>
+
+<!-- startscherm -->
+<div class="overlay" id="startOv">
+  <div class="card">
+    <h1>Netjes onder elkaar</h1>
+    <p class="sub">Rekenvolgorde netjes uitwerken</p>
+    <p>Neem de som over en zet er <b>=</b> achter. Elke stap komt op een nieuwe regel, netjes onder elkaar, met <b>=</b> aan het eind. Het antwoord schrijf je achter het laatste <b>=</b>: dat omkader je.</p>
+    <div class="mini hand" aria-label="Voorbeeld">
+      <div class="row"><span class="tx">3 + 4 · 2 =</span></div>
+      <div class="row boxed hasans"><span class="tx">3 + 8 = <span class="ans">11</span></span></div>
+    </div>
+    <p>Elke poort heeft 2 sommen. Een verkeerde keuze kost een leven. Zijn je levens op, dan laad je ze op door werk van een klasgenoot na te kijken.</p>
+    <div class="fields">
+      <label>Je naam<input id="inName" maxlength="30" autocomplete="off" spellcheck="false"></label>
+      <label>Klas<select id="inKlas">
+        <option value="">Kies…</option><option>LV1A</option><option>LV1B</option><option>LV2A</option><option>LV2B</option><option>LV2C</option><option>Anders</option>
+      </select></label>
+    </div>
+    <div class="levels" id="levelPick"></div>
+    <p class="error" id="startErr" hidden></p>
+    <div class="btnrow">
+      <button class="btn" id="btnStart">Begin</button>
+      <button class="btn quiet" id="btnStartCode" hidden>Mijn code</button>
+    </div>
+  </div>
+</div>
+
+<!-- uitleg bij een fout -->
+<div class="overlay" id="whyOv" hidden>
+  <div class="card why">
+    <h2 id="whyTitle">Niet netjes</h2>
+    <div class="badline hand" id="whyLine"></div>
+    <div class="lp" id="whyText"></div>
+    <div class="btnrow"><button class="btn" id="btnWhyOk">Verder</button></div>
+  </div>
+</div>
+
+<!-- oplaadspel: nakijken -->
+<div class="overlay" id="checkOv" hidden>
+  <div class="card">
+    <h2>Levens opladen</h2>
+    <p style="margin-top:0">Kijk het werk van een klasgenoot na. Tik op de regel die <b>niet</b> netjes of niet goed is. Klopt alles? Tik op <b>Helemaal goed</b>.</p>
+    <div class="ckbar" id="ckBar"></div>
+    <div class="mini hand" id="ckPaper"></div>
+    <div class="ckfb" id="ckFb" hidden></div>
+    <div class="btnrow">
+      <button class="btn" id="btnCkNetjes">Helemaal goed</button>
+      <button class="btn" id="btnCkNext" hidden>Volgende</button>
+    </div>
+  </div>
+</div>
+
+<!-- pauze -->
+<div class="overlay" id="pauseOv" hidden>
+  <div class="card">
+    <h2>Pauze</h2>
+    <p id="pauseInfo"></p>
+    <div class="btnrow">
+      <button class="btn" id="btnResume">Verder</button>
+      <button class="btn quiet" id="btnPauseCode">Mijn code</button>
+      <button class="btn quiet" id="btnQuit">Naar het begin</button>
+    </div>
+  </div>
+</div>
+
+<!-- einde level -->
+<div class="overlay" id="endOv" hidden>
+  <div class="card">
+    <h2 id="endTitle">Level gehaald!</h2>
+    <div class="stars" id="endStars"></div>
+    <div class="stats">
+      <div class="stat"><b id="stTime">0:00</b><span>tijd</span></div>
+      <div class="stat"><b id="stBad">0</b><span>fouten</span></div>
+      <div class="stat"><b id="stCheck">0</b><span>keer opgeladen</span></div>
+    </div>
+    <div id="endTraps"></div>
+    <div class="btnrow">
+      <button class="btn" id="btnNext">Volgend level</button>
+      <button class="btn quiet" id="btnCode">Mijn code</button>
+    </div>
+  </div>
+</div>
+
+<!-- QR-code -->
+<div class="overlay" id="qrOv" hidden>
+  <div class="card">
+    <h2>Mijn code</h2>
+    <p class="codeinfo" id="qrInfo"></p>
+    <div class="qr" id="qrBox"></div>
+    <p class="codeinfo">Laat deze code scannen door je docent.</p>
+    <div class="btnrow"><button class="btn" id="btnQrClose">Sluiten</button></div>
+  </div>
+</div>
+
+<script>
+/* qrcode-generator, (c) 2009 Kazuhiko Arase, MIT-licentie */
+var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],f={},c=function(t,r){o=function(t){for(var r=new Array(t),e=0;e<t;e+=1){r[e]=new Array(t);for(var n=0;n<t;n+=1)r[e][n]=null}return r}(i=4*e+17),l(0,0),l(i-7,0),l(0,i-7),s(),h(),d(t,r),e>=7&&v(t),null==a&&(a=p(e,n,u)),w(a,r)},l=function(t,r){for(var e=-1;e<=7;e+=1)if(!(t+e<=-1||i<=t+e))for(var n=-1;n<=7;n+=1)r+n<=-1||i<=r+n||(o[t+e][r+n]=0<=e&&e<=6&&(0==n||6==n)||0<=n&&n<=6&&(0==e||6==e)||2<=e&&e<=4&&2<=n&&n<=4)},h=function(){for(var t=8;t<i-8;t+=1)null==o[t][6]&&(o[t][6]=t%2==0);for(var r=8;r<i-8;r+=1)null==o[6][r]&&(o[6][r]=r%2==0)},s=function(){for(var t=B.getPatternPosition(e),r=0;r<t.length;r+=1)for(var n=0;n<t.length;n+=1){var i=t[r],a=t[n];if(null==o[i][a])for(var u=-2;u<=2;u+=1)for(var f=-2;f<=2;f+=1)o[i+u][a+f]=-2==u||2==u||-2==f||2==f||0==u&&0==f}},v=function(t){for(var r=B.getBCHTypeNumber(e),n=0;n<18;n+=1){var a=!t&&1==(r>>n&1);o[Math.floor(n/3)][n%3+i-8-3]=a}for(n=0;n<18;n+=1){a=!t&&1==(r>>n&1);o[n%3+i-8-3][Math.floor(n/3)]=a}},d=function(t,r){for(var e=n<<3|r,a=B.getBCHTypeInfo(e),u=0;u<15;u+=1){var f=!t&&1==(a>>u&1);u<6?o[u][8]=f:u<8?o[u+1][8]=f:o[i-15+u][8]=f}for(u=0;u<15;u+=1){f=!t&&1==(a>>u&1);u<8?o[8][i-u-1]=f:u<9?o[8][15-u-1+1]=f:o[8][15-u-1]=f}o[i-8][8]=!t},w=function(t,r){for(var e=-1,n=i-1,a=7,u=0,f=B.getMaskFunction(r),c=i-1;c>0;c-=2)for(6==c&&(c-=1);;){for(var g=0;g<2;g+=1)if(null==o[n][c-g]){var l=!1;u<t.length&&(l=1==(t[u]>>>a&1)),f(n,c-g)&&(l=!l),o[n][c-g]=l,-1==(a-=1)&&(u+=1,a=7)}if((n+=e)<0||i<=n){n-=e,e=-e;break}}},p=function(t,r,e){for(var n=A.getRSBlocks(t,r),o=b(),i=0;i<e.length;i+=1){var a=e[i];o.put(a.getMode(),4),o.put(a.getLength(),B.getLengthInBits(a.getMode(),t)),a.write(o)}var u=0;for(i=0;i<n.length;i+=1)u+=n[i].dataCount;if(o.getLengthInBits()>8*u)throw"code length overflow. ("+o.getLengthInBits()+">"+8*u+")";for(o.getLengthInBits()+4<=8*u&&o.put(0,4);o.getLengthInBits()%8!=0;)o.putBit(!1);for(;!(o.getLengthInBits()>=8*u||(o.put(236,8),o.getLengthInBits()>=8*u));)o.put(17,8);return function(t,r){for(var e=0,n=0,o=0,i=new Array(r.length),a=new Array(r.length),u=0;u<r.length;u+=1){var f=r[u].dataCount,c=r[u].totalCount-f;n=Math.max(n,f),o=Math.max(o,c),i[u]=new Array(f);for(var g=0;g<i[u].length;g+=1)i[u][g]=255&t.getBuffer()[g+e];e+=f;var l=B.getErrorCorrectPolynomial(c),h=k(i[u],l.getLength()-1).mod(l);for(a[u]=new Array(l.getLength()-1),g=0;g<a[u].length;g+=1){var s=g+h.getLength()-a[u].length;a[u][g]=s>=0?h.getAt(s):0}}var v=0;for(g=0;g<r.length;g+=1)v+=r[g].totalCount;var d=new Array(v),w=0;for(g=0;g<n;g+=1)for(u=0;u<r.length;u+=1)g<i[u].length&&(d[w]=i[u][g],w+=1);for(g=0;g<o;g+=1)for(u=0;u<r.length;u+=1)g<a[u].length&&(d[w]=a[u][g],w+=1);return d}(o,n)};f.addData=function(t,r){var e=null;switch(r=r||"Byte"){case"Numeric":e=M(t);break;case"Alphanumeric":e=x(t);break;case"Byte":e=m(t);break;case"Kanji":e=L(t);break;default:throw"mode:"+r}u.push(e),a=null},f.isDark=function(t,r){if(t<0||i<=t||r<0||i<=r)throw t+","+r;return o[t][r]},f.getModuleCount=function(){return i},f.make=function(){if(e<1){for(var t=1;t<40;t++){for(var r=A.getRSBlocks(t,n),o=b(),i=0;i<u.length;i++){var a=u[i];o.put(a.getMode(),4),o.put(a.getLength(),B.getLengthInBits(a.getMode(),t)),a.write(o)}var g=0;for(i=0;i<r.length;i++)g+=r[i].dataCount;if(o.getLengthInBits()<=8*g)break}e=t}c(!1,function(){for(var t=0,r=0,e=0;e<8;e+=1){c(!0,e);var n=B.getLostPoint(f);(0==e||t>n)&&(t=n,r=e)}return r}())},f.createTableTag=function(t,r){t=t||2;var e="";e+='<table style="',e+=" border-width: 0px; border-style: none;",e+=" border-collapse: collapse;",e+=" padding: 0px; margin: "+(r=void 0===r?4*t:r)+"px;",e+='">',e+="<tbody>";for(var n=0;n<f.getModuleCount();n+=1){e+="<tr>";for(var o=0;o<f.getModuleCount();o+=1)e+='<td style="',e+=" border-width: 0px; border-style: none;",e+=" border-collapse: collapse;",e+=" padding: 0px; margin: 0px;",e+=" width: "+t+"px;",e+=" height: "+t+"px;",e+=" background-color: ",e+=f.isDark(n,o)?"#000000":"#ffffff",e+=";",e+='"/>';e+="</tr>"}return e+="</tbody>",e+="</table>"},f.createSvgTag=function(t,r,e,n){var o={};"object"==typeof arguments[0]&&(t=(o=arguments[0]).cellSize,r=o.margin,e=o.alt,n=o.title),t=t||2,r=void 0===r?4*t:r,(e="string"==typeof e?{text:e}:e||{}).text=e.text||null,e.id=e.text?e.id||"qrcode-description":null,(n="string"==typeof n?{text:n}:n||{}).text=n.text||null,n.id=n.text?n.id||"qrcode-title":null;var i,a,u,c,g=f.getModuleCount()*t+2*r,l="";for(c="l"+t+",0 0,"+t+" -"+t+",0 0,-"+t+"z ",l+='<svg version="1.1" xmlns="http://www.w3.org/2000/svg"',l+=o.scalable?"":' width="'+g+'px" height="'+g+'px"',l+=' viewBox="0 0 '+g+" "+g+'" ',l+=' preserveAspectRatio="xMinYMin meet"',l+=n.text||e.text?' role="img" aria-labelledby="'+y([n.id,e.id].join(" ").trim())+'"':"",l+=">",l+=n.text?'<title id="'+y(n.id)+'">'+y(n.text)+"</title>":"",l+=e.text?'<description id="'+y(e.id)+'">'+y(e.text)+"</description>":"",l+='<rect width="100%" height="100%" fill="white" cx="0" cy="0"/>',l+='<path d="',a=0;a<f.getModuleCount();a+=1)for(u=a*t+r,i=0;i<f.getModuleCount();i+=1)f.isDark(a,i)&&(l+="M"+(i*t+r)+","+u+c);return l+='" stroke="transparent" fill="black"/>',l+="</svg>"},f.createDataURL=function(t,r){t=t||2,r=void 0===r?4*t:r;var e=f.getModuleCount()*t+2*r,n=r,o=e-r;return I(e,e,function(r,e){if(n<=r&&r<o&&n<=e&&e<o){var i=Math.floor((r-n)/t),a=Math.floor((e-n)/t);return f.isDark(a,i)?0:1}return 1})},f.createImgTag=function(t,r,e){t=t||2,r=void 0===r?4*t:r;var n=f.getModuleCount()*t+2*r,o="";return o+="<img",o+=' src="',o+=f.createDataURL(t,r),o+='"',o+=' width="',o+=n,o+='"',o+=' height="',o+=n,o+='"',e&&(o+=' alt="',o+=y(e),o+='"'),o+="/>"};var y=function(t){for(var r="",e=0;e<t.length;e+=1){var n=t.charAt(e);switch(n){case"<":r+="&lt;";break;case">":r+="&gt;";break;case"&":r+="&amp;";break;case'"':r+="&quot;";break;default:r+=n}}return r};return f.createASCII=function(t,r){if((t=t||1)<2)return function(t){t=void 0===t?2:t;var r,e,n,o,i,a=1*f.getModuleCount()+2*t,u=t,c=a-t,g={"██":"█","█ ":"▀"," █":"▄","  ":" "},l={"██":"▀","█ ":"▀"," █":" ","  ":" "},h="";for(r=0;r<a;r+=2){for(n=Math.floor((r-u)/1),o=Math.floor((r+1-u)/1),e=0;e<a;e+=1)i="█",u<=e&&e<c&&u<=r&&r<c&&f.isDark(n,Math.floor((e-u)/1))&&(i=" "),u<=e&&e<c&&u<=r+1&&r+1<c&&f.isDark(o,Math.floor((e-u)/1))?i+=" ":i+="█",h+=t<1&&r+1>=c?l[i]:g[i];h+="\n"}return a%2&&t>0?h.substring(0,h.length-a-1)+Array(a+1).join("▀"):h.substring(0,h.length-1)}(r);t-=1,r=void 0===r?2*t:r;var e,n,o,i,a=f.getModuleCount()*t+2*r,u=r,c=a-r,g=Array(t+1).join("██"),l=Array(t+1).join("  "),h="",s="";for(e=0;e<a;e+=1){for(o=Math.floor((e-u)/t),s="",n=0;n<a;n+=1)i=1,u<=n&&n<c&&u<=e&&e<c&&f.isDark(o,Math.floor((n-u)/t))&&(i=0),s+=i?g:l;for(o=0;o<t;o+=1)h+=s+"\n"}return h.substring(0,h.length-1)},f.renderTo2dContext=function(t,r){r=r||2;for(var e=f.getModuleCount(),n=0;n<e;n++)for(var o=0;o<e;o++)t.fillStyle=f.isDark(n,o)?"black":"white",t.fillRect(o*r,n*r,r,r)},f};t.stringToBytes=(t.stringToBytesFuncs={default:function(t){for(var r=[],e=0;e<t.length;e+=1){var n=t.charCodeAt(e);r.push(255&n)}return r}}).default,t.createStringToBytes=function(t,r){var e=function(){for(var e=S(t),n=function(){var t=e.read();if(-1==t)throw"eof";return t},o=0,i={};;){var a=e.read();if(-1==a)break;var u=n(),f=n()<<8|n();i[String.fromCharCode(a<<8|u)]=f,o+=1}if(o!=r)throw o+" != "+r;return i}(),n="?".charCodeAt(0);return function(t){for(var r=[],o=0;o<t.length;o+=1){var i=t.charCodeAt(o);if(i<128)r.push(i);else{var a=e[t.charAt(o)];"number"==typeof a?(255&a)==a?r.push(a):(r.push(a>>>8),r.push(255&a)):r.push(n)}}return r}};var r,e,n,o,i,a=1,u=2,f=4,c=8,g={L:1,M:0,Q:3,H:2},l=0,h=1,s=2,v=3,d=4,w=5,p=6,y=7,B=(r=[[],[6,18],[6,22],[6,26],[6,30],[6,34],[6,22,38],[6,24,42],[6,26,46],[6,28,50],[6,30,54],[6,32,58],[6,34,62],[6,26,46,66],[6,26,48,70],[6,26,50,74],[6,30,54,78],[6,30,56,82],[6,30,58,86],[6,34,62,90],[6,28,50,72,94],[6,26,50,74,98],[6,30,54,78,102],[6,28,54,80,106],[6,32,58,84,110],[6,30,58,86,114],[6,34,62,90,118],[6,26,50,74,98,122],[6,30,54,78,102,126],[6,26,52,78,104,130],[6,30,56,82,108,134],[6,34,60,86,112,138],[6,30,58,86,114,142],[6,34,62,90,118,146],[6,30,54,78,102,126,150],[6,24,50,76,102,128,154],[6,28,54,80,106,132,158],[6,32,58,84,110,136,162],[6,26,54,82,110,138,166],[6,30,58,86,114,142,170]],e=1335,n=7973,i=function(t){for(var r=0;0!=t;)r+=1,t>>>=1;return r},(o={}).getBCHTypeInfo=function(t){for(var r=t<<10;i(r)-i(e)>=0;)r^=e<<i(r)-i(e);return 21522^(t<<10|r)},o.getBCHTypeNumber=function(t){for(var r=t<<12;i(r)-i(n)>=0;)r^=n<<i(r)-i(n);return t<<12|r},o.getPatternPosition=function(t){return r[t-1]},o.getMaskFunction=function(t){switch(t){case l:return function(t,r){return(t+r)%2==0};case h:return function(t,r){return t%2==0};case s:return function(t,r){return r%3==0};case v:return function(t,r){return(t+r)%3==0};case d:return function(t,r){return(Math.floor(t/2)+Math.floor(r/3))%2==0};case w:return function(t,r){return t*r%2+t*r%3==0};case p:return function(t,r){return(t*r%2+t*r%3)%2==0};case y:return function(t,r){return(t*r%3+(t+r)%2)%2==0};default:throw"bad maskPattern:"+t}},o.getErrorCorrectPolynomial=function(t){for(var r=k([1],0),e=0;e<t;e+=1)r=r.multiply(k([1,C.gexp(e)],0));return r},o.getLengthInBits=function(t,r){if(1<=r&&r<10)switch(t){case a:return 10;case u:return 9;case f:case c:return 8;default:throw"mode:"+t}else if(r<27)switch(t){case a:return 12;case u:return 11;case f:return 16;case c:return 10;default:throw"mode:"+t}else{if(!(r<41))throw"type:"+r;switch(t){case a:return 14;case u:return 13;case f:return 16;case c:return 12;default:throw"mode:"+t}}},o.getLostPoint=function(t){for(var r=t.getModuleCount(),e=0,n=0;n<r;n+=1)for(var o=0;o<r;o+=1){for(var i=0,a=t.isDark(n,o),u=-1;u<=1;u+=1)if(!(n+u<0||r<=n+u))for(var f=-1;f<=1;f+=1)o+f<0||r<=o+f||0==u&&0==f||a==t.isDark(n+u,o+f)&&(i+=1);i>5&&(e+=3+i-5)}for(n=0;n<r-1;n+=1)for(o=0;o<r-1;o+=1){var c=0;t.isDark(n,o)&&(c+=1),t.isDark(n+1,o)&&(c+=1),t.isDark(n,o+1)&&(c+=1),t.isDark(n+1,o+1)&&(c+=1),0!=c&&4!=c||(e+=3)}for(n=0;n<r;n+=1)for(o=0;o<r-6;o+=1)t.isDark(n,o)&&!t.isDark(n,o+1)&&t.isDark(n,o+2)&&t.isDark(n,o+3)&&t.isDark(n,o+4)&&!t.isDark(n,o+5)&&t.isDark(n,o+6)&&(e+=40);for(o=0;o<r;o+=1)for(n=0;n<r-6;n+=1)t.isDark(n,o)&&!t.isDark(n+1,o)&&t.isDark(n+2,o)&&t.isDark(n+3,o)&&t.isDark(n+4,o)&&!t.isDark(n+5,o)&&t.isDark(n+6,o)&&(e+=40);var g=0;for(o=0;o<r;o+=1)for(n=0;n<r;n+=1)t.isDark(n,o)&&(g+=1);return e+=Math.abs(100*g/r/r-50)/5*10},o),C=function(){for(var t=new Array(256),r=new Array(256),e=0;e<8;e+=1)t[e]=1<<e;for(e=8;e<256;e+=1)t[e]=t[e-4]^t[e-5]^t[e-6]^t[e-8];for(e=0;e<255;e+=1)r[t[e]]=e;var n={glog:function(t){if(t<1)throw"glog("+t+")";return r[t]},gexp:function(r){for(;r<0;)r+=255;for(;r>=256;)r-=255;return t[r]}};return n}();function k(t,r){if(void 0===t.length)throw t.length+"/"+r;var e=function(){for(var e=0;e<t.length&&0==t[e];)e+=1;for(var n=new Array(t.length-e+r),o=0;o<t.length-e;o+=1)n[o]=t[o+e];return n}(),n={getAt:function(t){return e[t]},getLength:function(){return e.length},multiply:function(t){for(var r=new Array(n.getLength()+t.getLength()-1),e=0;e<n.getLength();e+=1)for(var o=0;o<t.getLength();o+=1)r[e+o]^=C.gexp(C.glog(n.getAt(e))+C.glog(t.getAt(o)));return k(r,0)},mod:function(t){if(n.getLength()-t.getLength()<0)return n;for(var r=C.glog(n.getAt(0))-C.glog(t.getAt(0)),e=new Array(n.getLength()),o=0;o<n.getLength();o+=1)e[o]=n.getAt(o);for(o=0;o<t.getLength();o+=1)e[o]^=C.gexp(C.glog(t.getAt(o))+r);return k(e,0).mod(t)}};return n}var A=function(){var t=[[1,26,19],[1,26,16],[1,26,13],[1,26,9],[1,44,34],[1,44,28],[1,44,22],[1,44,16],[1,70,55],[1,70,44],[2,35,17],[2,35,13],[1,100,80],[2,50,32],[2,50,24],[4,25,9],[1,134,108],[2,67,43],[2,33,15,2,34,16],[2,33,11,2,34,12],[2,86,68],[4,43,27],[4,43,19],[4,43,15],[2,98,78],[4,49,31],[2,32,14,4,33,15],[4,39,13,1,40,14],[2,121,97],[2,60,38,2,61,39],[4,40,18,2,41,19],[4,40,14,2,41,15],[2,146,116],[3,58,36,2,59,37],[4,36,16,4,37,17],[4,36,12,4,37,13],[2,86,68,2,87,69],[4,69,43,1,70,44],[6,43,19,2,44,20],[6,43,15,2,44,16],[4,101,81],[1,80,50,4,81,51],[4,50,22,4,51,23],[3,36,12,8,37,13],[2,116,92,2,117,93],[6,58,36,2,59,37],[4,46,20,6,47,21],[7,42,14,4,43,15],[4,133,107],[8,59,37,1,60,38],[8,44,20,4,45,21],[12,33,11,4,34,12],[3,145,115,1,146,116],[4,64,40,5,65,41],[11,36,16,5,37,17],[11,36,12,5,37,13],[5,109,87,1,110,88],[5,65,41,5,66,42],[5,54,24,7,55,25],[11,36,12,7,37,13],[5,122,98,1,123,99],[7,73,45,3,74,46],[15,43,19,2,44,20],[3,45,15,13,46,16],[1,135,107,5,136,108],[10,74,46,1,75,47],[1,50,22,15,51,23],[2,42,14,17,43,15],[5,150,120,1,151,121],[9,69,43,4,70,44],[17,50,22,1,51,23],[2,42,14,19,43,15],[3,141,113,4,142,114],[3,70,44,11,71,45],[17,47,21,4,48,22],[9,39,13,16,40,14],[3,135,107,5,136,108],[3,67,41,13,68,42],[15,54,24,5,55,25],[15,43,15,10,44,16],[4,144,116,4,145,117],[17,68,42],[17,50,22,6,51,23],[19,46,16,6,47,17],[2,139,111,7,140,112],[17,74,46],[7,54,24,16,55,25],[34,37,13],[4,151,121,5,152,122],[4,75,47,14,76,48],[11,54,24,14,55,25],[16,45,15,14,46,16],[6,147,117,4,148,118],[6,73,45,14,74,46],[11,54,24,16,55,25],[30,46,16,2,47,17],[8,132,106,4,133,107],[8,75,47,13,76,48],[7,54,24,22,55,25],[22,45,15,13,46,16],[10,142,114,2,143,115],[19,74,46,4,75,47],[28,50,22,6,51,23],[33,46,16,4,47,17],[8,152,122,4,153,123],[22,73,45,3,74,46],[8,53,23,26,54,24],[12,45,15,28,46,16],[3,147,117,10,148,118],[3,73,45,23,74,46],[4,54,24,31,55,25],[11,45,15,31,46,16],[7,146,116,7,147,117],[21,73,45,7,74,46],[1,53,23,37,54,24],[19,45,15,26,46,16],[5,145,115,10,146,116],[19,75,47,10,76,48],[15,54,24,25,55,25],[23,45,15,25,46,16],[13,145,115,3,146,116],[2,74,46,29,75,47],[42,54,24,1,55,25],[23,45,15,28,46,16],[17,145,115],[10,74,46,23,75,47],[10,54,24,35,55,25],[19,45,15,35,46,16],[17,145,115,1,146,116],[14,74,46,21,75,47],[29,54,24,19,55,25],[11,45,15,46,46,16],[13,145,115,6,146,116],[14,74,46,23,75,47],[44,54,24,7,55,25],[59,46,16,1,47,17],[12,151,121,7,152,122],[12,75,47,26,76,48],[39,54,24,14,55,25],[22,45,15,41,46,16],[6,151,121,14,152,122],[6,75,47,34,76,48],[46,54,24,10,55,25],[2,45,15,64,46,16],[17,152,122,4,153,123],[29,74,46,14,75,47],[49,54,24,10,55,25],[24,45,15,46,46,16],[4,152,122,18,153,123],[13,74,46,32,75,47],[48,54,24,14,55,25],[42,45,15,32,46,16],[20,147,117,4,148,118],[40,75,47,7,76,48],[43,54,24,22,55,25],[10,45,15,67,46,16],[19,148,118,6,149,119],[18,75,47,31,76,48],[34,54,24,34,55,25],[20,45,15,61,46,16]],r=function(t,r){var e={};return e.totalCount=t,e.dataCount=r,e},e={};return e.getRSBlocks=function(e,n){var o=function(r,e){switch(e){case g.L:return t[4*(r-1)+0];case g.M:return t[4*(r-1)+1];case g.Q:return t[4*(r-1)+2];case g.H:return t[4*(r-1)+3];default:return}}(e,n);if(void 0===o)throw"bad rs block @ typeNumber:"+e+"/errorCorrectionLevel:"+n;for(var i=o.length/3,a=[],u=0;u<i;u+=1)for(var f=o[3*u+0],c=o[3*u+1],l=o[3*u+2],h=0;h<f;h+=1)a.push(r(c,l));return a},e}(),b=function(){var t=[],r=0,e={getBuffer:function(){return t},getAt:function(r){var e=Math.floor(r/8);return 1==(t[e]>>>7-r%8&1)},put:function(t,r){for(var n=0;n<r;n+=1)e.putBit(1==(t>>>r-n-1&1))},getLengthInBits:function(){return r},putBit:function(e){var n=Math.floor(r/8);t.length<=n&&t.push(0),e&&(t[n]|=128>>>r%8),r+=1}};return e},M=function(t){var r=a,e=t,n={getMode:function(){return r},getLength:function(t){return e.length},write:function(t){for(var r=e,n=0;n+2<r.length;)t.put(o(r.substring(n,n+3)),10),n+=3;n<r.length&&(r.length-n==1?t.put(o(r.substring(n,n+1)),4):r.length-n==2&&t.put(o(r.substring(n,n+2)),7))}},o=function(t){for(var r=0,e=0;e<t.length;e+=1)r=10*r+i(t.charAt(e));return r},i=function(t){if("0"<=t&&t<="9")return t.charCodeAt(0)-"0".charCodeAt(0);throw"illegal char :"+t};return n},x=function(t){var r=u,e=t,n={getMode:function(){return r},getLength:function(t){return e.length},write:function(t){for(var r=e,n=0;n+1<r.length;)t.put(45*o(r.charAt(n))+o(r.charAt(n+1)),11),n+=2;n<r.length&&t.put(o(r.charAt(n)),6)}},o=function(t){if("0"<=t&&t<="9")return t.charCodeAt(0)-"0".charCodeAt(0);if("A"<=t&&t<="Z")return t.charCodeAt(0)-"A".charCodeAt(0)+10;switch(t){case" ":return 36;case"$":return 37;case"%":return 38;case"*":return 39;case"+":return 40;case"-":return 41;case".":return 42;case"/":return 43;case":":return 44;default:throw"illegal char :"+t}};return n},m=function(r){var e=f,n=t.stringToBytes(r),o={getMode:function(){return e},getLength:function(t){return n.length},write:function(t){for(var r=0;r<n.length;r+=1)t.put(n[r],8)}};return o},L=function(r){var e=c,n=t.stringToBytesFuncs.SJIS;if(!n)throw"sjis not supported.";!function(){var t=n("友");if(2!=t.length||38726!=(t[0]<<8|t[1]))throw"sjis not supported."}();var o=n(r),i={getMode:function(){return e},getLength:function(t){return~~(o.length/2)},write:function(t){for(var r=o,e=0;e+1<r.length;){var n=(255&r[e])<<8|255&r[e+1];if(33088<=n&&n<=40956)n-=33088;else{if(!(57408<=n&&n<=60351))throw"illegal char at "+(e+1)+"/"+n;n-=49472}n=192*(n>>>8&255)+(255&n),t.put(n,13),e+=2}if(e<r.length)throw"illegal char at "+(e+1)}};return i},D=function(){var t=[],r={writeByte:function(r){t.push(255&r)},writeShort:function(t){r.writeByte(t),r.writeByte(t>>>8)},writeBytes:function(t,e,n){e=e||0,n=n||t.length;for(var o=0;o<n;o+=1)r.writeByte(t[o+e])},writeString:function(t){for(var e=0;e<t.length;e+=1)r.writeByte(t.charCodeAt(e))},toByteArray:function(){return t},toString:function(){var r="";r+="[";for(var e=0;e<t.length;e+=1)e>0&&(r+=","),r+=t[e];return r+="]"}};return r},S=function(t){var r=t,e=0,n=0,o=0,i={read:function(){for(;o<8;){if(e>=r.length){if(0==o)return-1;throw"unexpected end of file./"+o}var t=r.charAt(e);if(e+=1,"="==t)return o=0,-1;t.match(/^\s$/)||(n=n<<6|a(t.charCodeAt(0)),o+=6)}var i=n>>>o-8&255;return o-=8,i}},a=function(t){if(65<=t&&t<=90)return t-65;if(97<=t&&t<=122)return t-97+26;if(48<=t&&t<=57)return t-48+52;if(43==t)return 62;if(47==t)return 63;throw"c:"+t};return i},I=function(t,r,e){for(var n=function(t,r){var e=t,n=r,o=new Array(t*r),i={setPixel:function(t,r,n){o[r*e+t]=n},write:function(t){t.writeString("GIF87a"),t.writeShort(e),t.writeShort(n),t.writeByte(128),t.writeByte(0),t.writeByte(0),t.writeByte(0),t.writeByte(0),t.writeByte(0),t.writeByte(255),t.writeByte(255),t.writeByte(255),t.writeString(","),t.writeShort(0),t.writeShort(0),t.writeShort(e),t.writeShort(n),t.writeByte(0);var r=a(2);t.writeByte(2);for(var o=0;r.length-o>255;)t.writeByte(255),t.writeBytes(r,o,255),o+=255;t.writeByte(r.length-o),t.writeBytes(r,o,r.length-o),t.writeByte(0),t.writeString(";")}},a=function(t){for(var r=1<<t,e=1+(1<<t),n=t+1,i=u(),a=0;a<r;a+=1)i.add(String.fromCharCode(a));i.add(String.fromCharCode(r)),i.add(String.fromCharCode(e));var f,c,g,l=D(),h=(f=l,c=0,g=0,{write:function(t,r){if(t>>>r!=0)throw"length over";for(;c+r>=8;)f.writeByte(255&(t<<c|g)),r-=8-c,t>>>=8-c,g=0,c=0;g|=t<<c,c+=r},flush:function(){c>0&&f.writeByte(g)}});h.write(r,n);var s=0,v=String.fromCharCode(o[s]);for(s+=1;s<o.length;){var d=String.fromCharCode(o[s]);s+=1,i.contains(v+d)?v+=d:(h.write(i.indexOf(v),n),i.size()<4095&&(i.size()==1<<n&&(n+=1),i.add(v+d)),v=d)}return h.write(i.indexOf(v),n),h.write(e,n),h.flush(),l.toByteArray()},u=function(){var t={},r=0,e={add:function(n){if(e.contains(n))throw"dup key:"+n;t[n]=r,r+=1},size:function(){return r},indexOf:function(r){return t[r]},contains:function(r){return void 0!==t[r]}};return e};return i}(t,r),o=0;o<r;o+=1)for(var i=0;i<t;i+=1)n.setPixel(i,o,e(i,o));var a=D();n.write(a);for(var u=function(){var t=0,r=0,e=0,n="",o={},i=function(t){n+=String.fromCharCode(a(63&t))},a=function(t){if(t<0);else{if(t<26)return 65+t;if(t<52)return t-26+97;if(t<62)return t-52+48;if(62==t)return 43;if(63==t)return 47}throw"n:"+t};return o.writeByte=function(n){for(t=t<<8|255&n,r+=8,e+=1;r>=6;)i(t>>>r-6),r-=6},o.flush=function(){if(r>0&&(i(t<<6-r),t=0,r=0),e%3!=0)for(var o=3-e%3,a=0;a<o;a+=1)n+="="},o.toString=function(){return n},o}(),f=a.toByteArray(),c=0;c<f.length;c+=1)u.writeByte(f[c]);return u.flush(),"data:image/gif;base64,"+u};return t}();qrcode.stringToBytesFuncs["UTF-8"]=function(t){return function(t){for(var r=[],e=0;e<t.length;e++){var n=t.charCodeAt(e);n<128?r.push(n):n<2048?r.push(192|n>>6,128|63&n):n<55296||n>=57344?r.push(224|n>>12,128|n>>6&63,128|63&n):(e++,n=65536+((1023&n)<<10|1023&t.charCodeAt(e)),r.push(240|n>>18,128|n>>12&63,128|n>>6&63,128|63&n))}return r}(t)},function(t){"function"==typeof define&&define.amd?define([],t):"object"==typeof exports&&(module.exports=t())}(function(){return qrcode});
+
+</script>
+<script>
+(function() {
+  "use strict";
+  var $ = function(id) {
+    return document.getElementById(id);
+  };
+  var PREC = { "+": 1, "−": 1, "·": 2, ":": 2, "^": 3 };
+  var SUPS = { 2: "²", 3: "³" };
+  function rnd(a, b) {
+    return a + Math.floor(Math.random() * (b - a + 1));
+  }
+  function pick(arr) {
+    return arr[Math.floor(Math.random() * arr.length)];
+  }
+  function shuffle(a) {
+    for (var i = a.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1)), t = a[i];
+      a[i] = a[j];
+      a[j] = t;
+    }
+    return a;
+  }
+  function Num(v) {
+    return { k: "n", v };
+  }
+  function Op(o, l, r) {
+    return { k: "o", o, l, r };
+  }
+  function normalize(s) {
+    return String(s).replace(/\s+/g, "").replace(/[*x×X]/g, "·").replace(/[\/÷]/g, ":").replace(/[-–]/g, "−").replace(/\^2/g, "²").replace(/\^3/g, "³");
+  }
+  function tokenize(s) {
+    s = normalize(s);
+    var out = [], i = 0;
+    while (i < s.length) {
+      var c = s.charAt(i);
+      if (/[0-9]/.test(c)) {
+        var j = i;
+        while (j < s.length && /[0-9]/.test(s.charAt(j)))
+          j++;
+        out.push({ t: "n", v: parseInt(s.slice(i, j), 10) });
+        i = j;
+        continue;
+      }
+      if ("+−·:".indexOf(c) >= 0)
+        out.push({ t: "op", v: c });
+      else if (c === "(" || c === ")")
+        out.push({ t: c });
+      else if (c === "²")
+        out.push({ t: "pow", v: 2 });
+      else if (c === "³")
+        out.push({ t: "pow", v: 3 });
+      else if (c === "=")
+        out.push({ t: "=" });
+      else
+        return null;
+      i++;
+    }
+    return out;
+  }
+  function parseTokens(tk) {
+    if (!tk)
+      return null;
+    var pos = 0;
+    function peekOp(ops) {
+      var t = tk[pos];
+      return t && t.t === "op" && ops.indexOf(t.v) >= 0 ? t.v : null;
+    }
+    function atom() {
+      var t = tk[pos];
+      if (!t)
+        return null;
+      if (t.t === "n") {
+        pos++;
+        return Num(t.v);
+      }
+      if (t.t === "(") {
+        pos++;
+        var e2 = expr();
+        if (!e2 || !tk[pos] || tk[pos].t !== ")")
+          return null;
+        pos++;
+        return e2;
+      }
+      return null;
+    }
+    function factor() {
+      var a = atom();
+      if (!a)
+        return null;
+      while (tk[pos] && tk[pos].t === "pow") {
+        a = Op("^", a, Num(tk[pos].v));
+        pos++;
+      }
+      return a;
+    }
+    function term() {
+      var l = factor(), o;
+      if (!l)
+        return null;
+      while (o = peekOp("·:")) {
+        pos++;
+        var r = factor();
+        if (!r)
+          return null;
+        l = Op(o, l, r);
+      }
+      return l;
+    }
+    function expr() {
+      var l = term(), o;
+      if (!l)
+        return null;
+      while (o = peekOp("+−")) {
+        pos++;
+        var r = term();
+        if (!r)
+          return null;
+        l = Op(o, l, r);
+      }
+      return l;
+    }
+    var e = expr();
+    return e && pos === tk.length ? e : null;
+  }
+  function parse(s) {
+    return parseTokens(tokenize(s));
+  }
+  function ev(n) {
+    if (n.k === "n")
+      return n.v;
+    var a = ev(n.l), b = ev(n.r);
+    switch (n.o) {
+      case "+":
+        return a + b;
+      case "−":
+        return a - b;
+      case "·":
+        return a * b;
+      case ":":
+        return b === 0 ? NaN : a / b;
+      case "^":
+        return Math.pow(a, b);
+    }
+    return NaN;
+  }
+  function str(n) {
+    if (n.k === "n")
+      return String(n.v);
+    if (n.o === "^")
+      return (n.l.k === "o" ? "(" + str(n.l) + ")" : str(n.l)) + SUPS[n.r.v];
+    var p = PREC[n.o], L = str(n.l), R = str(n.r);
+    if (n.l.k === "o" && PREC[n.l.o] < p)
+      L = "(" + L + ")";
+    if (n.r.k === "o" && PREC[n.r.o] <= p)
+      R = "(" + R + ")";
+    return L + " " + n.o + " " + R;
+  }
+  function reducibles(n, out) {
+    out = out || [];
+    if (n.k === "o") {
+      if (n.l.k === "n" && n.r.k === "n")
+        out.push(n);
+      else {
+        reducibles(n.l, out);
+        reducibles(n.r, out);
+      }
+    }
+    return out;
+  }
+  function reduce(n, set, wrong2) {
+    if (wrong2 && wrong2.node === n)
+      return Num(wrong2.v);
+    if (set.indexOf(n) >= 0)
+      return Num(ev(n));
+    if (n.k === "n")
+      return n;
+    return Op(n.o, reduce(n.l, set, wrong2), reduce(n.r, set, wrong2));
+  }
+  function stepAll(n) {
+    return reduce(n, reducibles(n));
+  }
+  function stepOne(n) {
+    return reduce(n, [reducibles(n)[0]]);
+  }
+  function countSteps(n) {
+    var c = 0;
+    while (n.k === "o") {
+      n = stepAll(n);
+      c++;
+    }
+    return c;
+  }
+  function eqT(a, b) {
+    return a.k === b.k && (a.k === "n" ? a.v === b.v : a.o === b.o && eqT(a.l, b.l) && eqT(a.r, b.r));
+  }
+  function reach(p, q) {
+    if (p.k === "n")
+      return q.k === "n" && q.v === p.v;
+    if (p.l.k === "n" && p.r.k === "n" && q.k === "n")
+      return q.v === ev(p);
+    if (q.k !== "o" || q.o !== p.o)
+      return false;
+    return reach(p.l, q.l) && reach(p.r, q.r);
+  }
+  function validStep(p, q) {
+    return reach(p, q) && !eqT(p, q);
+  }
+  function okValue(v) {
+    return isFinite(v) && Math.floor(v) === v && v >= 0 && v <= 100;
+  }
+  function allNodesOk(n) {
+    if (n.k === "n")
+      return true;
+    return okValue(ev(n)) && allNodesOk(n.l) && allNodesOk(n.r);
+  }
+  function leaves(n, out) {
+    out = out || [];
+    if (n.k === "n")
+      out.push(n);
+    else {
+      leaves(n.l, out);
+      if (n.o !== "^")
+        leaves(n.r, out);
+    }
+    return out;
+  }
+  function opNodes(n, out) {
+    out = out || [];
+    if (n.k === "o") {
+      out.push(n);
+      opNodes(n.l, out);
+      opNodes(n.r, out);
+    }
+    return out;
+  }
+  function cloneSwap(n, map) {
+    if (n.k === "n") {
+      var i = map.list.indexOf(n);
+      return i >= 0 && map.vals[i] !== void 0 ? Num(map.vals[i]) : n;
+    }
+    return Op(n.o, cloneSwap(n.l, map), cloneSwap(n.r, map));
+  }
+  function replaceNode(n, target, repl) {
+    if (n === target)
+      return repl;
+    if (n.k === "n")
+      return n;
+    return Op(n.o, replaceNode(n.l, target, repl), replaceNode(n.r, target, repl));
+  }
+  var LEVELS = [
+    { naam: "Keer gaat voor", tpl: ["a + b · c", "a · b + c", "a · b − c", "a − b · c", "a · b + c · d", "a + b · c − d", "a · b − c · d", "a − b + c"] },
+    { naam: "Haakjes eerst", tpl: ["(a + b) · c", "a · (b + c)", "(a − b) · c", "(a + b) · (c − d)", "a + (b + c) · d", "a · (b − c) + d", "(a + b) · c − d", "a − (b − c)"] },
+    { naam: "Machten", tpl: ["a + b²", "a · b²", "(a + b)²", "a² + b²", "a² − b · c", "(a − b)² + c", "a² · b", "a + (b − c)²"] },
+    { naam: "Alles door elkaar", tpl: ["a : b + c", "(a + b) : c", "a + b · c : d", "a² : b", "(a + b) · c : d", "a − b : c", "(a · b − c) : d", "a · b : c + d"] }
+  ];
+  function hasDiv1(n) {
+    return n.k === "o" && ((n.o === ":" || n.o === "·") && n.r.k === "n" && n.r.v === 1 || hasDiv1(n.l) || hasDiv1(n.r));
+  }
+  function makeSom(lv) {
+    var tpls = LEVELS[lv].tpl;
+    for (var tries = 0; tries < 4e3; tries++) {
+      var tpl = pick(tpls);
+      var s = tpl.replace(/[abcd]/g, function() {
+        return String(rnd(2, 9));
+      });
+      var t = parse(s);
+      if (!t || !allNodesOk(t))
+        continue;
+      var st = countSteps(t);
+      if (st < 2 || st > 4)
+        continue;
+      var bad = false;
+      opNodes(t).forEach(function(o) {
+        if (ev(o) === 0)
+          bad = true;
+        if (o.o === "^" && ev(o.l) < 2)
+          bad = true;
+      });
+      if (bad)
+        continue;
+      return t;
+    }
+    return parse("3 + 4 · 2");
+  }
+  var SLUW = { volgorde: 1, reken: 1, haakje: 1, macht: 1, wissel: 1 };
+  function trapCopy(key, som) {
+    var s = str(som), v = ev(som);
+    switch (key) {
+      case "eqvoor":
+        return { key, text: "= " + s + " =" };
+      case "noeq":
+        return { key, text: s };
+      case "antw":
+        return { key, text: s + " = " + v };
+      case "wissel": {
+        var L = leaves(som), pairs = [];
+        for (var i = 0; i < L.length; i++)
+          for (var j = i + 1; j < L.length; j++)
+            if (L[i].v !== L[j].v)
+              pairs.push([i, j]);
+        if (!pairs.length)
+          return null;
+        var pr = pick(pairs), vals = [];
+        vals[pr[0]] = L[pr[1]].v;
+        vals[pr[1]] = L[pr[0]].v;
+        var t = cloneSwap(som, { list: L, vals });
+        return str(t) !== s && ev(t) !== v ? { key, text: str(t) + " =" } : null;
+      }
+      case "teken": {
+        var M = { "+": "−", "−": "+", "·": "+", ":": "·" };
+        var ops = opNodes(som).filter(function(o2) {
+          return M[o2.o];
+        });
+        if (!ops.length)
+          return null;
+        var o = pick(ops), t2 = replaceNode(som, o, Op(M[o.o], o.l, o.r));
+        return str(t2) !== s ? { key, text: str(t2) + " =" } : null;
+      }
+      case "haakje": {
+        if (s.indexOf("(") < 0)
+          return null;
+        var f = parse(s.replace(/[()]/g, ""));
+        return f && str(f) !== s ? { key, text: str(f) + " =" } : null;
+      }
+      case "macht": {
+        var pw = opNodes(som).filter(function(o2) {
+          return o2.o === "^";
+        });
+        if (!pw.length)
+          return null;
+        var p0 = pick(pw), t3 = replaceNode(som, p0, p0.l);
+        return { key, text: str(t3) + " =" };
+      }
+    }
+    return null;
+  }
+  function orderTraps(cur) {
+    var tk = tokenize(str(cur)), out = [];
+    for (var i = 0; i + 2 < tk.length; i++) {
+      if (tk[i].t !== "n" || tk[i + 1].t !== "op" || tk[i + 2].t !== "n")
+        continue;
+      if (i > 0 && tk[i - 1].t === "pow")
+        continue;
+      var a = tk[i].v, b = tk[i + 2].v, o = tk[i + 1].v, v;
+      v = o === "+" ? a + b : o === "−" ? a - b : o === "·" ? a * b : a / b;
+      if (!okValue(v))
+        continue;
+      var nt = tk.slice(0, i).concat([{ t: "n", v }], tk.slice(i + 3));
+      var w = parseTokens(nt);
+      if (!w || validStep(cur, w) || !allNodesOk(w) || ev(w) === ev(cur))
+        continue;
+      out.push({ tree: w, done: a + " " + o + " " + b, wrongOp: o });
+    }
+    return out;
+  }
+  function calcTrap(cur) {
+    var reds = reducibles(cur);
+    if (!reds.length)
+      return null;
+    var m = pick(reds), a = m.l.v, b = m.r.v, good = ev(m), v;
+    if (m.o === "·" && a + b !== good)
+      v = a + b;
+    else if (m.o === "^" && a * b !== good)
+      v = a * b;
+    else
+      v = good + (good > 1 && Math.random() < 0.5 ? -1 : 1);
+    if (v === good || v < 0)
+      return null;
+    return { tree: reduce(cur, reds, { node: m, v }), node: m };
+  }
+  function lineText(t) {
+    return str(t) + " =";
+  }
+  function trapStep(key, cur, next) {
+    var reds = reducibles(cur), fin = next.k === "n", v = ev(cur);
+    switch (key) {
+      case "noeq":
+        return fin ? null : { key, text: str(next) };
+      case "eqvoor":
+        return { key, text: "= " + str(next) };
+      case "eqna":
+        return fin ? { key, text: v + " =", append: true } : null;
+      case "los": {
+        if (fin)
+          return null;
+        var m = pick(reds);
+        return { key, text: str(m) + " = " + ev(m), info: { part: str(m), val: ev(m) } };
+      }
+      case "ketting": {
+        var c = chainFor(cur);
+        return c ? { key, text: c.text + " =", info: c } : null;
+      }
+      case "skip":
+        return countSteps(cur) >= 2 ? { key, text: String(v), append: true } : null;
+      case "volgorde": {
+        var ot = orderTraps(cur);
+        if (!ot.length)
+          return null;
+        var x = pick(ot);
+        return {
+          key,
+          text: x.tree.k === "n" ? String(x.tree.v) : lineText(x.tree),
+          append: x.tree.k === "n",
+          info: { done: x.done, wrongOp: x.wrongOp, first: str(reds[0]), firstOp: reds[0].o }
+        };
+      }
+      case "reken": {
+        var ct = calcTrap(cur);
+        return ct ? { key, text: ct.tree.k === "n" ? String(ct.tree.v) : lineText(ct.tree), append: ct.tree.k === "n", info: { part: str(ct.node), val: ev(ct.node) } } : null;
+      }
+    }
+    return null;
+  }
+  function chainFor(cur) {
+    var reds = reducibles(cur);
+    for (var i = 0; i < reds.length; i++) {
+      var m = reds[i], next = reduce(cur, [m]), ns = str(next), cs = str(cur), ms = str(m);
+      if (next.k === "n")
+        continue;
+      if (ns.indexOf(String(ev(m)) + " ") === 0 && (cs.indexOf(ms + " ") === 0 || cs.indexOf("(" + ms + ")") === 0))
+        return { text: ms + " = " + ns, part: ms, rest: ns };
+    }
+    return null;
+  }
+  var COPY_POOL = [["eqvoor", "antw", "noeq", "teken", "wissel"], ["eqvoor", "antw", "noeq", "teken", "wissel", "haakje"], ["antw", "noeq", "teken", "wissel", "haakje", "macht"], ["eqvoor", "antw", "teken", "wissel", "haakje", "macht"]];
+  var STEP_POOL = [["noeq", "eqvoor", "eqna", "los", "ketting", "skip", "volgorde"], ["noeq", "eqvoor", "eqna", "los", "ketting", "skip", "volgorde", "reken"], ["noeq", "eqna", "los", "ketting", "skip", "volgorde", "reken"], ["noeq", "eqna", "los", "ketting", "skip", "volgorde", "reken"]];
+  var SLUW_W = [1, 2, 3, 4];
+  function optId(o) {
+    return (o.append ? "+" : "") + o.text;
+  }
+  function chooseTraps(lv, makers, correct, n) {
+    var cands = [];
+    makers.forEach(function(mk) {
+      var t = mk();
+      if (t && optId(t) !== optId(correct) && !cands.some(function(c) {
+        return optId(c) === optId(t);
+      }))
+        cands.push(t);
+    });
+    var out = [];
+    while (out.length < n && cands.length) {
+      var w = cands.map(function(c) {
+        return SLUW[c.key] ? SLUW_W[lv] : lv === 0 ? 3 : 2;
+      });
+      var tot = w.reduce(function(a, b) {
+        return a + b;
+      }, 0), r = Math.random() * tot, i = 0;
+      while (r >= w[i]) {
+        r -= w[i];
+        i++;
+      }
+      out.push(cands.splice(i, 1)[0]);
+    }
+    return out;
+  }
+  function copyOptions(lv, som) {
+    var ok = { key: "ok", text: lineText(som) };
+    var traps = chooseTraps(lv, COPY_POOL[lv].map(function(k) {
+      return function() {
+        return trapCopy(k, som);
+      };
+    }), ok, 2);
+    return shuffle([ok].concat(traps));
+  }
+  function stepOptions(lv, cur) {
+    var reds = reducibles(cur);
+    var next = reds.length > 1 && Math.random() < 0.5 ? stepAll(cur) : stepOne(cur);
+    var ok = next.k === "n" ? { key: "ok", text: String(next.v), append: true, tree: next } : { key: "ok", text: lineText(next), tree: next };
+    var traps = chooseTraps(lv, STEP_POOL[lv].map(function(k) {
+      return function() {
+        return trapStep(k, cur, next);
+      };
+    }), ok, 2);
+    return shuffle([ok].concat(traps));
+  }
+  var TRAP_LABEL = {
+    eqvoor: "= vooraan gezet",
+    antw: "antwoord achter de som",
+    wissel: "som verkeerd overgenomen",
+    teken: "som verkeerd overgenomen",
+    haakje: "haakjes vergeten bij overnemen",
+    macht: "kwadraat vergeten bij overnemen",
+    noeq: "= aan het eind vergeten",
+    eqna: "= na het antwoord",
+    los: "losse tussenberekening",
+    ketting: "kettingfout",
+    skip: "stap overgeslagen",
+    volgorde: "rekenvolgorde",
+    reken: "rekenfout",
+    vroeg: "te vroeg klaar",
+    kader: "verkeerde stuk omkaderd",
+    regel: "twee stappen op één regel",
+    boven: "antwoord niet aan het eind"
+  };
+  function explain(key, info) {
+    info = info || {};
+    switch (key) {
+      case "eqvoor":
+        return { t: "= vooraan", x: "Het = staat aan het eind van de regel, niet vooraan op de nieuwe regel." };
+      case "antw":
+        return { t: "Antwoord nog niet", x: "Schrijf eerst alleen de som op, met = erachter. Het antwoord komt helemaal aan het eind." };
+      case "wissel":
+      case "teken":
+        return { t: "Niet goed overgenomen", x: "Kijk goed: dat is een andere som. Neem de som precies over." };
+      case "haakje":
+        return { t: "Haakjes vergeten", x: "Zonder haakjes is het een andere som. Neem de haakjes precies over." };
+      case "macht":
+        return { t: "Kwadraat vergeten", x: "Je bent het kwadraat vergeten. Neem de som precies over." };
+      case "noeq":
+        return { t: "= vergeten", x: "Zet een = aan het eind van de regel. Op de volgende regel gaat de som verder." };
+      case "eqna":
+        return { t: "Geen = na het antwoord", x: "Na het antwoord komt geen = meer. Het antwoord is het einde." };
+      case "los":
+        return { t: "Losse tussenberekening", x: info.part ? "Dit is maar een stukje van de som. Schrijf de hele som opnieuw op, met " + info.val + " op de plek van " + info.part + "." : "Dit is maar een stukje van de som. Schrijf elke regel de hele som opnieuw op." };
+      case "ketting":
+        return { t: "Kettingfout", x: info.part ? info.part + " is niet gelijk aan " + info.rest + ". Schrijf op elke regel de hele som, met = aan het eind." : "Links en rechts van = moet hetzelfde staan. Schrijf op elke regel de hele som, met = aan het eind." };
+      case "skip":
+        return { t: "Stap overgeslagen", x: info.alt ? "Doe één stap tegelijk en schrijf de rest van de som er ongewijzigd bij." : "Schrijf elke tussenstap op een nieuwe regel. Dan kun je een fout altijd terugvinden." };
+      case "volgorde":
+        if (info.first && PREC[info.firstOp] === PREC[info.wrongOp] && info.firstOp !== "^")
+          return { t: "Rekenvolgorde", x: "Hier eerst " + info.first + ". " + (PREC[info.firstOp] === 1 ? "Plus en min" : "Keer en delen") + " doe je van links naar rechts." };
+        return { t: "Rekenvolgorde", x: (info.first ? "Hier eerst " + info.first + ". " : "") + "Volgorde: haakjes, machten, keer en delen, plus en min." };
+      case "reken":
+        return { t: "Rekenfout", x: info.part ? "Reken nog eens na: " + info.part + " = " + info.val + "." : "Reken nog eens na. Deze regel is niet gelijk aan de regel erboven." };
+      case "vroeg":
+        return { t: "Nog niet klaar", x: "Je hebt nog geen antwoord. Reken door tot er één getal staat." };
+      case "kader":
+        return { t: "Verkeerde stuk", x: "Omkader alleen het antwoord, helemaal aan het eind." };
+      case "regel":
+        return { t: "Eén stap per regel", x: "Zet elke stap op een eigen regel, netjes onder elkaar." };
+      case "boven":
+        return { t: "Antwoord niet aan het eind", x: "Het antwoord hoort helemaal aan het eind, achter het laatste =." };
+    }
+    return { t: "Niet goed", x: "Kijk nog eens goed." };
+  }
+  var UNREAD = "Dat kan ik niet lezen. Kijk naar de haakjes en de tekens.";
+  function checkCopy(input, som) {
+    var s = normalize(input);
+    if (!s)
+      return { msg: "Typ eerst de som." };
+    if (s.charAt(0) === "=")
+      return { trap: "eqvoor" };
+    var trailing = s.charAt(s.length - 1) === "=", body = trailing ? s.slice(0, -1) : s;
+    if (body.indexOf("=") >= 0)
+      return { trap: "antw" };
+    var t = parse(body);
+    if (!t)
+      return { msg: UNREAD };
+    var ss = str(som);
+    if (str(t) === ss)
+      return trailing ? { ok: true, tree: som } : { trap: "noeq" };
+    if (ss.indexOf("(") >= 0) {
+      var f = parse(ss.replace(/[()]/g, ""));
+      if (f && str(f) === str(t))
+        return { trap: "haakje" };
+    }
+    if (ss.indexOf("²") >= 0 && str(t) === ss.replace(/²/g, ""))
+      return { trap: "macht" };
+    return { trap: "wissel" };
+  }
+  function checkStep(input, cur) {
+    var s = normalize(input);
+    if (!s)
+      return { msg: "Typ eerst een regel." };
+    if (s.charAt(0) === "=")
+      return { trap: "eqvoor" };
+    var trailing = s.charAt(s.length - 1) === "=", body = trailing ? s.slice(0, -1) : s;
+    if (body.indexOf("=") >= 0) {
+      var part = parse(body.split("=")[0]);
+      if (part && ev(part) === ev(cur))
+        return { trap: "regel" };
+      return { trap: "los", info: part ? { part: str(part), val: ev(part) } : {} };
+    }
+    var t = parse(body);
+    if (!t)
+      return { msg: UNREAD };
+    var reds = reducibles(cur);
+    if (ev(t) !== ev(cur)) {
+      var ot = orderTraps(cur), hit = null;
+      ot.forEach(function(x) {
+        if (ev(x.tree) === ev(t))
+          hit = x;
+      });
+      if (hit)
+        return { trap: "volgorde", info: { done: hit.done, wrongOp: hit.wrongOp, first: str(reds[0]), firstOp: reds[0].o } };
+      return { trap: "reken", info: reds.length === 1 ? { part: str(reds[0]), val: ev(reds[0]) } : {} };
+    }
+    if (eqT(t, cur))
+      return { msg: "Je hebt nog niets uitgerekend. Reken een stap uit." };
+    if (!validStep(cur, t))
+      return { trap: "skip", info: { alt: t.k !== "n" } };
+    if (t.k === "n")
+      return trailing ? { trap: "eqna" } : { ok: true, tree: t, append: true };
+    return trailing ? { ok: true, tree: t } : { trap: "noeq" };
+  }
+  function solveLines(som) {
+    var trees = [som], cur = som;
+    while (cur.k === "o") {
+      var reds = reducibles(cur);
+      cur = reds.length > 1 && Math.random() < 0.5 ? stepAll(cur) : stepOne(cur);
+      trees.push(cur);
+    }
+    return trees;
+  }
+  function continueFrom(t) {
+    var out = [t];
+    while (t.k === "o") {
+      t = stepOne(t);
+      if (!allNodesOk(t))
+        return null;
+      out.push(t);
+    }
+    return out;
+  }
+  function compose(trees) {
+    var lines = [];
+    for (var k = 0; k < trees.length - 1; k++)
+      lines.push({ t: lineText(trees[k]), a: null });
+    lines[lines.length - 1].a = String(trees[trees.length - 1].v);
+    return lines;
+  }
+  function makeCheck(lv) {
+    for (var tries = 0; tries < 200; tries++) {
+      var som = makeSom(lv), trees = solveLines(som), lines = compose(trees);
+      var res = { lines, box: lines.length - 1, bad: -1, key: null, info: null };
+      if (Math.random() < 0.25)
+        return res;
+      var key = pick(["eqvoor", "noeq", "eqna", "los", "ketting", "volgorde", "reken", "boven", "kader", lv ? "haakje" : "wissel", "wissel"]);
+      var n = lines.length, i = 0, info = null, last = lines[n - 1];
+      if (key === "eqvoor") {
+        i = rnd(1, n - 1);
+        lines[i].t = "= " + lines[i].t;
+      } else if (key === "noeq") {
+        if (n < 2)
+          continue;
+        i = rnd(0, n - 2);
+        lines[i].t = lines[i].t.slice(0, -2);
+      } else if (key === "eqna") {
+        i = n - 1;
+        last.post = " =";
+      } else if (key === "los") {
+        if (n < 3)
+          continue;
+        i = rnd(1, n - 2);
+        var m = reducibles(trees[i - 1])[0];
+        lines[i] = { t: str(m) + " = " + ev(m), a: null };
+        info = { part: str(m), val: ev(m) };
+      } else if (key === "ketting") {
+        var c = chainFor(som);
+        if (!c || n < 3)
+          continue;
+        lines = [{ t: c.text + " =", a: null }].concat(lines.slice(2));
+        i = 0;
+        info = c;
+      } else if (key === "volgorde" || key === "reken") {
+        i = rnd(1, trees.length - 1);
+        var prev = trees[i - 1], w;
+        if (key === "volgorde") {
+          var ot = orderTraps(prev);
+          if (!ot.length)
+            continue;
+          var x = pick(ot);
+          w = x.tree;
+          var r0 = reducibles(prev)[0];
+          info = { done: x.done, wrongOp: x.wrongOp, first: str(r0), firstOp: r0.o };
+        } else {
+          var ct = calcTrap(prev);
+          if (!ct)
+            continue;
+          w = ct.tree;
+          info = { part: str(ct.node), val: ev(ct.node) };
+        }
+        var rest = continueFrom(w);
+        if (!rest)
+          continue;
+        lines = compose(trees.slice(0, i).concat(rest));
+        if (w.k === "n")
+          i = i - 1;
+      } else if (key === "boven") {
+        var ans = last.a;
+        last.a = null;
+        lines = [{ t: "", a: ans }].concat(lines);
+        i = 0;
+      } else if (key === "kader") {
+        i = rnd(0, n - 2);
+      } else if (key === "haakje" || key === "wissel") {
+        var tc = trapCopy(key, som);
+        if (!tc)
+          continue;
+        lines[0].t = tc.text;
+        i = 0;
+      }
+      res.lines = lines;
+      res.bad = i;
+      res.key = key;
+      res.info = info;
+      res.box = key === "kader" || key === "boven" ? i : lines.length - 1;
+      return res;
+    }
+    return { lines: [{ t: "3 + 4 · 2 =", a: null }, { t: "3 + 8 =", a: "11" }], box: 1, bad: -1, key: null };
+  }
+  var CODE_SALT = "hoek-erbij/lyceum-vos";
+  function utf8(s) {
+    var out = [];
+    for (var i = 0; i < s.length; i++) {
+      var c = s.charCodeAt(i);
+      if (c >= 55296 && c < 56320 && i + 1 < s.length) {
+        c = 65536 + (c - 55296 << 10) + (s.charCodeAt(++i) - 56320);
+      }
+      if (c < 128)
+        out.push(c);
+      else if (c < 2048)
+        out.push(192 | c >> 6, 128 | c & 63);
+      else if (c < 65536)
+        out.push(224 | c >> 12, 128 | c >> 6 & 63, 128 | c & 63);
+      else
+        out.push(240 | c >> 18, 128 | c >> 12 & 63, 128 | c >> 6 & 63, 128 | c & 63);
+    }
+    return out;
+  }
+  function fnvHash(s) {
+    var h = 2166136261, b = utf8(s);
+    for (var i = 0; i < b.length; i++) {
+      h ^= b[i];
+      h = Math.imul(h, 16777619) >>> 0;
+    }
+    return h.toString(36);
+  }
+  var B32 = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+  function b32enc(bytes) {
+    var out = "", bits = 0, val = 0;
+    for (var i = 0; i < bytes.length; i++) {
+      val = val << 8 | bytes[i];
+      bits += 8;
+      while (bits >= 5) {
+        out += B32[val >>> bits - 5 & 31];
+        bits -= 5;
+        val &= (1 << bits) - 1;
+      }
+    }
+    if (bits > 0)
+      out += B32[val << 5 - bits & 31];
+    return out;
+  }
+  function encodeCode2(obj) {
+    var j = JSON.stringify(obj);
+    return "HEB2:" + b32enc(utf8(j + "|" + fnvHash(CODE_SALT + j)));
+  }
+  function qrSvg(text) {
+    var q = qrcode(0, "M");
+    q.addData(text, "Alphanumeric");
+    q.make();
+    return q.createSvgTag({ cellSize: 6, margin: 2, scalable: true });
+  }
+  function esc(s) {
+    return String(s).replace(/[&<>"]/g, function(c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
+    });
+  }
+  function store(k, v) {
+    try {
+      localStorage.setItem(k, JSON.stringify(v));
+    } catch (e) {
+    }
+  }
+  function load(k) {
+    try {
+      var v = localStorage.getItem(k);
+      return v ? JSON.parse(v) : null;
+    } catch (e) {
+      return null;
+    }
+  }
+  function mmss(s) {
+    s = Math.round(s);
+    return Math.floor(s / 60) + ":" + ("0" + s % 60).slice(-2);
+  }
+  var LIVES = 3, GATES = 4, PER_GATE = 2, CHECK_NEED = 3;
+  function typedSom() {
+    return G.lv >= 2 && G.idx === 1;
+  }
+  var speler = load("netjes.speler"), session = load("netjes.sessie"), voortgang = load("netjes.voortgang") || { max: 0 };
+  var G = null, state = "start", chosenLv = 0, timerId = null, bannerT = null;
+  var HEART = '<svg viewBox="0 0 24 24"><path fill="var(--heart)" d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 3 4.5 6.7 4.5c2.1 0 3.6 1.2 4.3 2.5h2c.7-1.3 2.2-2.5 4.3-2.5 3.7 0 5.8 3.9 4.3 7.3C19.5 16.4 12 21 12 21z"/></svg>';
+  function drawHud(popLost) {
+    $("hudLevel").innerHTML = "<small>level</small>" + (G.lv + 1);
+    $("hudLevel").title = LEVELS[G.lv].naam;
+    var h = "";
+    for (var i = 0; i < LIVES; i++)
+      h += HEART.replace("<svg", '<svg class="' + (i >= G.lives ? "lost" : "") + (popLost && i === G.lives ? " pop" : "") + '"');
+    $("hudHearts").innerHTML = h;
+    var g = "";
+    for (var j = 0; j < GATES; j++)
+      g += '<div class="gate' + (j < G.gate ? " open" : j === G.gate && G.idx > 0 ? " half" : "") + '"><i></i></div>';
+    $("hudGates").innerHTML = g;
+  }
+  function banner(text, ms) {
+    var b = $("banner");
+    b.textContent = text;
+    b.classList.add("show");
+    clearTimeout(bannerT);
+    bannerT = setTimeout(function() {
+      b.classList.remove("show");
+    }, ms || 1100);
+  }
+  function addRow(text, cls) {
+    var r = document.createElement("div");
+    r.className = "row hand new" + (cls ? " " + cls : "");
+    r.innerHTML = '<span class="nr"></span><span class="tx"></span>';
+    r.querySelector(".tx").textContent = text;
+    $("rows").appendChild(r);
+    var p = $("paper");
+    p.scrollTop = p.scrollHeight;
+    return r;
+  }
+  function clearPaper() {
+    $("rows").innerHTML = "";
+    $("stamp").classList.remove("show");
+  }
+  function newSom() {
+    G.som = makeSom(G.lv);
+    G.cur = null;
+    G.rows = [];
+    G.phase = "copy";
+    G.input = "";
+    G.removed = [];
+    clearPaper();
+    $("taskLab").textContent = "Opgave " + (G.gate + 1) + (G.idx ? "b" : "a");
+    $("taskSom").textContent = str(G.som);
+    $("taskMode").hidden = !typedSom();
+    drawHud(false);
+    render();
+  }
+  function render() {
+    var typed = typedSom();
+    $("msg").textContent = "";
+    $("btnKlaar").hidden = G.phase !== "step";
+    $("opts").hidden = typed && G.phase !== "mark";
+    $("keys").hidden = !(typed && G.phase !== "mark");
+    if (G.phase === "copy")
+      $("prompt").textContent = typed ? "Typ de som over." : "Neem de som over. Welke regel schrijf je op?";
+    else if (G.phase === "step")
+      $("prompt").textContent = typed ? "Typ de volgende regel, of tik op Klaar." : "Schrijf de volgende regel, of tik op Klaar.";
+    else if (G.phase === "mark")
+      $("prompt").textContent = "Omkader je antwoord.";
+    if (G.phase === "mark") {
+      $("opts").innerHTML = '<div class="hint">Tik in je schrift op het antwoord.</div>';
+      markable(true);
+      return;
+    }
+    if (typed) {
+      drawTyping();
+      return;
+    }
+    if (G.phase === "step" && G.cur.k === "n") {
+      G.opts = [];
+      $("opts").innerHTML = '<div class="hint">Wat schrijf je nu nog op?</div>';
+      return;
+    }
+    G.opts = G.phase === "copy" ? copyOptions(G.lv, G.som) : stepOptions(G.lv, G.cur);
+    drawOpts();
+  }
+  function drawOpts() {
+    var html = "";
+    G.opts.forEach(function(o, i) {
+      html += '<button class="opt" data-i="' + i + '"><span class="k">' + (i + 1) + '</span><span class="tx hand">' + (o.append ? '<span class="pre">…&nbsp;=</span> ' : "") + esc(o.text) + "</span></button>";
+    });
+    $("opts").innerHTML = html;
+    Array.prototype.forEach.call($("opts").querySelectorAll(".opt"), function(b) {
+      b.onclick = function() {
+        choose(parseInt(b.getAttribute("data-i"), 10));
+      };
+    });
+  }
+  function choose(i) {
+    if (state !== "play" || !G.opts || !G.opts[i])
+      return;
+    var o = G.opts[i];
+    if (o.key === "ok")
+      accept(o.text, G.phase === "copy" ? G.som : o.tree, o.append);
+    else
+      wrong(o.key, o.info, o.text, i, o.append);
+  }
+  function lastRow() {
+    var rows = $("rows").querySelectorAll(".row");
+    return rows[rows.length - 1];
+  }
+  function appendTo(row, text, cls) {
+    var sp = document.createElement("span");
+    sp.className = cls;
+    sp.textContent = text;
+    row.querySelector(".tx").appendChild(sp);
+    return sp;
+  }
+  function accept(text, tree, append) {
+    if (append) {
+      var r = lastRow();
+      appendTo(r, text, "ans");
+      r.classList.add("hasans");
+    } else
+      addRow(text, "");
+    G.cur = tree;
+    G.phase = "step";
+    G.input = "";
+    G.done++;
+    render();
+  }
+  function wrong(key, info, text, optIndex, append) {
+    G.bad++;
+    G.traps[key] = (G.traps[key] || 0) + 1;
+    session.V[key] = (session.V[key] || 0) + 1;
+    saveSession();
+    G.lives--;
+    drawHud(true);
+    var badRow = null;
+    if (text) {
+      badRow = append ? appendTo(lastRow(), text, "badans") : addRow(text, key === "los" ? "bad kriebel" : "bad");
+    }
+    if (optIndex !== void 0 && G.opts) {
+      G.opts.splice(optIndex, 1);
+    }
+    var e = explain(key, info);
+    $("whyTitle").textContent = e.t;
+    $("whyLine").textContent = text || "";
+    $("whyLine").hidden = !text;
+    $("whyText").textContent = e.x;
+    state = "why";
+    G.badRow = badRow;
+    setTimeout(function() {
+      $("whyOv").hidden = false;
+      $("btnWhyOk").focus();
+    }, 350);
+  }
+  $("btnWhyOk").onclick = function() {
+    $("whyOv").hidden = true;
+    if (G.badRow) {
+      G.badRow.parentNode.removeChild(G.badRow);
+      G.badRow = null;
+    }
+    Array.prototype.forEach.call($("rows").querySelectorAll(".boxwrong"), function(r) {
+      r.classList.remove("boxwrong");
+    });
+    if (G.lives <= 0) {
+      startCheck();
+      return;
+    }
+    state = "play";
+    if (typedSom() && G.phase !== "mark") {
+      G.input = "";
+      drawTyping();
+    } else if (G.phase !== "mark" && G.opts && G.opts.length)
+      drawOpts();
+  };
+  $("btnKlaar").onclick = function() {
+    if (state !== "play" || G.phase !== "step")
+      return;
+    if (G.cur.k !== "n") {
+      wrong("vroeg", null, null);
+      return;
+    }
+    G.phase = "mark";
+    render();
+  };
+  function markable(on) {
+    var rows = $("rows").querySelectorAll(".row");
+    Array.prototype.forEach.call(rows, function(r, i) {
+      r.classList.toggle("markable", on);
+      r.onclick = on ? function() {
+        markRow(i, rows.length);
+      } : null;
+    });
+  }
+  function markRow(i, n) {
+    if (state !== "play" || G.phase !== "mark")
+      return;
+    var rows = $("rows").querySelectorAll(".row");
+    if (i !== n - 1) {
+      rows[i].classList.add("boxwrong");
+      wrong("kader", null, null);
+      return;
+    }
+    markable(false);
+    rows[i].classList.add("boxed");
+    $("stamp").classList.add("show");
+    G.phase = "wait";
+    G.sommen++;
+    $("btnKlaar").hidden = true;
+    $("opts").innerHTML = '<div class="hint">Netjes!</div>';
+    $("opts").hidden = false;
+    $("keys").hidden = true;
+    setTimeout(nextSom, 1100);
+  }
+  function nextSom() {
+    if (state !== "play") {
+      G.pending = true;
+      return;
+    }
+    G.idx++;
+    if (G.idx >= PER_GATE) {
+      G.idx = 0;
+      G.gate++;
+      drawHud(false);
+      if (G.gate >= GATES) {
+        endLevel();
+        return;
+      }
+      banner("Poort " + G.gate + " open!", 1300);
+    }
+    newSom();
+  }
+  var KEYS = ["7", "8", "9", ":", "⌫", "4", "5", "6", "·", "(", "1", "2", "3", "−", ")", "0", "²", "=", "+", "OK"];
+  (function buildKeys() {
+    var h = "";
+    KEYS.forEach(function(k) {
+      var cls = k === "OK" ? "key ok" : /[0-9]/.test(k) ? "key" : "key op";
+      h += '<button class="' + cls + '" data-k="' + k + '" aria-label="' + (k === "⌫" ? "wissen" : k) + '">' + k + "</button>";
+    });
+    $("keys").innerHTML = h;
+    Array.prototype.forEach.call($("keys").querySelectorAll(".key"), function(b) {
+      b.onclick = function() {
+        typeKey(b.getAttribute("data-k"));
+      };
+    });
+  })();
+  function prettyInput(s) {
+    return s.replace(/([+−·:=])/g, " $1 ").replace(/\s+/g, " ").replace(/^ /, "").replace(/\( /g, "(").replace(/ \)/g, ")");
+  }
+  function drawTyping() {
+    var r = G.typingRow;
+    if (!r || !r.parentNode) {
+      r = G.typingRow = addRow("", "typing");
+    }
+    var tx = r.querySelector(".tx");
+    tx.innerHTML = esc(prettyInput(G.input)) + '<span class="caret"></span>';
+    var p = $("paper");
+    p.scrollTop = p.scrollHeight;
+  }
+  function typeKey(k) {
+    if (state !== "play" || !typedSom() || G.phase !== "copy" && G.phase !== "step")
+      return;
+    $("msg").textContent = "";
+    if (k === "OK") {
+      submitTyped();
+      return;
+    }
+    if (k === "⌫") {
+      G.input = G.input.slice(0, -1);
+      drawTyping();
+      return;
+    }
+    if (k === "²" && G.input.slice(-1) === "²") {
+      G.input = G.input.slice(0, -1) + "³";
+      drawTyping();
+      return;
+    }
+    if (G.input.length >= 28)
+      return;
+    G.input += k;
+    drawTyping();
+  }
+  function submitTyped() {
+    if (G.phase === "step" && G.cur.k === "n") {
+      $("msg").textContent = "Er staat al één getal. Tik op Klaar.";
+      return;
+    }
+    var res = G.phase === "copy" ? checkCopy(G.input, G.som) : checkStep(G.input, G.cur);
+    if (res.msg) {
+      $("msg").textContent = res.msg;
+      return;
+    }
+    var text = prettyInput(normalize(G.input));
+    if (G.typingRow && G.typingRow.parentNode)
+      G.typingRow.parentNode.removeChild(G.typingRow);
+    G.typingRow = null;
+    if (res.ok) {
+      accept(G.phase === "copy" ? lineText(G.som) : res.append ? String(res.tree.v) : lineText(res.tree), res.tree, res.append);
+      return;
+    }
+    wrong(res.trap, res.info, text);
+  }
+  document.addEventListener("keydown", function(e) {
+    if (e.ctrlKey || e.metaKey || e.altKey)
+      return;
+    if (!$("whyOv").hidden && (e.key === "Enter" || e.key === " ")) {
+      e.preventDefault();
+      $("btnWhyOk").click();
+      return;
+    }
+    if (state !== "play" || !G)
+      return;
+    if (typedSom() && (G.phase === "copy" || G.phase === "step")) {
+      var k = e.key, map = { "*": "·", "x": "·", "X": "·", "/": ":", ":": ":", "-": "−", "^": "²", "Backspace": "⌫", "Enter": "OK", "+": "+", "=": "=", "(": "(", ")": ")" };
+      if (/^[0-9]$/.test(k)) {
+        typeKey(k);
+        e.preventDefault();
+        return;
+      }
+      if (map[k]) {
+        typeKey(map[k]);
+        e.preventDefault();
+        return;
+      }
+      if ((k === "k" || k === "K") && G.phase === "step") {
+        $("btnKlaar").click();
+        e.preventDefault();
+      }
+      return;
+    }
+    if (/^[1-3]$/.test(e.key)) {
+      choose(parseInt(e.key, 10) - 1);
+      e.preventDefault();
+    } else if ((e.key === "k" || e.key === "K") && G.phase === "step") {
+      $("btnKlaar").click();
+      e.preventDefault();
+    }
+  });
+  var CK = null;
+  function startCheck() {
+    state = "check";
+    G.oplaad++;
+    CK = { good: 0 };
+    $("checkOv").hidden = false;
+    nextCheck();
+  }
+  function nextCheck() {
+    CK.item = makeCheck(G.lv);
+    CK.answered = false;
+    var bar = "";
+    for (var i = 0; i < CHECK_NEED; i++)
+      bar += '<i class="' + (i < CK.good ? "on" : "") + '"></i>';
+    $("ckBar").innerHTML = bar;
+    var h = "";
+    CK.item.lines.forEach(function(l, i2) {
+      h += '<div class="row markable' + (i2 === CK.item.box ? " boxed" : "") + (l.a ? " hasans" : "") + '" data-i="' + i2 + '"><span class="tx">' + esc(l.t) + (l.a ? ' <span class="ans">' + esc(l.a) + "</span>" : "") + esc(l.post || "") + "</span></div>";
+    });
+    $("ckPaper").innerHTML = h;
+    Array.prototype.forEach.call($("ckPaper").querySelectorAll(".row"), function(r) {
+      r.onclick = function() {
+        answerCheck(parseInt(r.getAttribute("data-i"), 10));
+      };
+    });
+    $("ckFb").hidden = true;
+    $("btnCkNext").hidden = true;
+    $("btnCkNetjes").hidden = false;
+  }
+  function answerCheck(i) {
+    if (CK.answered)
+      return;
+    CK.answered = true;
+    var it = CK.item, ok = i === it.bad, rows = $("ckPaper").querySelectorAll(".row");
+    Array.prototype.forEach.call(rows, function(r) {
+      r.classList.remove("markable");
+    });
+    if (it.bad >= 0)
+      rows[it.bad].classList.add("bad");
+    var fb;
+    if (it.bad < 0)
+      fb = ok ? '<b class="g">Goed gezien!</b> Alles klopt en staat netjes onder elkaar.' : '<b class="f">Niet goed.</b> Deze uitwerking was helemaal goed.';
+    else {
+      var e = explain(it.key, it.info);
+      fb = (ok ? '<b class="g">Goed gezien!</b> ' : '<b class="f">De fout zat in regel ' + (it.bad + 1) + ".</b> ") + esc(e.x);
+    }
+    if (ok)
+      CK.good++;
+    $("ckFb").innerHTML = fb;
+    $("ckFb").hidden = false;
+    $("btnCkNetjes").hidden = true;
+    $("btnCkNext").textContent = CK.good >= CHECK_NEED ? "Levens terug!" : "Volgende";
+    $("btnCkNext").hidden = false;
+    $("btnCkNext").focus();
+    var bar = "";
+    for (var j = 0; j < CHECK_NEED; j++)
+      bar += '<i class="' + (j < CK.good ? "on" : "") + '"></i>';
+    $("ckBar").innerHTML = bar;
+  }
+  $("btnCkNetjes").onclick = function() {
+    answerCheck(-1);
+  };
+  $("btnCkNext").onclick = function() {
+    if (CK.good < CHECK_NEED) {
+      nextCheck();
+      return;
+    }
+    $("checkOv").hidden = true;
+    G.lives = LIVES;
+    drawHud(false);
+    state = "play";
+    banner("Levens opgeladen!", 1200);
+    newSom();
+  };
+  function startLevel(lv) {
+    G = { lv, gate: 0, idx: 0, lives: LIVES, sec: 0, bad: 0, oplaad: 0, traps: {}, done: 0, sommen: 0 };
+    state = "play";
+    clearInterval(timerId);
+    timerId = setInterval(function() {
+      if (state === "play" && !document.hidden)
+        G.sec++;
+    }, 1e3);
+    banner("Level " + (lv + 1) + ": " + LEVELS[lv].naam, 1500);
+    newSom();
+  }
+  function endLevel() {
+    state = "end";
+    clearInterval(timerId);
+    session.L.push([G.lv + 1, G.sec, G.sommen, G.bad, G.oplaad]);
+    saveSession();
+    if (G.lv + 1 > voortgang.max) {
+      voortgang.max = G.lv + 1;
+      store("netjes.voortgang", voortgang);
+    }
+    var stars = G.bad === 0 ? 3 : G.bad <= 3 ? 2 : 1;
+    $("endTitle").textContent = "Level " + (G.lv + 1) + " gehaald!";
+    $("endStars").innerHTML = "★★★".split("").map(function(s, i) {
+      return '<span class="' + (i < stars ? "" : "off") + '">★</span>';
+    }).join("");
+    $("stTime").textContent = mmss(G.sec);
+    $("stBad").textContent = G.bad;
+    $("stCheck").textContent = G.oplaad;
+    var keys = Object.keys(G.traps).sort(function(a, b) {
+      return G.traps[b] - G.traps[a];
+    });
+    $("endTraps").innerHTML = keys.length ? '<p><b>Hier ging het mis:</b></p><ul class="traps">' + keys.map(function(k) {
+      return "<li><span>" + esc(TRAP_LABEL[k] || k) + "</span><b>" + G.traps[k] + "×</b></li>";
+    }).join("") + "</ul>" : "<p>Geen enkele fout. Heel netjes!</p>";
+    $("btnNext").textContent = G.lv + 1 < LEVELS.length ? "Volgend level" : "Opnieuw level 4";
+    $("endOv").hidden = false;
+    $("btnCode").focus();
+  }
+  $("btnNext").onclick = function() {
+    $("endOv").hidden = true;
+    startLevel(Math.min(G.lv + 1, LEVELS.length - 1));
+  };
+  function newSession(n, k) {
+    session = { s: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), n, k, L: [], V: {} };
+    saveSession();
+  }
+  function saveSession() {
+    store("netjes.sessie", session);
+  }
+  function codeText() {
+    var o = { v: 1, g: "netjes", n: session.n, k: session.k, s: session.s, t: Math.floor(Date.now() / 1e3), L: session.L, V: session.V };
+    if (G && state !== "end" && state !== "start")
+      o.P = [G.lv + 1, G.gate, GATES, G.sec, G.bad];
+    return encodeCode2(o);
+  }
+  function showCode() {
+    var done = session.L.map(function(l) {
+      return l[0];
+    });
+    var info = session.n + " · " + session.k + " · " + (done.length ? "gehaald: level " + done.join(", ") : "nog geen level gehaald");
+    if (G && state !== "end" && state !== "start")
+      info += " · bezig met level " + (G.lv + 1) + " (" + G.gate + " van " + GATES + " poorten)";
+    $("qrInfo").textContent = info;
+    try {
+      $("qrBox").innerHTML = qrSvg(codeText());
+    } catch (e) {
+      $("qrBox").textContent = "De code kon niet gemaakt worden.";
+    }
+    $("qrOv").hidden = false;
+    $("btnQrClose").focus();
+  }
+  $("btnCode").onclick = showCode;
+  $("btnStartCode").onclick = showCode;
+  $("btnPauseCode").onclick = showCode;
+  $("btnQrClose").onclick = function() {
+    $("qrOv").hidden = true;
+  };
+  function pause() {
+    if (state !== "play")
+      return;
+    state = "pause";
+    $("pauseInfo").textContent = "Level " + (G.lv + 1) + ", poort " + Math.min(G.gate + 1, GATES) + " van " + GATES + ". Tijd: " + mmss(G.sec) + ".";
+    $("pauseOv").hidden = false;
+    $("btnResume").focus();
+  }
+  $("btnPause").onclick = pause;
+  $("btnResume").onclick = function() {
+    $("pauseOv").hidden = true;
+    state = "play";
+    if (G.pending) {
+      G.pending = false;
+      nextSom();
+    }
+  };
+  $("btnQuit").onclick = function() {
+    $("pauseOv").hidden = true;
+    clearInterval(timerId);
+    state = "start";
+    showStart();
+  };
+  document.addEventListener("visibilitychange", function() {
+    if (document.hidden)
+      pause();
+  });
+  function showStart() {
+    if (speler) {
+      $("inName").value = speler.n || "";
+      $("inKlas").value = speler.k || "";
+    }
+    $("btnStartCode").hidden = !(session && session.L && session.L.length);
+    chosenLv = Math.min(voortgang.max, LEVELS.length - 1);
+    drawLevelPick();
+    $("startOv").hidden = false;
+  }
+  function drawLevelPick() {
+    var h = "";
+    LEVELS.forEach(function(L, i) {
+      var open = i <= voortgang.max;
+      h += '<button class="lvl' + (i === chosenLv ? " sel" : "") + '" data-i="' + i + '"' + (open ? "" : " disabled") + "><b>" + (open ? "" : "🔒 ") + "Level " + (i + 1) + "</b><span>" + esc(L.naam) + (i >= 2 ? " · met typen" : "") + "</span></button>";
+    });
+    $("levelPick").innerHTML = h;
+    Array.prototype.forEach.call($("levelPick").querySelectorAll(".lvl"), function(b) {
+      b.onclick = function() {
+        if (b.disabled)
+          return;
+        chosenLv = parseInt(b.getAttribute("data-i"), 10);
+        drawLevelPick();
+      };
+    });
+  }
+  $("btnStart").onclick = function() {
+    var n = $("inName").value.trim().replace(/\s+/g, " "), k = $("inKlas").value;
+    var err = !n ? "Vul je naam in." : !k ? "Kies je klas." : "";
+    $("startErr").textContent = err;
+    $("startErr").hidden = !err;
+    if (err)
+      return;
+    speler = { n, k };
+    store("netjes.speler", speler);
+    if (!session || !session.L || session.n !== n || session.k !== k || Date.now() - parseInt(session.s.slice(0, -4), 36) > 6 * 36e5)
+      newSession(n, k);
+    $("startOv").hidden = true;
+    startLevel(chosenLv);
+  };
+  G = { lv: 0, gate: 0, idx: 0, lives: LIVES };
+  drawHud(false);
+  $("taskSom").textContent = "3 + 4 · 2";
+  showStart();
+  window.__hoekOK = true;
+})();
+</script>
+</body>
+</html>
