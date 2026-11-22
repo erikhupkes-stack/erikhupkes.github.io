@@ -1,0 +1,2183 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<script>
+/* iOS-hulp: vult functies aan die oudere iPhones/iPads missen en laat fouten op het scherm zien. Bewust in oud JavaScript (ES5). */
+(function(){
+  var AP = Array.prototype;
+  if (!AP.flat) AP.flat = function(d){ d = d === undefined ? 1 : d; return d > 0 ? this.reduce(function(a, v){ return a.concat(Array.isArray(v) ? v.flat(d - 1) : v); }, []) : this.slice(); };
+  if (!AP.flatMap) AP.flatMap = function(f, t){ return this.map(f, t).flat(1); };
+  if (!AP.includes) AP.includes = function(x){ return this.indexOf(x) !== -1 || (x !== x && this.some(function(v){ return v !== v; })); };
+  if (!Object.fromEntries) Object.fromEntries = function(it){ var o = {}; Array.from(it).forEach(function(p){ o[p[0]] = p[1]; }); return o; };
+  if (!Object.values) Object.values = function(o){ return Object.keys(o).map(function(k){ return o[k]; }); };
+  if (!Object.entries) Object.entries = function(o){ return Object.keys(o).map(function(k){ return [k, o[k]]; }); };
+  if (!String.prototype.padStart) String.prototype.padStart = function(n, s){ var t = String(this); s = s === undefined ? ' ' : String(s); while (t.length < n) t = s + t; return t.slice(t.length - Math.max(n, String(this).length)); };
+  if (typeof window.TextEncoder === 'undefined') window.TextEncoder = function(){};
+  if (!window.TextEncoder.prototype.encode) window.TextEncoder.prototype.encode = function(str){
+    var bin = unescape(encodeURIComponent(String(str))), out = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+    return out;
+  };
+  if (window.NodeList && !NodeList.prototype.forEach) NodeList.prototype.forEach = AP.forEach;
+
+  var shown = false;
+  function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]; }); }
+  function show(msg){
+    if (shown) return; shown = true;
+    var ios = navigator.userAgent.match(/OS (\d+)_(\d+)/), dev = ios ? 'iOS ' + ios[1] + '.' + ios[2] : navigator.platform || '';
+    var d = document.createElement('div');
+    d.setAttribute('role', 'alert');
+    d.style.cssText = 'position:fixed;left:12px;right:12px;bottom:12px;z-index:99999;background:#C9334F;color:#fff;font:600 15px/1.4 -apple-system,system-ui,sans-serif;padding:12px 14px;border-radius:14px;box-shadow:0 6px 0 rgba(0,0,0,.25)';
+    d.innerHTML = '<b>Het spel loopt vast op dit apparaat.</b><br>Maak een schermafbeelding en laat die aan je docent zien.'
+      + '<div style="font-weight:400;font-size:13px;margin-top:6px;word-break:break-word">' + esc(msg) + '<br>' + esc(dev) + '<br>' + esc(navigator.userAgent.slice(0, 160)) + '</div>';
+    (document.body || document.documentElement).appendChild(d);
+  }
+  window.__hoekReport = show;
+  var here = location.href.split('#')[0];
+  window.onerror = function(m, src, line, col){
+    if (!m || /^Script error\.?$/.test(m)) return;            // fouten uit scripts van andere sites negeren
+    if (src && src.split('#')[0] !== here) return;             // alleen fouten uit deze pagina
+    show(m + (line ? ' (regel ' + line + (col ? ':' + col : '') + ')' : ''));
+  };
+  window.addEventListener('load', function(){
+    setTimeout(function(){ if (!window.__hoekOK) show('Het spel is niet gestart: het script kon niet worden uitgevoerd.'); }, 2500);
+  });
+})();
+</script>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Balansspel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Patrick+Hand&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#BCD2E8; --sky:#CFE0F5; --card:#FFFFFF; --field:#EEF3F9;
+  --ink:#24274F; --ink-soft:#50557F; --accent:#7578C6; --accent-dark:#45488A;
+  --gold:#F5B83A; --good:#23885A; --bad:#C9334F; --heart:#E5486B; --shadow:rgba(30,35,80,.22);
+  --paper:#FFFDF5; --rule:#C7D7EE; --margin:#EAA0AE; --pen:#1F3A93; --pen-soft:#6A7BB8; --red:#D0312D; --grey:#8A8FA8;
+  --beam:#7A5A3A; --pan:#E9D9B8;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#1B1F3D; --sky:#232850; --card:#272C55; --field:#1F2448;
+    --ink:#ECEEFF; --ink-soft:#B4B8E4; --accent:#8E91E3; --accent-dark:#4C4F94;
+    --good:#5CD39A; --bad:#FF7A93; --heart:#FF6B88; --shadow:rgba(0,0,0,.35);
+    --paper:#262B52; --rule:#3B4278; --margin:#9C4A60; --pen:#C9D6FF; --pen-soft:#8C98D0; --red:#FF7C70; --grey:#9DA3C6;
+    --beam:#C9A27A; --pan:#4A4470;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#1B1F3D; --sky:#232850; --card:#272C55; --field:#1F2448;
+  --ink:#ECEEFF; --ink-soft:#B4B8E4; --accent:#8E91E3; --accent-dark:#4C4F94;
+  --good:#5CD39A; --bad:#FF7A93; --heart:#FF6B88; --shadow:rgba(0,0,0,.35);
+  --paper:#262B52; --rule:#3B4278; --margin:#9C4A60; --pen:#C9D6FF; --pen-soft:#8C98D0; --red:#FF7C70; --grey:#9DA3C6;
+  --beam:#C9A27A; --pan:#4A4470;
+}
+*,*::before,*::after{box-sizing:border-box}
+[hidden]{display:none !important}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);overflow:hidden;font-family:'Baloo 2',ui-rounded,'Segoe UI',system-ui,sans-serif;
+  -webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none;touch-action:manipulation;overscroll-behavior:none}
+#app{position:fixed;top:0;right:0;bottom:0;left:0;display:flex;flex-direction:column;
+  padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px);
+  max-width:680px;margin:0 auto;background:linear-gradient(var(--sky),var(--bg))}
+.hand{font-family:'Patrick Hand','Comic Sans MS','Segoe Print',cursive}
+/* bovenbalk */
+.hud{display:flex;align-items:center;gap:8px;padding:10px 12px 6px}
+.pill{background:var(--card);border-radius:14px;padding:4px 10px 1px;box-shadow:0 3px 0 var(--shadow);font-weight:800;font-size:1rem;line-height:1.5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.pill small{font-weight:700;color:var(--ink-soft);font-size:.75rem;margin-right:3px}
+.dots{display:flex;gap:4px;align-items:center}
+.dot{width:14px;height:14px;border-radius:50%;background:var(--card);box-shadow:inset 0 0 0 2px var(--accent)}
+.dot.cur{box-shadow:inset 0 0 0 3px var(--gold)}
+.dot.ok{background:var(--good);box-shadow:none}
+.dot.meh{background:var(--gold);box-shadow:none}
+.hearts{display:flex;gap:2px}
+.hearts svg{width:20px;height:20px}
+.hearts svg.lost{opacity:.25}
+.hearts svg.pop{animation:hpop .5s}
+@keyframes hpop{0%{transform:scale(1)}40%{transform:scale(1.5)}100%{transform:scale(1)}}
+.spacer{flex:1}
+.iconbtn{font:inherit;font-weight:800;border:0;background:var(--card);color:var(--ink);border-radius:12px;min-width:38px;height:34px;padding:0 10px;box-shadow:0 3px 0 var(--shadow);cursor:pointer;flex:none}
+.iconbtn.hint{background:var(--gold);color:#24274F;box-shadow:0 3px 0 #B07A12}
+/* opgave */
+.task{margin:2px 12px 6px;background:var(--card);border-radius:16px;box-shadow:0 4px 0 var(--accent-dark);padding:6px 14px 4px;display:flex;align-items:baseline;gap:10px}
+.task .lab{font-weight:800;color:var(--ink-soft);font-size:.95rem;white-space:nowrap}
+.task .som{font-weight:800;font-size:1.5rem;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.task .mode{margin-left:auto;font-size:.8rem;font-weight:800;color:var(--accent-dark);background:var(--field);border-radius:8px;padding:1px 7px 0;white-space:nowrap}
+/* weegschaal */
+.scale{margin:0 12px 4px;height:104px;flex:none}
+.scale svg{display:block;width:100%;height:100%}
+.scale text{font-family:'Patrick Hand','Comic Sans MS',cursive;font-size:19px;fill:var(--pen)}
+.scale .optx{fill:var(--red);font-size:17px}
+/* schrift */
+.paper{position:relative;flex:1;min-height:140px;margin:0 12px 8px;border-radius:6px 6px 14px 14px;overflow:auto;-webkit-overflow-scrolling:touch;
+  background-color:var(--paper);
+  background-image:linear-gradient(90deg,transparent 46px,var(--margin) 46px,var(--margin) 48px,transparent 48px),
+    repeating-linear-gradient(transparent 0,transparent 39px,var(--rule) 39px,var(--rule) 40px);
+  background-attachment:local;box-shadow:0 4px 0 var(--shadow);padding:6px 0 20px}
+.kop{height:40px;display:flex;align-items:flex-end;padding:0 10px 4px 58px;font-weight:800;font-size:.95rem;color:var(--accent-dark);letter-spacing:.02em}
+.kop.grey{color:var(--grey)}
+.ln{position:relative;height:40px;display:grid;grid-template-columns:minmax(0,1fr) 36px minmax(0,1fr);align-items:end;padding:0 10px 3px 58px;font-size:1.6rem;line-height:1;color:var(--pen);white-space:nowrap}
+.ln .l{text-align:right;padding-right:2px}
+.ln .m{text-align:center}
+.ln .r{text-align:left;padding-left:2px}
+.ln .w{display:inline-block;padding:1px 6px 0;border:3px solid transparent;border-radius:8px;transition:border-color .2s}
+.ln.op{color:var(--red);font-size:1.35rem}
+.ln.txt{grid-template-columns:1fr;font-size:1.45rem}
+.ln.txt .l{text-align:left;padding-left:40px}
+.ln.ctrl{color:var(--grey)}
+.ln.new .w{animation:write .35s ease-out}
+@keyframes write{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:none}}
+.ln.boxed .w{border-color:var(--pen)}
+.ln.tap{cursor:pointer;background:rgba(117,120,198,.10)}
+.ln.tap:hover{background:rgba(117,120,198,.22)}
+.ln.found{color:var(--bad)}
+.ln.found .l,.ln.found .r{text-decoration:line-through;text-decoration-thickness:2px}
+.ln.marked{background:rgba(35,136,90,.18)}
+.ln.wrongtap{background:rgba(201,51,79,.16)}
+.ln .slot{display:inline-block;min-width:54px;min-height:1.15em;padding:1px 6px 0;border-bottom:3px dashed var(--pen-soft);text-align:center;cursor:text}
+.ln .slot.act{border-bottom-color:var(--gold);background:rgba(245,184,58,.15);border-radius:6px 6px 0 0}
+.ln .slot.r{text-align:left}
+.ln.op .slot{color:var(--red)}
+.caret{display:inline-block;width:2px;height:1em;background:var(--pen);vertical-align:-0.1em;margin-left:1px;animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+.stamp{position:absolute;right:14px;top:8px;font-weight:800;font-size:1.2rem;color:var(--good);border:3px solid var(--good);border-radius:10px;padding:2px 10px 0;transform:rotate(8deg);opacity:0;transition:opacity .2s;pointer-events:none;background:var(--paper)}
+.stamp.show{opacity:1}
+.stamp.zelf{color:var(--gold);border-color:var(--gold);font-size:1.35rem}
+/* bedieningspaneel */
+.panel{margin:0 12px 12px;background:var(--card);border-radius:20px;box-shadow:0 6px 0 var(--accent-dark);padding:8px 10px 10px}
+.prompt{display:flex;align-items:center;gap:8px;min-height:36px}
+.prompt .q{font-weight:800;font-size:1.05rem;line-height:1.2;flex:1}
+.msg{color:var(--bad);font-weight:700;font-size:.92rem;line-height:1.25}
+.msg.tip{color:var(--accent-dark);background:var(--field);border-radius:10px;padding:5px 10px 3px;margin-top:4px}
+.opts{display:flex;flex-direction:column;gap:8px;margin-top:6px}
+.opts.row2{flex-direction:row}
+.opts.row2 .opt{justify-content:center}
+.opt{font:inherit;display:flex;align-items:center;gap:10px;width:100%;min-height:54px;border:0;border-radius:14px;background:var(--paper);color:var(--pen);
+  box-shadow:inset 0 0 0 2px var(--rule),0 4px 0 var(--shadow);padding:6px 12px;cursor:pointer;text-align:left}
+.opt .k{flex:none;width:26px;height:26px;border-radius:8px;background:var(--field);color:var(--ink-soft);font-family:'Baloo 2',system-ui,sans-serif;font-weight:800;font-size:.95rem;line-height:28px;text-align:center}
+.opt .tx{font-size:1.5rem;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1}
+.opt .opl,.opt .opr{display:inline-block;min-width:70px;color:var(--red)}
+.opt .opl{text-align:right}
+.opt .opbar{display:inline-block;width:2px;height:1.1em;background:var(--rule);margin:0 14px;vertical-align:-0.15em}
+.opt .none{color:var(--grey);font-size:1rem;font-family:'Baloo 2',system-ui,sans-serif;font-weight:700}
+.opt.big{font-family:'Baloo 2',system-ui,sans-serif;font-weight:800;font-size:1.15rem;justify-content:center}
+.opt.gold{background:var(--gold);color:#24274F;box-shadow:0 4px 0 #B07A12}
+.opt.accent{background:var(--accent);color:#fff;box-shadow:0 4px 0 var(--accent-dark)}
+.opt:active{transform:translateY(2px)}
+.opt:focus-visible,.btn:focus-visible,.iconbtn:focus-visible,.key:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+/* toetsenbord */
+.keys{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:6px}
+.key{font:inherit;font-weight:800;font-size:1.3rem;height:46px;border:0;border-radius:12px;background:var(--field);color:var(--ink);box-shadow:0 3px 0 var(--shadow);cursor:pointer;padding:0}
+.key.op{background:var(--paper);color:var(--pen)}
+.key.ok{background:var(--accent);color:#fff;box-shadow:0 3px 0 var(--accent-dark);font-size:1.05rem}
+.key:active{transform:translateY(2px);box-shadow:0 1px 0 var(--shadow)}
+.banner{position:fixed;left:50%;top:34%;transform:translate(-50%,-50%) scale(.9);background:var(--card);border-radius:18px;padding:12px 22px 8px;font-weight:800;font-size:1.5rem;
+  box-shadow:0 5px 0 var(--accent-dark);z-index:15;white-space:nowrap;opacity:0;transition:opacity .25s,transform .25s;pointer-events:none;text-align:center}
+.banner.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
+.banner.zelf{background:var(--gold);color:#24274F;box-shadow:0 6px 0 #B07A12;font-size:1.9rem}
+.banner small{display:block;font-size:1rem;font-weight:700}
+/* overlays */
+.overlay{position:fixed;top:0;right:0;bottom:0;left:0;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(20,24,60,.45);z-index:20;overflow:auto}
+.card{background:var(--card);color:var(--ink);border-radius:22px;padding:20px;width:min(480px,100%);box-shadow:0 8px 0 var(--accent-dark);max-height:100%;overflow:auto;-webkit-user-select:text;user-select:text}
+.card h1{margin:0;font-size:2rem;line-height:1.05}
+.card h2{margin:0 0 6px;font-size:1.5rem;line-height:1.1}
+.card p{margin:8px 0;line-height:1.35}
+.sub{color:var(--ink-soft);font-weight:700;margin-top:2px}
+.fields{display:flex;gap:10px;margin:12px 0 4px;flex-wrap:wrap}
+.fields label{display:flex;flex-direction:column;font-weight:700;font-size:.95rem;flex:1;min-width:120px}
+.fields label.narrow{flex:0 0 110px;min-width:0}
+input,select{font:inherit;font-size:1.05rem;padding:7px 10px 4px;border-radius:12px;border:2px solid var(--accent);background:var(--field);color:var(--ink);width:100%}
+#inCode{text-transform:uppercase;letter-spacing:.2em;font-weight:800}
+.btn{font:inherit;font-weight:800;font-size:1.1rem;background:var(--accent);color:#fff;border:0;border-radius:14px;padding:10px 18px 7px;box-shadow:0 4px 0 var(--accent-dark);cursor:pointer}
+.btn.quiet{background:var(--field);color:var(--ink);box-shadow:0 4px 0 var(--shadow)}
+.btn.gold{background:var(--gold);color:#24274F;box-shadow:0 4px 0 #B07A12}
+.btn:active{transform:translateY(2px)}
+.btnrow{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+.error{color:var(--bad);font-weight:700}
+.mini{background-color:var(--paper);border-radius:10px;padding:4px 0 8px;margin:8px 0;
+  background-image:repeating-linear-gradient(transparent 0,transparent 31px,var(--rule) 31px,var(--rule) 32px)}
+.mini .kop{height:32px;padding-left:14px;font-size:.85rem}
+.mini .ln{height:32px;font-size:1.3rem;padding-left:14px}
+.mini .ln.op{font-size:1.1rem}
+.traps{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0 4px}
+.trapb{font:inherit;text-align:left;border:0;border-radius:14px;background:var(--field);color:var(--ink);padding:8px 10px 5px;box-shadow:0 3px 0 var(--shadow);cursor:pointer}
+.trapb b{display:block;font-size:1rem;line-height:1.1}
+.trapb span{font-size:.8rem;color:var(--ink-soft);font-weight:700}
+.trapb.sel{box-shadow:inset 0 0 0 3px var(--accent),0 3px 0 var(--shadow)}
+.why .lp{background:var(--field);border-radius:12px;padding:8px 12px 6px;line-height:1.4;font-weight:600}
+.why .badline{font-size:1.4rem;color:var(--bad);text-align:center;margin:6px 0}
+.why .goodline{font-size:1.4rem;color:var(--good);text-align:center;margin:6px 0}
+.why .scale{margin:6px 0;height:96px}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:12px 0}
+.stat{background:var(--field);border-radius:12px;padding:6px 6px 3px;text-align:center}
+.stat b{display:block;font-size:1.45rem;line-height:1.1}
+.stat span{font-size:.75rem;color:var(--ink-soft);font-weight:700}
+.stat.zelf{background:var(--gold);color:#24274F}
+.stat.zelf span{color:#24274F}
+.ckbar{display:flex;gap:6px;justify-content:center;margin:4px 0}
+.ckbar i{width:16px;height:16px;border-radius:50%;background:var(--field)}
+.ckbar i.on{background:var(--heart)}
+.ckq{font-size:1.5rem;text-align:center;margin:10px 0;color:var(--pen)}
+.ckfb{background:var(--field);border-radius:12px;padding:8px 12px 6px;line-height:1.35;font-weight:600;margin-top:8px}
+.ckfb b.g{color:var(--good)} .ckfb b.f{color:var(--bad)}
+.qr{display:block;width:min(280px,100%);margin:10px auto;background:#fff;border-radius:12px;padding:8px}
+.qr svg{display:block;width:100%;height:auto}
+.codeinfo{text-align:center;font-weight:700;color:var(--ink-soft);font-size:.95rem}
+.tabs{display:flex;gap:8px;margin:12px 0 0}
+.tab{font:inherit;font-weight:800;flex:1;border:0;border-radius:12px;padding:8px 6px 5px;background:var(--field);color:var(--ink-soft);cursor:pointer}
+.tab.sel{background:var(--accent);color:#fff}
+@media (max-width:440px){ .dot{width:10px;height:10px} .hud{gap:5px;padding:8px 8px 4px} .pill{flex:none} .iconbtn{padding:0 7px} }
+@media (max-height:700px){
+  .ln,.kop{height:34px} .ln{font-size:1.4rem} .ln.op{font-size:1.2rem}
+  .paper{background-image:linear-gradient(90deg,transparent 46px,var(--margin) 46px,var(--margin) 48px,transparent 48px),repeating-linear-gradient(transparent 0,transparent 33px,var(--rule) 33px,var(--rule) 34px)}
+  .scale{height:84px} .opt{min-height:46px} .opt .tx{font-size:1.3rem} .key{height:40px} .task .som{font-size:1.3rem}
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="hud">
+    <div class="pill" id="hudLevel"><small>trap</small>1</div>
+    <div class="dots" id="hudDots" aria-label="Opgaven"></div>
+    <div class="spacer"></div>
+    <div class="hearts" id="hudHearts" aria-label="Levens"></div>
+    <button class="iconbtn hint" id="btnHint" aria-label="Hint">Hint</button>
+    <button class="iconbtn" id="btnPause" aria-label="Pauze">II</button>
+  </div>
+  <div class="task">
+    <span class="lab" id="taskLab">Opgave 1</span>
+    <span class="som hand" id="taskSom"></span>
+    <span class="mode" id="taskMode"></span>
+  </div>
+  <div class="scale" id="scale" aria-hidden="true"></div>
+  <div class="paper" id="paper" aria-label="Schrift"><div class="stamp" id="stamp">Goed!</div><div id="rows"></div></div>
+  <div class="panel">
+    <div class="prompt"><div class="q" id="prompt"></div></div>
+    <div class="msg" id="msg"></div>
+    <div class="opts" id="opts"></div>
+    <div class="keys" id="keys" hidden></div>
+  </div>
+</div>
+<div class="banner" id="banner"></div>
+
+<!-- startscherm -->
+<div class="overlay" id="startOv">
+  <div class="card">
+    <h1>Balansspel</h1>
+    <p class="sub">Vergelijkingen oplossen met de balansmethode</p>
+    <p>Wat je links doet, doe je ook rechts. Schrijf netjes op: <b>Overnemen</b>, <b>Berekenen</b>, <b>Antwoord</b>. De <b>controle</b> mag altijd: vind je zelf een fout, dan is dat een echte mijlpaal.</p>
+    <div class="mini hand" aria-label="Voorbeeld">
+      <div class="kop">Overnemen</div>
+      <div class="ln"><span class="l">5x + 7</span><span class="m">=</span><span class="r">42</span></div>
+      <div class="kop">Berekenen</div>
+      <div class="ln op"><span class="l">−7</span><span class="m"></span><span class="r">−7</span></div>
+      <div class="ln"><span class="l">5x</span><span class="m">=</span><span class="r">35</span></div>
+      <div class="ln op"><span class="l">: 5</span><span class="m"></span><span class="r">: 5</span></div>
+      <div class="ln"><span class="l">x</span><span class="m">=</span><span class="r">7</span></div>
+      <div class="kop">Antwoord</div>
+      <div class="ln boxed"><span class="l"><span class="w">x = 7</span></span><span class="m"></span><span class="r"></span></div>
+    </div>
+    <div class="fields">
+      <label>Je naam<input id="inName" maxlength="30" autocomplete="off" spellcheck="false"></label>
+      <label class="narrow">Klas<select id="inKlas">
+        <option value="">Kies…</option><option>LV1A</option><option>LV1B</option><option>LV2A</option><option>LV2B</option><option>LV2C</option><option>Anders</option>
+      </select></label>
+    </div>
+    <div class="tabs" role="tablist">
+      <button class="tab sel" id="tabTeam" role="tab">Teamrace</button>
+      <button class="tab" id="tabLos" role="tab">Zelf oefenen</button>
+    </div>
+    <div id="paneTeam">
+      <div class="fields"><label>Lescode (staat op het bord)<input id="inCode" maxlength="6" autocomplete="off" spellcheck="false" placeholder="ABCD"></label></div>
+    </div>
+    <div id="paneLos" hidden>
+      <div class="traps" id="trapPick"></div>
+    </div>
+    <p class="error" id="startErr" hidden></p>
+    <div class="btnrow">
+      <button class="btn" id="btnStart">Begin</button>
+      <button class="btn quiet" id="btnStartCode" hidden>Mijn laatste code</button>
+    </div>
+  </div>
+</div>
+
+<!-- uitleg bij een fout -->
+<div class="overlay" id="whyOv" hidden>
+  <div class="card why">
+    <h2 id="whyTitle">Let op</h2>
+    <div id="whyScale" class="scale" hidden></div>
+    <div class="badline hand" id="whyLine"></div>
+    <div class="lp" id="whyText"></div>
+    <div class="btnrow"><button class="btn" id="btnWhyOk">Verder</button></div>
+  </div>
+</div>
+
+<!-- oplaadspel: klopt het? -->
+<div class="overlay" id="checkOv" hidden>
+  <div class="card">
+    <h2>Levens opladen: klopt het?</h2>
+    <p style="margin-top:0">Vul de oplossing in en kijk of het klopt. Drie keer goed achter elkaar en je levens zijn terug.</p>
+    <div class="ckbar" id="ckBar"></div>
+    <div class="ckq hand" id="ckQ"></div>
+    <div class="ckfb" id="ckFb" hidden></div>
+    <div class="btnrow" id="ckBtns">
+      <button class="btn" id="btnCkJa">Klopt</button>
+      <button class="btn" id="btnCkNee">Klopt niet</button>
+    </div>
+    <div class="btnrow"><button class="btn gold" id="btnCkNext" hidden>Volgende</button></div>
+  </div>
+</div>
+
+<!-- pauze -->
+<div class="overlay" id="pauseOv" hidden>
+  <div class="card">
+    <h2>Pauze</h2>
+    <p id="pauseInfo"></p>
+    <div class="btnrow">
+      <button class="btn" id="btnResume">Verder</button>
+      <button class="btn quiet" id="btnPauseCode">Mijn laatste code</button>
+      <button class="btn quiet" id="btnQuit">Naar het begin</button>
+    </div>
+  </div>
+</div>
+
+<!-- einde ronde / level -->
+<div class="overlay" id="endOv" hidden>
+  <div class="card">
+    <h2 id="endTitle">Ronde klaar!</h2>
+    <p class="sub" id="endSub"></p>
+    <div class="stats">
+      <div class="stat"><b id="stGoed">0</b><span>foutloos</span></div>
+      <div class="stat"><b id="stBad">0</b><span>fouten</span></div>
+      <div class="stat zelf"><b id="stZelf">0</b><span>zelf gevonden</span></div>
+      <div class="stat"><b id="stHint">0</b><span>hints</span></div>
+    </div>
+    <p id="endTrap"></p>
+    <div id="endQrWrap" hidden>
+      <div class="qr" id="endQr"></div>
+      <p class="codeinfo">Loop naar voren en laat deze code scannen.</p>
+    </div>
+    <div class="btnrow">
+      <button class="btn" id="btnNext">Volgende ronde</button>
+      <button class="btn quiet" id="btnEndHome">Naar het begin</button>
+    </div>
+  </div>
+</div>
+
+<!-- QR-code -->
+<div class="overlay" id="qrOv" hidden>
+  <div class="card">
+    <h2>Mijn laatste code</h2>
+    <p class="codeinfo" id="qrInfo"></p>
+    <div class="qr" id="qrBox"></div>
+    <p class="codeinfo">Laat deze code scannen door je docent.</p>
+    <div class="btnrow"><button class="btn" id="btnQrClose">Sluiten</button></div>
+  </div>
+</div>
+
+<script>
+/* qrcode-generator, (c) 2009 Kazuhiko Arase, MIT-licentie */
+var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],f={},c=function(t,r){o=function(t){for(var r=new Array(t),e=0;e<t;e+=1){r[e]=new Array(t);for(var n=0;n<t;n+=1)r[e][n]=null}return r}(i=4*e+17),l(0,0),l(i-7,0),l(0,i-7),s(),h(),d(t,r),e>=7&&v(t),null==a&&(a=p(e,n,u)),w(a,r)},l=function(t,r){for(var e=-1;e<=7;e+=1)if(!(t+e<=-1||i<=t+e))for(var n=-1;n<=7;n+=1)r+n<=-1||i<=r+n||(o[t+e][r+n]=0<=e&&e<=6&&(0==n||6==n)||0<=n&&n<=6&&(0==e||6==e)||2<=e&&e<=4&&2<=n&&n<=4)},h=function(){for(var t=8;t<i-8;t+=1)null==o[t][6]&&(o[t][6]=t%2==0);for(var r=8;r<i-8;r+=1)null==o[6][r]&&(o[6][r]=r%2==0)},s=function(){for(var t=B.getPatternPosition(e),r=0;r<t.length;r+=1)for(var n=0;n<t.length;n+=1){var i=t[r],a=t[n];if(null==o[i][a])for(var u=-2;u<=2;u+=1)for(var f=-2;f<=2;f+=1)o[i+u][a+f]=-2==u||2==u||-2==f||2==f||0==u&&0==f}},v=function(t){for(var r=B.getBCHTypeNumber(e),n=0;n<18;n+=1){var a=!t&&1==(r>>n&1);o[Math.floor(n/3)][n%3+i-8-3]=a}for(n=0;n<18;n+=1){a=!t&&1==(r>>n&1);o[n%3+i-8-3][Math.floor(n/3)]=a}},d=function(t,r){for(var e=n<<3|r,a=B.getBCHTypeInfo(e),u=0;u<15;u+=1){var f=!t&&1==(a>>u&1);u<6?o[u][8]=f:u<8?o[u+1][8]=f:o[i-15+u][8]=f}for(u=0;u<15;u+=1){f=!t&&1==(a>>u&1);u<8?o[8][i-u-1]=f:u<9?o[8][15-u-1+1]=f:o[8][15-u-1]=f}o[i-8][8]=!t},w=function(t,r){for(var e=-1,n=i-1,a=7,u=0,f=B.getMaskFunction(r),c=i-1;c>0;c-=2)for(6==c&&(c-=1);;){for(var g=0;g<2;g+=1)if(null==o[n][c-g]){var l=!1;u<t.length&&(l=1==(t[u]>>>a&1)),f(n,c-g)&&(l=!l),o[n][c-g]=l,-1==(a-=1)&&(u+=1,a=7)}if((n+=e)<0||i<=n){n-=e,e=-e;break}}},p=function(t,r,e){for(var n=A.getRSBlocks(t,r),o=b(),i=0;i<e.length;i+=1){var a=e[i];o.put(a.getMode(),4),o.put(a.getLength(),B.getLengthInBits(a.getMode(),t)),a.write(o)}var u=0;for(i=0;i<n.length;i+=1)u+=n[i].dataCount;if(o.getLengthInBits()>8*u)throw"code length overflow. ("+o.getLengthInBits()+">"+8*u+")";for(o.getLengthInBits()+4<=8*u&&o.put(0,4);o.getLengthInBits()%8!=0;)o.putBit(!1);for(;!(o.getLengthInBits()>=8*u||(o.put(236,8),o.getLengthInBits()>=8*u));)o.put(17,8);return function(t,r){for(var e=0,n=0,o=0,i=new Array(r.length),a=new Array(r.length),u=0;u<r.length;u+=1){var f=r[u].dataCount,c=r[u].totalCount-f;n=Math.max(n,f),o=Math.max(o,c),i[u]=new Array(f);for(var g=0;g<i[u].length;g+=1)i[u][g]=255&t.getBuffer()[g+e];e+=f;var l=B.getErrorCorrectPolynomial(c),h=k(i[u],l.getLength()-1).mod(l);for(a[u]=new Array(l.getLength()-1),g=0;g<a[u].length;g+=1){var s=g+h.getLength()-a[u].length;a[u][g]=s>=0?h.getAt(s):0}}var v=0;for(g=0;g<r.length;g+=1)v+=r[g].totalCount;var d=new Array(v),w=0;for(g=0;g<n;g+=1)for(u=0;u<r.length;u+=1)g<i[u].length&&(d[w]=i[u][g],w+=1);for(g=0;g<o;g+=1)for(u=0;u<r.length;u+=1)g<a[u].length&&(d[w]=a[u][g],w+=1);return d}(o,n)};f.addData=function(t,r){var e=null;switch(r=r||"Byte"){case"Numeric":e=M(t);break;case"Alphanumeric":e=x(t);break;case"Byte":e=m(t);break;case"Kanji":e=L(t);break;default:throw"mode:"+r}u.push(e),a=null},f.isDark=function(t,r){if(t<0||i<=t||r<0||i<=r)throw t+","+r;return o[t][r]},f.getModuleCount=function(){return i},f.make=function(){if(e<1){for(var t=1;t<40;t++){for(var r=A.getRSBlocks(t,n),o=b(),i=0;i<u.length;i++){var a=u[i];o.put(a.getMode(),4),o.put(a.getLength(),B.getLengthInBits(a.getMode(),t)),a.write(o)}var g=0;for(i=0;i<r.length;i++)g+=r[i].dataCount;if(o.getLengthInBits()<=8*g)break}e=t}c(!1,function(){for(var t=0,r=0,e=0;e<8;e+=1){c(!0,e);var n=B.getLostPoint(f);(0==e||t>n)&&(t=n,r=e)}return r}())},f.createTableTag=function(t,r){t=t||2;var e="";e+='<table style="',e+=" border-width: 0px; border-style: none;",e+=" border-collapse: collapse;",e+=" padding: 0px; margin: "+(r=void 0===r?4*t:r)+"px;",e+='">',e+="<tbody>";for(var n=0;n<f.getModuleCount();n+=1){e+="<tr>";for(var o=0;o<f.getModuleCount();o+=1)e+='<td style="',e+=" border-width: 0px; border-style: none;",e+=" border-collapse: collapse;",e+=" padding: 0px; margin: 0px;",e+=" width: "+t+"px;",e+=" height: "+t+"px;",e+=" background-color: ",e+=f.isDark(n,o)?"#000000":"#ffffff",e+=";",e+='"/>';e+="</tr>"}return e+="</tbody>",e+="</table>"},f.createSvgTag=function(t,r,e,n){var o={};"object"==typeof arguments[0]&&(t=(o=arguments[0]).cellSize,r=o.margin,e=o.alt,n=o.title),t=t||2,r=void 0===r?4*t:r,(e="string"==typeof e?{text:e}:e||{}).text=e.text||null,e.id=e.text?e.id||"qrcode-description":null,(n="string"==typeof n?{text:n}:n||{}).text=n.text||null,n.id=n.text?n.id||"qrcode-title":null;var i,a,u,c,g=f.getModuleCount()*t+2*r,l="";for(c="l"+t+",0 0,"+t+" -"+t+",0 0,-"+t+"z ",l+='<svg version="1.1" xmlns="http://www.w3.org/2000/svg"',l+=o.scalable?"":' width="'+g+'px" height="'+g+'px"',l+=' viewBox="0 0 '+g+" "+g+'" ',l+=' preserveAspectRatio="xMinYMin meet"',l+=n.text||e.text?' role="img" aria-labelledby="'+y([n.id,e.id].join(" ").trim())+'"':"",l+=">",l+=n.text?'<title id="'+y(n.id)+'">'+y(n.text)+"</title>":"",l+=e.text?'<description id="'+y(e.id)+'">'+y(e.text)+"</description>":"",l+='<rect width="100%" height="100%" fill="white" cx="0" cy="0"/>',l+='<path d="',a=0;a<f.getModuleCount();a+=1)for(u=a*t+r,i=0;i<f.getModuleCount();i+=1)f.isDark(a,i)&&(l+="M"+(i*t+r)+","+u+c);return l+='" stroke="transparent" fill="black"/>',l+="</svg>"},f.createDataURL=function(t,r){t=t||2,r=void 0===r?4*t:r;var e=f.getModuleCount()*t+2*r,n=r,o=e-r;return I(e,e,function(r,e){if(n<=r&&r<o&&n<=e&&e<o){var i=Math.floor((r-n)/t),a=Math.floor((e-n)/t);return f.isDark(a,i)?0:1}return 1})},f.createImgTag=function(t,r,e){t=t||2,r=void 0===r?4*t:r;var n=f.getModuleCount()*t+2*r,o="";return o+="<img",o+=' src="',o+=f.createDataURL(t,r),o+='"',o+=' width="',o+=n,o+='"',o+=' height="',o+=n,o+='"',e&&(o+=' alt="',o+=y(e),o+='"'),o+="/>"};var y=function(t){for(var r="",e=0;e<t.length;e+=1){var n=t.charAt(e);switch(n){case"<":r+="&lt;";break;case">":r+="&gt;";break;case"&":r+="&amp;";break;case'"':r+="&quot;";break;default:r+=n}}return r};return f.createASCII=function(t,r){if((t=t||1)<2)return function(t){t=void 0===t?2:t;var r,e,n,o,i,a=1*f.getModuleCount()+2*t,u=t,c=a-t,g={"██":"█","█ ":"▀"," █":"▄","  ":" "},l={"██":"▀","█ ":"▀"," █":" ","  ":" "},h="";for(r=0;r<a;r+=2){for(n=Math.floor((r-u)/1),o=Math.floor((r+1-u)/1),e=0;e<a;e+=1)i="█",u<=e&&e<c&&u<=r&&r<c&&f.isDark(n,Math.floor((e-u)/1))&&(i=" "),u<=e&&e<c&&u<=r+1&&r+1<c&&f.isDark(o,Math.floor((e-u)/1))?i+=" ":i+="█",h+=t<1&&r+1>=c?l[i]:g[i];h+="\n"}return a%2&&t>0?h.substring(0,h.length-a-1)+Array(a+1).join("▀"):h.substring(0,h.length-1)}(r);t-=1,r=void 0===r?2*t:r;var e,n,o,i,a=f.getModuleCount()*t+2*r,u=r,c=a-r,g=Array(t+1).join("██"),l=Array(t+1).join("  "),h="",s="";for(e=0;e<a;e+=1){for(o=Math.floor((e-u)/t),s="",n=0;n<a;n+=1)i=1,u<=n&&n<c&&u<=e&&e<c&&f.isDark(o,Math.floor((n-u)/t))&&(i=0),s+=i?g:l;for(o=0;o<t;o+=1)h+=s+"\n"}return h.substring(0,h.length-1)},f.renderTo2dContext=function(t,r){r=r||2;for(var e=f.getModuleCount(),n=0;n<e;n++)for(var o=0;o<e;o++)t.fillStyle=f.isDark(n,o)?"black":"white",t.fillRect(o*r,n*r,r,r)},f};t.stringToBytes=(t.stringToBytesFuncs={default:function(t){for(var r=[],e=0;e<t.length;e+=1){var n=t.charCodeAt(e);r.push(255&n)}return r}}).default,t.createStringToBytes=function(t,r){var e=function(){for(var e=S(t),n=function(){var t=e.read();if(-1==t)throw"eof";return t},o=0,i={};;){var a=e.read();if(-1==a)break;var u=n(),f=n()<<8|n();i[String.fromCharCode(a<<8|u)]=f,o+=1}if(o!=r)throw o+" != "+r;return i}(),n="?".charCodeAt(0);return function(t){for(var r=[],o=0;o<t.length;o+=1){var i=t.charCodeAt(o);if(i<128)r.push(i);else{var a=e[t.charAt(o)];"number"==typeof a?(255&a)==a?r.push(a):(r.push(a>>>8),r.push(255&a)):r.push(n)}}return r}};var r,e,n,o,i,a=1,u=2,f=4,c=8,g={L:1,M:0,Q:3,H:2},l=0,h=1,s=2,v=3,d=4,w=5,p=6,y=7,B=(r=[[],[6,18],[6,22],[6,26],[6,30],[6,34],[6,22,38],[6,24,42],[6,26,46],[6,28,50],[6,30,54],[6,32,58],[6,34,62],[6,26,46,66],[6,26,48,70],[6,26,50,74],[6,30,54,78],[6,30,56,82],[6,30,58,86],[6,34,62,90],[6,28,50,72,94],[6,26,50,74,98],[6,30,54,78,102],[6,28,54,80,106],[6,32,58,84,110],[6,30,58,86,114],[6,34,62,90,118],[6,26,50,74,98,122],[6,30,54,78,102,126],[6,26,52,78,104,130],[6,30,56,82,108,134],[6,34,60,86,112,138],[6,30,58,86,114,142],[6,34,62,90,118,146],[6,30,54,78,102,126,150],[6,24,50,76,102,128,154],[6,28,54,80,106,132,158],[6,32,58,84,110,136,162],[6,26,54,82,110,138,166],[6,30,58,86,114,142,170]],e=1335,n=7973,i=function(t){for(var r=0;0!=t;)r+=1,t>>>=1;return r},(o={}).getBCHTypeInfo=function(t){for(var r=t<<10;i(r)-i(e)>=0;)r^=e<<i(r)-i(e);return 21522^(t<<10|r)},o.getBCHTypeNumber=function(t){for(var r=t<<12;i(r)-i(n)>=0;)r^=n<<i(r)-i(n);return t<<12|r},o.getPatternPosition=function(t){return r[t-1]},o.getMaskFunction=function(t){switch(t){case l:return function(t,r){return(t+r)%2==0};case h:return function(t,r){return t%2==0};case s:return function(t,r){return r%3==0};case v:return function(t,r){return(t+r)%3==0};case d:return function(t,r){return(Math.floor(t/2)+Math.floor(r/3))%2==0};case w:return function(t,r){return t*r%2+t*r%3==0};case p:return function(t,r){return(t*r%2+t*r%3)%2==0};case y:return function(t,r){return(t*r%3+(t+r)%2)%2==0};default:throw"bad maskPattern:"+t}},o.getErrorCorrectPolynomial=function(t){for(var r=k([1],0),e=0;e<t;e+=1)r=r.multiply(k([1,C.gexp(e)],0));return r},o.getLengthInBits=function(t,r){if(1<=r&&r<10)switch(t){case a:return 10;case u:return 9;case f:case c:return 8;default:throw"mode:"+t}else if(r<27)switch(t){case a:return 12;case u:return 11;case f:return 16;case c:return 10;default:throw"mode:"+t}else{if(!(r<41))throw"type:"+r;switch(t){case a:return 14;case u:return 13;case f:return 16;case c:return 12;default:throw"mode:"+t}}},o.getLostPoint=function(t){for(var r=t.getModuleCount(),e=0,n=0;n<r;n+=1)for(var o=0;o<r;o+=1){for(var i=0,a=t.isDark(n,o),u=-1;u<=1;u+=1)if(!(n+u<0||r<=n+u))for(var f=-1;f<=1;f+=1)o+f<0||r<=o+f||0==u&&0==f||a==t.isDark(n+u,o+f)&&(i+=1);i>5&&(e+=3+i-5)}for(n=0;n<r-1;n+=1)for(o=0;o<r-1;o+=1){var c=0;t.isDark(n,o)&&(c+=1),t.isDark(n+1,o)&&(c+=1),t.isDark(n,o+1)&&(c+=1),t.isDark(n+1,o+1)&&(c+=1),0!=c&&4!=c||(e+=3)}for(n=0;n<r;n+=1)for(o=0;o<r-6;o+=1)t.isDark(n,o)&&!t.isDark(n,o+1)&&t.isDark(n,o+2)&&t.isDark(n,o+3)&&t.isDark(n,o+4)&&!t.isDark(n,o+5)&&t.isDark(n,o+6)&&(e+=40);for(o=0;o<r;o+=1)for(n=0;n<r-6;n+=1)t.isDark(n,o)&&!t.isDark(n+1,o)&&t.isDark(n+2,o)&&t.isDark(n+3,o)&&t.isDark(n+4,o)&&!t.isDark(n+5,o)&&t.isDark(n+6,o)&&(e+=40);var g=0;for(o=0;o<r;o+=1)for(n=0;n<r;n+=1)t.isDark(n,o)&&(g+=1);return e+=Math.abs(100*g/r/r-50)/5*10},o),C=function(){for(var t=new Array(256),r=new Array(256),e=0;e<8;e+=1)t[e]=1<<e;for(e=8;e<256;e+=1)t[e]=t[e-4]^t[e-5]^t[e-6]^t[e-8];for(e=0;e<255;e+=1)r[t[e]]=e;var n={glog:function(t){if(t<1)throw"glog("+t+")";return r[t]},gexp:function(r){for(;r<0;)r+=255;for(;r>=256;)r-=255;return t[r]}};return n}();function k(t,r){if(void 0===t.length)throw t.length+"/"+r;var e=function(){for(var e=0;e<t.length&&0==t[e];)e+=1;for(var n=new Array(t.length-e+r),o=0;o<t.length-e;o+=1)n[o]=t[o+e];return n}(),n={getAt:function(t){return e[t]},getLength:function(){return e.length},multiply:function(t){for(var r=new Array(n.getLength()+t.getLength()-1),e=0;e<n.getLength();e+=1)for(var o=0;o<t.getLength();o+=1)r[e+o]^=C.gexp(C.glog(n.getAt(e))+C.glog(t.getAt(o)));return k(r,0)},mod:function(t){if(n.getLength()-t.getLength()<0)return n;for(var r=C.glog(n.getAt(0))-C.glog(t.getAt(0)),e=new Array(n.getLength()),o=0;o<n.getLength();o+=1)e[o]=n.getAt(o);for(o=0;o<t.getLength();o+=1)e[o]^=C.gexp(C.glog(t.getAt(o))+r);return k(e,0).mod(t)}};return n}var A=function(){var t=[[1,26,19],[1,26,16],[1,26,13],[1,26,9],[1,44,34],[1,44,28],[1,44,22],[1,44,16],[1,70,55],[1,70,44],[2,35,17],[2,35,13],[1,100,80],[2,50,32],[2,50,24],[4,25,9],[1,134,108],[2,67,43],[2,33,15,2,34,16],[2,33,11,2,34,12],[2,86,68],[4,43,27],[4,43,19],[4,43,15],[2,98,78],[4,49,31],[2,32,14,4,33,15],[4,39,13,1,40,14],[2,121,97],[2,60,38,2,61,39],[4,40,18,2,41,19],[4,40,14,2,41,15],[2,146,116],[3,58,36,2,59,37],[4,36,16,4,37,17],[4,36,12,4,37,13],[2,86,68,2,87,69],[4,69,43,1,70,44],[6,43,19,2,44,20],[6,43,15,2,44,16],[4,101,81],[1,80,50,4,81,51],[4,50,22,4,51,23],[3,36,12,8,37,13],[2,116,92,2,117,93],[6,58,36,2,59,37],[4,46,20,6,47,21],[7,42,14,4,43,15],[4,133,107],[8,59,37,1,60,38],[8,44,20,4,45,21],[12,33,11,4,34,12],[3,145,115,1,146,116],[4,64,40,5,65,41],[11,36,16,5,37,17],[11,36,12,5,37,13],[5,109,87,1,110,88],[5,65,41,5,66,42],[5,54,24,7,55,25],[11,36,12,7,37,13],[5,122,98,1,123,99],[7,73,45,3,74,46],[15,43,19,2,44,20],[3,45,15,13,46,16],[1,135,107,5,136,108],[10,74,46,1,75,47],[1,50,22,15,51,23],[2,42,14,17,43,15],[5,150,120,1,151,121],[9,69,43,4,70,44],[17,50,22,1,51,23],[2,42,14,19,43,15],[3,141,113,4,142,114],[3,70,44,11,71,45],[17,47,21,4,48,22],[9,39,13,16,40,14],[3,135,107,5,136,108],[3,67,41,13,68,42],[15,54,24,5,55,25],[15,43,15,10,44,16],[4,144,116,4,145,117],[17,68,42],[17,50,22,6,51,23],[19,46,16,6,47,17],[2,139,111,7,140,112],[17,74,46],[7,54,24,16,55,25],[34,37,13],[4,151,121,5,152,122],[4,75,47,14,76,48],[11,54,24,14,55,25],[16,45,15,14,46,16],[6,147,117,4,148,118],[6,73,45,14,74,46],[11,54,24,16,55,25],[30,46,16,2,47,17],[8,132,106,4,133,107],[8,75,47,13,76,48],[7,54,24,22,55,25],[22,45,15,13,46,16],[10,142,114,2,143,115],[19,74,46,4,75,47],[28,50,22,6,51,23],[33,46,16,4,47,17],[8,152,122,4,153,123],[22,73,45,3,74,46],[8,53,23,26,54,24],[12,45,15,28,46,16],[3,147,117,10,148,118],[3,73,45,23,74,46],[4,54,24,31,55,25],[11,45,15,31,46,16],[7,146,116,7,147,117],[21,73,45,7,74,46],[1,53,23,37,54,24],[19,45,15,26,46,16],[5,145,115,10,146,116],[19,75,47,10,76,48],[15,54,24,25,55,25],[23,45,15,25,46,16],[13,145,115,3,146,116],[2,74,46,29,75,47],[42,54,24,1,55,25],[23,45,15,28,46,16],[17,145,115],[10,74,46,23,75,47],[10,54,24,35,55,25],[19,45,15,35,46,16],[17,145,115,1,146,116],[14,74,46,21,75,47],[29,54,24,19,55,25],[11,45,15,46,46,16],[13,145,115,6,146,116],[14,74,46,23,75,47],[44,54,24,7,55,25],[59,46,16,1,47,17],[12,151,121,7,152,122],[12,75,47,26,76,48],[39,54,24,14,55,25],[22,45,15,41,46,16],[6,151,121,14,152,122],[6,75,47,34,76,48],[46,54,24,10,55,25],[2,45,15,64,46,16],[17,152,122,4,153,123],[29,74,46,14,75,47],[49,54,24,10,55,25],[24,45,15,46,46,16],[4,152,122,18,153,123],[13,74,46,32,75,47],[48,54,24,14,55,25],[42,45,15,32,46,16],[20,147,117,4,148,118],[40,75,47,7,76,48],[43,54,24,22,55,25],[10,45,15,67,46,16],[19,148,118,6,149,119],[18,75,47,31,76,48],[34,54,24,34,55,25],[20,45,15,61,46,16]],r=function(t,r){var e={};return e.totalCount=t,e.dataCount=r,e},e={};return e.getRSBlocks=function(e,n){var o=function(r,e){switch(e){case g.L:return t[4*(r-1)+0];case g.M:return t[4*(r-1)+1];case g.Q:return t[4*(r-1)+2];case g.H:return t[4*(r-1)+3];default:return}}(e,n);if(void 0===o)throw"bad rs block @ typeNumber:"+e+"/errorCorrectionLevel:"+n;for(var i=o.length/3,a=[],u=0;u<i;u+=1)for(var f=o[3*u+0],c=o[3*u+1],l=o[3*u+2],h=0;h<f;h+=1)a.push(r(c,l));return a},e}(),b=function(){var t=[],r=0,e={getBuffer:function(){return t},getAt:function(r){var e=Math.floor(r/8);return 1==(t[e]>>>7-r%8&1)},put:function(t,r){for(var n=0;n<r;n+=1)e.putBit(1==(t>>>r-n-1&1))},getLengthInBits:function(){return r},putBit:function(e){var n=Math.floor(r/8);t.length<=n&&t.push(0),e&&(t[n]|=128>>>r%8),r+=1}};return e},M=function(t){var r=a,e=t,n={getMode:function(){return r},getLength:function(t){return e.length},write:function(t){for(var r=e,n=0;n+2<r.length;)t.put(o(r.substring(n,n+3)),10),n+=3;n<r.length&&(r.length-n==1?t.put(o(r.substring(n,n+1)),4):r.length-n==2&&t.put(o(r.substring(n,n+2)),7))}},o=function(t){for(var r=0,e=0;e<t.length;e+=1)r=10*r+i(t.charAt(e));return r},i=function(t){if("0"<=t&&t<="9")return t.charCodeAt(0)-"0".charCodeAt(0);throw"illegal char :"+t};return n},x=function(t){var r=u,e=t,n={getMode:function(){return r},getLength:function(t){return e.length},write:function(t){for(var r=e,n=0;n+1<r.length;)t.put(45*o(r.charAt(n))+o(r.charAt(n+1)),11),n+=2;n<r.length&&t.put(o(r.charAt(n)),6)}},o=function(t){if("0"<=t&&t<="9")return t.charCodeAt(0)-"0".charCodeAt(0);if("A"<=t&&t<="Z")return t.charCodeAt(0)-"A".charCodeAt(0)+10;switch(t){case" ":return 36;case"$":return 37;case"%":return 38;case"*":return 39;case"+":return 40;case"-":return 41;case".":return 42;case"/":return 43;case":":return 44;default:throw"illegal char :"+t}};return n},m=function(r){var e=f,n=t.stringToBytes(r),o={getMode:function(){return e},getLength:function(t){return n.length},write:function(t){for(var r=0;r<n.length;r+=1)t.put(n[r],8)}};return o},L=function(r){var e=c,n=t.stringToBytesFuncs.SJIS;if(!n)throw"sjis not supported.";!function(){var t=n("友");if(2!=t.length||38726!=(t[0]<<8|t[1]))throw"sjis not supported."}();var o=n(r),i={getMode:function(){return e},getLength:function(t){return~~(o.length/2)},write:function(t){for(var r=o,e=0;e+1<r.length;){var n=(255&r[e])<<8|255&r[e+1];if(33088<=n&&n<=40956)n-=33088;else{if(!(57408<=n&&n<=60351))throw"illegal char at "+(e+1)+"/"+n;n-=49472}n=192*(n>>>8&255)+(255&n),t.put(n,13),e+=2}if(e<r.length)throw"illegal char at "+(e+1)}};return i},D=function(){var t=[],r={writeByte:function(r){t.push(255&r)},writeShort:function(t){r.writeByte(t),r.writeByte(t>>>8)},writeBytes:function(t,e,n){e=e||0,n=n||t.length;for(var o=0;o<n;o+=1)r.writeByte(t[o+e])},writeString:function(t){for(var e=0;e<t.length;e+=1)r.writeByte(t.charCodeAt(e))},toByteArray:function(){return t},toString:function(){var r="";r+="[";for(var e=0;e<t.length;e+=1)e>0&&(r+=","),r+=t[e];return r+="]"}};return r},S=function(t){var r=t,e=0,n=0,o=0,i={read:function(){for(;o<8;){if(e>=r.length){if(0==o)return-1;throw"unexpected end of file./"+o}var t=r.charAt(e);if(e+=1,"="==t)return o=0,-1;t.match(/^\s$/)||(n=n<<6|a(t.charCodeAt(0)),o+=6)}var i=n>>>o-8&255;return o-=8,i}},a=function(t){if(65<=t&&t<=90)return t-65;if(97<=t&&t<=122)return t-97+26;if(48<=t&&t<=57)return t-48+52;if(43==t)return 62;if(47==t)return 63;throw"c:"+t};return i},I=function(t,r,e){for(var n=function(t,r){var e=t,n=r,o=new Array(t*r),i={setPixel:function(t,r,n){o[r*e+t]=n},write:function(t){t.writeString("GIF87a"),t.writeShort(e),t.writeShort(n),t.writeByte(128),t.writeByte(0),t.writeByte(0),t.writeByte(0),t.writeByte(0),t.writeByte(0),t.writeByte(255),t.writeByte(255),t.writeByte(255),t.writeString(","),t.writeShort(0),t.writeShort(0),t.writeShort(e),t.writeShort(n),t.writeByte(0);var r=a(2);t.writeByte(2);for(var o=0;r.length-o>255;)t.writeByte(255),t.writeBytes(r,o,255),o+=255;t.writeByte(r.length-o),t.writeBytes(r,o,r.length-o),t.writeByte(0),t.writeString(";")}},a=function(t){for(var r=1<<t,e=1+(1<<t),n=t+1,i=u(),a=0;a<r;a+=1)i.add(String.fromCharCode(a));i.add(String.fromCharCode(r)),i.add(String.fromCharCode(e));var f,c,g,l=D(),h=(f=l,c=0,g=0,{write:function(t,r){if(t>>>r!=0)throw"length over";for(;c+r>=8;)f.writeByte(255&(t<<c|g)),r-=8-c,t>>>=8-c,g=0,c=0;g|=t<<c,c+=r},flush:function(){c>0&&f.writeByte(g)}});h.write(r,n);var s=0,v=String.fromCharCode(o[s]);for(s+=1;s<o.length;){var d=String.fromCharCode(o[s]);s+=1,i.contains(v+d)?v+=d:(h.write(i.indexOf(v),n),i.size()<4095&&(i.size()==1<<n&&(n+=1),i.add(v+d)),v=d)}return h.write(i.indexOf(v),n),h.write(e,n),h.flush(),l.toByteArray()},u=function(){var t={},r=0,e={add:function(n){if(e.contains(n))throw"dup key:"+n;t[n]=r,r+=1},size:function(){return r},indexOf:function(r){return t[r]},contains:function(r){return void 0!==t[r]}};return e};return i}(t,r),o=0;o<r;o+=1)for(var i=0;i<t;i+=1)n.setPixel(i,o,e(i,o));var a=D();n.write(a);for(var u=function(){var t=0,r=0,e=0,n="",o={},i=function(t){n+=String.fromCharCode(a(63&t))},a=function(t){if(t<0);else{if(t<26)return 65+t;if(t<52)return t-26+97;if(t<62)return t-52+48;if(62==t)return 43;if(63==t)return 47}throw"n:"+t};return o.writeByte=function(n){for(t=t<<8|255&n,r+=8,e+=1;r>=6;)i(t>>>r-6),r-=6},o.flush=function(){if(r>0&&(i(t<<6-r),t=0,r=0),e%3!=0)for(var o=3-e%3,a=0;a<o;a+=1)n+="="},o.toString=function(){return n},o}(),f=a.toByteArray(),c=0;c<f.length;c+=1)u.writeByte(f[c]);return u.flush(),"data:image/gif;base64,"+u};return t}();qrcode.stringToBytesFuncs["UTF-8"]=function(t){return function(t){for(var r=[],e=0;e<t.length;e++){var n=t.charCodeAt(e);n<128?r.push(n):n<2048?r.push(192|n>>6,128|63&n):n<55296||n>=57344?r.push(224|n>>12,128|n>>6&63,128|63&n):(e++,n=65536+((1023&n)<<10|1023&t.charCodeAt(e)),r.push(240|n>>18,128|n>>12&63,128|n>>6&63,128|63&n))}return r}(t)},function(t){"function"==typeof define&&define.amd?define([],t):"object"==typeof exports&&(module.exports=t())}(function(){return qrcode});
+
+</script>
+<script>
+(function() {
+  "use strict";
+  var $ = function(id) {
+    return document.getElementById(id);
+  };
+  function rnd(a, b) {
+    return a + Math.floor(Math.random() * (b - a + 1));
+  }
+  function pick(a) {
+    return a[Math.floor(Math.random() * a.length)];
+  }
+  function shuffle(a) {
+    for (var i = a.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var t = a[i];
+      a[i] = a[j];
+      a[j] = t;
+    }
+    return a;
+  }
+  function esc(s) {
+    return String(s).replace(/[&<>"]/g, function(c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
+    });
+  }
+  function store(k, v) {
+    try {
+      localStorage.setItem(k, JSON.stringify(v));
+    } catch (e) {
+    }
+  }
+  function load(k) {
+    try {
+      var v = localStorage.getItem(k);
+      return v ? JSON.parse(v) : null;
+    } catch (e) {
+      return null;
+    }
+  }
+  function gcd(a, b) {
+    a = Math.abs(a);
+    b = Math.abs(b);
+    while (b) {
+      var t = a % b;
+      a = b;
+      b = t;
+    }
+    return a || 1;
+  }
+  function R(p, q) {
+    if (q === void 0)
+      q = 1;
+    if (q < 0) {
+      p = -p;
+      q = -q;
+    }
+    var g = gcd(p, q);
+    return { p: p / g, q: q / g };
+  }
+  function rAdd(r, n) {
+    return R(r.p + n * r.q, r.q);
+  }
+  function rMul(r, n) {
+    return R(r.p * n, r.q);
+  }
+  function rDiv(r, n) {
+    return R(r.p, r.q * n);
+  }
+  function rEq(a, b) {
+    return a.p === b.p && a.q === b.q;
+  }
+  function minus(s) {
+    return String(s).replace(/-/g, "−");
+  }
+  function fmtI(n) {
+    return n < 0 ? "−" + -n : String(n);
+  }
+  function fmtR(r) {
+    if (r.q === 1)
+      return fmtI(r.p);
+    var q = r.q;
+    while (q % 2 === 0)
+      q /= 2;
+    while (q % 5 === 0)
+      q /= 5;
+    if (q === 1) {
+      var s = (r.p / r.q).toFixed(4).replace(/0+$/, "").replace(/\.$/, "");
+      return minus(s.replace(".", ","));
+    }
+    return fmtI(r.p) + "/" + r.q;
+  }
+  function par(s) {
+    return s.charAt(0) === "−" ? "(" + s + ")" : s;
+  }
+  function termX(a) {
+    return a === 1 ? "x" : a === -1 ? "−x" : fmtI(a) + "x";
+  }
+  function fmtL(a, b) {
+    if (a === 0)
+      return fmtI(b);
+    var s = termX(a);
+    if (b > 0)
+      s += " + " + b;
+    else if (b < 0)
+      s += " − " + -b;
+    return s;
+  }
+  function fmtLine(L) {
+    return fmtL(L.a, L.b) + " = " + fmtR(L.c);
+  }
+  function lineKey(L) {
+    return L.a + "|" + L.b + "|" + L.c.p + "/" + L.c.q;
+  }
+  function opText(op) {
+    return op.t === "-" ? "−" + op.v : op.t === "+" ? "+" + op.v : op.t === ":" ? ": " + fmtI(op.v) : "· " + fmtI(op.v);
+  }
+  function opEq(a, b) {
+    return a.t === b.t && a.v === b.v;
+  }
+  function opKey(o) {
+    return o.op.t + o.op.v + (o.l ? "L" : "") + (o.r ? "R" : "");
+  }
+  function expectOp(L) {
+    if (L.b > 0)
+      return { t: "-", v: L.b };
+    if (L.b < 0)
+      return { t: "+", v: -L.b };
+    if (L.a !== 1)
+      return { t: ":", v: L.a };
+    return null;
+  }
+  function applyOp(L, op) {
+    if (op.t === "-")
+      return { a: L.a, b: L.b - op.v, c: rAdd(L.c, -op.v) };
+    if (op.t === "+")
+      return { a: L.a, b: L.b + op.v, c: rAdd(L.c, op.v) };
+    if (op.t === ":")
+      return { a: L.a / op.v, b: L.b / op.v, c: rDiv(L.c, op.v) };
+    return { a: L.a * op.v, b: L.b * op.v, c: rMul(L.c, op.v) };
+  }
+  function solved(L) {
+    return L.a === 1 && L.b === 0;
+  }
+  function lineOK(L, X) {
+    return L.a !== 0 && rEq(rDiv(rAdd(L.c, -L.b), L.a), X);
+  }
+  function norm(s) {
+    return String(s).replace(/−/g, "-").replace(/\s+/g, "").replace(/·/g, "*");
+  }
+  function parseNum(s) {
+    s = norm(s);
+    var m;
+    if (m = /^(-?\d+)\/(\d+)$/.exec(s)) {
+      if (+m[2] === 0)
+        return null;
+      return R(+m[1], +m[2]);
+    }
+    if (m = /^(-?)(\d+)(?:[,.](\d+))?$/.exec(s)) {
+      var d = m[3] || "";
+      return R((m[1] ? -1 : 1) * parseInt(m[2] + d, 10), Math.pow(10, d.length));
+    }
+    return null;
+  }
+  function coef(t) {
+    if (t === "" || t === "+")
+      return 1;
+    if (t === "-")
+      return -1;
+    return parseInt(t, 10);
+  }
+  function parseLeft(s) {
+    s = norm(s);
+    var m, r = null;
+    if (m = /^([+-]?\d*)x([+-]\d+)?$/.exec(s))
+      r = { a: coef(m[1]), b: m[2] ? parseInt(m[2], 10) : 0 };
+    else if (m = /^([+-]?\d+)([+-]\d*)x$/.exec(s))
+      r = { a: coef(m[2]), b: parseInt(m[1], 10) };
+    else if (/^[+-]?\d+$/.test(s))
+      r = { a: 0, b: parseInt(s, 10) };
+    if (r && /x/.test(s) && r.a === 0)
+      return null;
+    return r;
+  }
+  function parseOp(s) {
+    s = norm(s).replace(/\//g, ":");
+    var m = /^([+\-:*])(-?\d+)$/.exec(s);
+    if (!m)
+      return null;
+    var t = m[1] === "*" ? "·" : m[1], v = parseInt(m[2], 10);
+    if (t === "-" && v < 0)
+      return { t: "+", v: -v };
+    if (t === "+" && v < 0)
+      return { t: "-", v: -v };
+    if (t === ":" && v === 0)
+      return null;
+    return { t, v };
+  }
+  var CODE_SALT = "hoek-erbij/lyceum-vos";
+  function utf8(s) {
+    var out = [];
+    for (var i = 0; i < s.length; i++) {
+      var c = s.charCodeAt(i);
+      if (c >= 55296 && c < 56320 && i + 1 < s.length) {
+        c = 65536 + (c - 55296 << 10) + (s.charCodeAt(++i) - 56320);
+      }
+      if (c < 128)
+        out.push(c);
+      else if (c < 2048)
+        out.push(192 | c >> 6, 128 | c & 63);
+      else if (c < 65536)
+        out.push(224 | c >> 12, 128 | c >> 6 & 63, 128 | c & 63);
+      else
+        out.push(240 | c >> 18, 128 | c >> 12 & 63, 128 | c >> 6 & 63, 128 | c & 63);
+    }
+    return out;
+  }
+  function fnv32(s) {
+    var h = 2166136261, b = utf8(s);
+    for (var i = 0; i < b.length; i++) {
+      h ^= b[i];
+      h = Math.imul(h, 16777619) >>> 0;
+    }
+    return h;
+  }
+  function fnvHash(s) {
+    return fnv32(s).toString(36);
+  }
+  var B32 = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+  function b32enc(bytes) {
+    var out = "", bits = 0, val = 0;
+    for (var i = 0; i < bytes.length; i++) {
+      val = val << 8 | bytes[i];
+      bits += 8;
+      while (bits >= 5) {
+        out += B32[val >>> bits - 5 & 31];
+        bits -= 5;
+        val &= (1 << bits) - 1;
+      }
+    }
+    if (bits > 0)
+      out += B32[val << 5 - bits & 31];
+    return out;
+  }
+  function encodeCode2(obj) {
+    var j = JSON.stringify(obj);
+    return "HEB2:" + b32enc(utf8(j + "|" + fnvHash(CODE_SALT + j)));
+  }
+  function qrSvg(text) {
+    var q = qrcode(0, "M");
+    q.addData(text, "Alphanumeric");
+    q.make();
+    return q.createSvgTag({ cellSize: 6, margin: 2, scalable: true });
+  }
+  var LC_ABC = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789", LC_SALT = "balansspel/lyceum-vos";
+  function lcDecode(code) {
+    code = String(code || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+    if (code.length !== 4)
+      return null;
+    var v = 0;
+    for (var i = 0; i < 4; i++) {
+      var x = LC_ABC.indexOf(code.charAt(i));
+      if (x < 0)
+        return null;
+      v = v * 32 + x;
+    }
+    var chk = v & 63, data = v >>> 6;
+    if ((fnv32(LC_SALT + data) & 63) !== chk || !(data & 31))
+      return null;
+    return { mask: data & 31, vk: !!(data & 32), nonce: data >>> 6 & 255, code };
+  }
+  var LDS = [
+    { c: "3.3B", t: "Vergelijkingen zoals 5x + 4 = 39", ok: true },
+    { c: "3.3C", t: "Vergelijkingen zoals 3x − 8 = 13", ok: false },
+    { c: "3.4A", t: "x aan beide kanten", ok: false },
+    { c: "3.4B", t: "Vergelijkingen met haakjes", ok: false },
+    { c: "3.4C", t: "Vergelijkingen met breuken", ok: false }
+  ];
+  var TRAPS = [
+    null,
+    { n: "Met balans", d: "kiezen, met de weegschaal" },
+    { n: "Foutzoeken", d: "vind de fout in een uitwerking" },
+    { n: "Zelf schrijven", d: "typen, met de weegschaal" },
+    { n: "Helemaal alleen", d: "typen; weegschaal alleen als hint" }
+  ];
+  var LIVES = 3, PER_RONDE = 5, PER_LOS = 6, TRAP_UP = 4, CK_NEED = 3;
+  var recent = [];
+  function gen33B() {
+    for (var t = 0; t < 80; t++) {
+      var a = rnd(2, 9), x = rnd(2, 10), b = rnd(1, 15), c = a * x + b;
+      if (c > 70 || b === a)
+        continue;
+      var k = a + "|" + b + "|" + c;
+      if (recent.indexOf(k) >= 0)
+        continue;
+      recent.push(k);
+      if (recent.length > 15)
+        recent.shift();
+      return { a, b, c: R(c), X: R(x) };
+    }
+    return { a: 3, b: 4, c: R(19), X: R(5) };
+  }
+  function genEq(ld) {
+    return gen33B();
+  }
+  function Scale(el) {
+    this.el = el;
+    this.ang = 0;
+    this.L = "";
+    this.Rt = "";
+    this.opL = "";
+    this.opR = "";
+    this.raf = 0;
+  }
+  Scale.prototype.draw = function() {
+    var a = this.ang * Math.PI / 180, cx = 170, cy = 26, len = 128, ca = Math.cos(a), sa = Math.sin(a);
+    var lx = cx - len * ca, ly = cy - len * sa, rx = cx + len * ca, ry = cy + len * sa;
+    function pan(x, y, txt, op) {
+      return '<line x1="' + x + '" y1="' + y + '" x2="' + (x - 56) + '" y2="' + (y + 40) + '" style="stroke:var(--beam);stroke-width:1.5"/><line x1="' + x + '" y1="' + y + '" x2="' + (x + 56) + '" y2="' + (y + 40) + '" style="stroke:var(--beam);stroke-width:1.5"/><path d="M' + (x - 62) + " " + (y + 40) + " L" + (x + 62) + " " + (y + 40) + " Q" + x + " " + (y + 62) + " " + (x - 62) + " " + (y + 40) + 'Z" style="fill:var(--pan);stroke:var(--beam);stroke-width:1.5"/><text x="' + x + '" y="' + (y + 36) + '" text-anchor="middle">' + esc(txt) + "</text>" + (op ? '<text class="optx" x="' + x + '" y="' + (y + 58) + '" text-anchor="middle">' + esc(op) + "</text>" : "");
+    }
+    this.el.innerHTML = '<svg viewBox="0 -14 340 120" preserveAspectRatio="xMidYMid meet"><path d="M' + cx + " " + cy + " L" + (cx - 16) + " 100 L" + (cx + 16) + ' 100 Z" style="fill:var(--beam)"/><rect x="' + (cx - 34) + '" y="98" width="68" height="5" rx="2" style="fill:var(--beam)"/><line x1="' + lx + '" y1="' + ly + '" x2="' + rx + '" y2="' + ry + '" style="stroke:var(--beam);stroke-width:5;stroke-linecap:round"/><circle cx="' + cx + '" cy="' + cy + '" r="5" style="fill:var(--gold)"/>' + pan(lx, ly, this.L, this.opL) + pan(rx, ry, this.Rt, this.opR) + "</svg>";
+  };
+  Scale.prototype.set = function(l, r, opl, opr) {
+    this.L = l;
+    this.Rt = r;
+    this.opL = opl || "";
+    this.opR = opr || "";
+    this.draw();
+  };
+  Scale.prototype.tilt = function(deg) {
+    var self = this, from = this.ang, t0 = Date.now();
+    if (this.raf)
+      cancelAnimationFrame(this.raf);
+    function step() {
+      var k = Math.min(1, (Date.now() - t0) / 450);
+      k = 1 - Math.pow(1 - k, 3);
+      self.ang = from + (deg - from) * k;
+      self.draw();
+      if (k < 1)
+        self.raf = requestAnimationFrame(step);
+    }
+    step();
+  };
+  var scale = new Scale($("scale")), whyScale = new Scale($("whyScale"));
+  function tiltFor(op, leftOnly) {
+    var lighter = op.t === "-" || op.t === ":";
+    var leftUp = leftOnly ? lighter : !lighter;
+    return leftUp ? 13 : -13;
+  }
+  var P = load("balans.speler") || { n: "", k: "" };
+  var MODE = "team", TEAM = null, RUN = null, O = null, VK = null, losTrap = 1;
+  var busy = false, afterWhy = null, ckState = null;
+  function nameKey() {
+    return (P.n + "|" + P.k).toLowerCase();
+  }
+  function trapsStore() {
+    return load("balans.traps." + nameKey()) || {};
+  }
+  function teamKey() {
+    return "balans.team." + TEAM.code + "." + nameKey();
+  }
+  var HEART = '<svg viewBox="0 0 24 24"><path fill="var(--heart)" d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 3 4.5 6.7 4.5c2.1 0 3.6 1.2 4.3 2.5h2c.7-1.3 2.2-2.5 4.3-2.5 3.7 0 5.8 3.9 4.3 7.3C19.5 16.4 12 21 12 21z"/></svg>';
+  function drawHud(pop) {
+    if (!RUN)
+      return;
+    var h = "";
+    for (var i = 0; i < LIVES; i++)
+      h += HEART.replace("<svg", '<svg class="' + (i >= RUN.lives ? "lost" : "") + (pop && i === RUN.lives ? " pop" : "") + '"');
+    $("hudHearts").innerHTML = RUN.kind === "vk" ? "" : h;
+    var d = "";
+    for (var j = 0; j < RUN.items; j++) {
+      var r = RUN.res[j], c = "dot";
+      if (r)
+        c += r.g ? " ok" : " meh";
+      else if (j === RUN.i)
+        c += " cur";
+      d += '<i class="' + c + '"></i>';
+    }
+    $("hudDots").innerHTML = d;
+    $("hudLevel").innerHTML = RUN.kind === "vk" ? "<small>voorkennis</small>" + (RUN.i + 1) + "/" + RUN.items : RUN.kind === "ronde" ? "<small>ronde " + RUN.r + " · trap</small>" + RUN.trap : "<small>" + LDS[RUN.ld].c + " · trap</small>" + RUN.trap;
+    $("btnHint").hidden = RUN.kind === "vk";
+  }
+  function setPrompt(t) {
+    $("prompt").innerHTML = t;
+  }
+  function setMsg(t, tip) {
+    var m = $("msg");
+    m.innerHTML = t || "";
+    m.className = "msg" + (tip && t ? " tip" : "");
+  }
+  var optFns = [];
+  function setOpts(list, row) {
+    optFns = [];
+    var h = "";
+    for (var i = 0; i < list.length; i++) {
+      optFns.push(list[i].fn);
+      h += '<button class="opt ' + (list[i].cls || "") + '" data-o="' + i + '">' + (list[i].key === false ? "" : '<span class="k">' + (i + 1) + "</span>") + list[i].html + "</button>";
+    }
+    var o = $("opts");
+    o.innerHTML = h;
+    o.className = "opts" + (row ? " row2" : "");
+    $("keys").hidden = true;
+  }
+  $("opts").onclick = function(e) {
+    var b = e.target.closest ? e.target.closest(".opt") : null;
+    if (!b || busy)
+      return;
+    var f = optFns[+b.getAttribute("data-o")];
+    if (f)
+      f();
+  };
+  function eqOpt(L, fn, txt) {
+    return { html: '<span class="tx hand">' + esc(txt || fmtLine(L)) + "</span>", fn };
+  }
+  function opOpt(o, fn) {
+    var t = opText(o.op), none = '<span class="none">niets</span>';
+    return { html: '<span class="tx hand"><span class="opl">' + (o.l ? esc(t) : none) + '</span><span class="opbar"></span><span class="opr">' + (o.r ? esc(t) : none) + "</span></span>", fn };
+  }
+  var KEYS = ["7", "8", "9", "x", "⌫", "4", "5", "6", "+", "−", "1", "2", "3", ":", "/", "0", ",", "·", "⇄", "OK"];
+  (function() {
+    var h = "";
+    for (var i = 0; i < KEYS.length; i++) {
+      var k = KEYS[i], c = "key" + (/[x+−:\/,·]/.test(k) ? " op" : "") + (k === "OK" ? " ok" : "");
+      h += '<button class="' + c + '" data-k="' + k + '" aria-label="' + (k === "⇄" ? "Ander vak" : k === "⌫" ? "Wissen" : k) + '">' + k + "</button>";
+    }
+    $("keys").innerHTML = h;
+  })();
+  $("keys").onclick = function(e) {
+    var b = e.target.closest ? e.target.closest(".key") : null;
+    if (b)
+      typeKey(b.getAttribute("data-k"));
+  };
+  function curTyping() {
+    return VK && VK.typing ? VK.typing : O && O.typing ? O.typing : null;
+  }
+  function showKeys() {
+    $("opts").innerHTML = "";
+    optFns = [];
+    $("keys").hidden = false;
+  }
+  function typeKey(k) {
+    var T = curTyping();
+    if (!T || busy)
+      return;
+    var s = T.slots[T.act];
+    if (k === "⌫")
+      s = s.slice(0, -1);
+    else if (k === "⇄") {
+      T.act = (T.act + 1) % T.slots.length;
+      renderAny();
+      return;
+    } else if (k === "OK") {
+      submitTyping();
+      return;
+    } else if (s.length < 12)
+      s += k;
+    T.slots[T.act] = s;
+    renderAny();
+  }
+  document.addEventListener("keydown", function(e) {
+    if (anyOverlay()) {
+      if (e.key === "Enter") {
+        var b = visiblePrimary();
+        if (b && document.activeElement && document.activeElement.tagName !== "INPUT" && document.activeElement.tagName !== "SELECT") {
+          e.preventDefault();
+          b.click();
+        }
+      }
+      return;
+    }
+    var T = curTyping(), k = e.key;
+    if (T) {
+      var map = { "Backspace": "⌫", "Enter": "OK", "Tab": "⇄", "ArrowRight": "⇄", "ArrowLeft": "⇄", "-": "−", "*": "·", ".": ",", "X": "x" };
+      var kk = map[k] || k;
+      if (KEYS.indexOf(kk) >= 0) {
+        e.preventDefault();
+        typeKey(kk);
+      }
+      return;
+    }
+    if (/^[1-4]$/.test(k) && optFns[+k - 1]) {
+      e.preventDefault();
+      if (!busy)
+        optFns[+k - 1]();
+    } else if (k === "Enter" && optFns.length === 1) {
+      e.preventDefault();
+      if (!busy)
+        optFns[0]();
+    }
+  });
+  function anyOverlay() {
+    var ids = ["startOv", "whyOv", "checkOv", "pauseOv", "endOv", "qrOv"];
+    for (var i = 0; i < ids.length; i++)
+      if (!$(ids[i]).hidden)
+        return $(ids[i]);
+    return null;
+  }
+  function visiblePrimary() {
+    var ov = anyOverlay();
+    if (!ov)
+      return null;
+    var bs = ov.querySelectorAll(".btn");
+    for (var i = 0; i < bs.length; i++)
+      if (!bs[i].hidden && bs[i].offsetParent !== null)
+        return bs[i];
+    return null;
+  }
+  var bannerT = null;
+  function banner(html, cls, ms) {
+    var b = $("banner");
+    b.innerHTML = html;
+    b.className = "banner show " + (cls || "");
+    clearTimeout(bannerT);
+    bannerT = setTimeout(function() {
+      b.className = "banner " + (cls || "");
+    }, ms || 1100);
+  }
+  function stamp(t, zelf) {
+    var s = $("stamp");
+    s.textContent = t;
+    s.className = "stamp show" + (zelf ? " zelf" : "");
+  }
+  function unstamp() {
+    $("stamp").className = "stamp";
+  }
+  function slotHTML(T, i, cls) {
+    return '<span class="slot ' + (cls || "") + (T.act === i ? " act" : "") + '" data-s="' + i + '">' + esc(T.slots[i]) + (T.act === i ? '<span class="caret"></span>' : "") + "</span>";
+  }
+  function rowHTML(r, i, extra) {
+    var c = "ln" + (extra || "");
+    if (r.t === "eq")
+      return '<div class="' + c + '" data-i="' + i + '"><span class="l">' + esc(fmtL(r.L.a, r.L.b)) + '</span><span class="m">=</span><span class="r">' + esc(fmtR(r.L.c)) + "</span></div>";
+    if (r.t === "op")
+      return '<div class="' + c + ' op" data-i="' + i + '"><span class="l">' + (r.l ? esc(opText(r.op)) : "") + '</span><span class="m"></span><span class="r">' + (r.r ? esc(opText(r.op)) : "") + "</span></div>";
+    if (r.t === "ans")
+      return '<div class="' + c + ' txt boxed" data-i="' + i + '"><span class="l"><span class="w">' + esc(fmtLine(r.L)) + "</span></span></div>";
+    return '<div class="' + c + " txt" + (r.s === "C" ? " ctrl" : "") + '" data-i="' + i + '"><span class="l">' + esc(r.text) + "</span></div>";
+  }
+  var KOP = { O: "Overnemen", B: "Berekenen", A: "Antwoord", C: "Controle (optie)" };
+  function render() {
+    if (VK) {
+      renderVK();
+      return;
+    }
+    if (!O)
+      return;
+    var h = "", sec = "", rows = O.rows, tap = O.tap || null, T = O.typing, pendSec = T ? T.kind === "over" ? "O" : T.kind === "ctrl" ? "C" : "B" : null;
+    for (var i = 0; i < rows.length; i++) {
+      var r = rows[i];
+      if (r.s !== sec) {
+        h += '<div class="kop' + (r.s === "C" ? " grey" : "") + '">' + KOP[r.s] + "</div>";
+        sec = r.s;
+      }
+      var extra = (r.isNew ? " new" : "") + (tap && tap(r, i) ? " tap" : "") + (O.marks && O.marks[i] ? " " + O.marks[i] : "");
+      h += rowHTML(r, i, extra);
+      r.isNew = false;
+    }
+    if (T) {
+      if (pendSec !== sec)
+        h += '<div class="kop' + (pendSec === "C" ? " grey" : "") + '">' + KOP[pendSec] + "</div>";
+      if (T.kind === "op")
+        h += '<div class="ln op"><span class="l">' + slotHTML(T, 0) + '</span><span class="m"></span><span class="r">' + slotHTML(T, 1, "r") + "</span></div>";
+      else if (T.kind === "ctrl")
+        h += '<div class="ln txt ctrl"><span class="l">' + esc(T.pre) + " = " + slotHTML(T, 0, "r") + "</span></div>";
+      else
+        h += '<div class="ln"><span class="l">' + slotHTML(T, 0) + '</span><span class="m">=</span><span class="r">' + slotHTML(T, 1, "r") + "</span></div>";
+    } else if (O.step === "op" || O.step === "line") {
+      if (sec !== "B")
+        h += '<div class="kop">Berekenen</div>';
+    } else if (O.step === "over" && !rows.length) {
+      h += '<div class="kop">Overnemen</div>';
+    }
+    $("rows").innerHTML = h;
+    var p = $("paper");
+    p.scrollTop = p.scrollHeight;
+  }
+  function renderAny() {
+    render();
+  }
+  $("rows").onclick = function(e) {
+    if (busy)
+      return;
+    var s = e.target.closest ? e.target.closest(".slot") : null;
+    var T = curTyping();
+    if (s && T) {
+      T.act = +s.getAttribute("data-s");
+      renderAny();
+      return;
+    }
+    var ln = e.target.closest ? e.target.closest(".ln") : null;
+    if (!ln || !O || !O.tap || !O.onTap)
+      return;
+    var i = +ln.getAttribute("data-i");
+    if (isNaN(i) || !O.tap(O.rows[i], i))
+      return;
+    O.onTap(i);
+  };
+  function addRow(r) {
+    r.isNew = true;
+    O.rows.push(r);
+  }
+  function lastEqIdx(before) {
+    for (var i = (before === void 0 ? O.rows.length : before) - 1; i >= 0; i--)
+      if (O.rows[i].t === "eq")
+        return i;
+    return -1;
+  }
+  function scaleOn() {
+    if (!O || !RUN)
+      return false;
+    return O.trap === 1 || O.trap === 3 || O.trap === 4 && O.scaleHint;
+  }
+  function showScale(opl, opr) {
+    var on = scaleOn();
+    $("scale").hidden = !on;
+    if (on && O.cur)
+      scale.set(fmtL(O.cur.a, O.cur.b), fmtR(O.cur.c), opl, opr);
+  }
+  function startOpgave() {
+    unstamp();
+    setMsg("");
+    var eq = genEq(RUN.ld);
+    O = {
+      eq: { a: eq.a, b: eq.b, c: eq.c },
+      X: eq.X,
+      trap: RUN.trap,
+      rows: [],
+      cur: null,
+      step: "",
+      fouten: 0,
+      zelf: false,
+      hints: 0,
+      ctrl: false,
+      forced: false,
+      op: null,
+      tried: [],
+      hinted: {},
+      typing: null,
+      tap: null,
+      onTap: null,
+      marks: null,
+      scaleHint: false
+    };
+    $("taskLab").textContent = (RUN.kind === "los" ? "Opgave " : "Opgave ") + (RUN.i + 1);
+    $("taskSom").textContent = fmtLine(O.eq);
+    $("taskMode").textContent = TRAPS[O.trap].n;
+    drawHud(false);
+    if (O.trap === 2) {
+      $("scale").hidden = true;
+      setupFZ();
+      return;
+    }
+    O.cur = null;
+    $("scale").hidden = !scaleOn();
+    if (scaleOn()) {
+      scale.ang = 0;
+      scale.set(fmtL(O.eq.a, O.eq.b), fmtR(O.eq.c));
+    }
+    stepOver();
+  }
+  function stepOver() {
+    O.step = "over";
+    O.tap = null;
+    var eq = O.eq;
+    if (O.trap === 1) {
+      setPrompt("Neem de vergelijking over.");
+      var good = fmtLine(eq), cand = [];
+      cand.push(fmtL(eq.a, -eq.b) + " = " + fmtR(eq.c));
+      var cs = String(eq.c.p);
+      if (cs.length === 2 && cs[0] !== cs[1])
+        cand.push(fmtL(eq.a, eq.b) + " = " + cs[1] + cs[0]);
+      cand.push(eq.a + " + " + eq.b + " = " + fmtR(eq.c));
+      cand.push(fmtL(eq.b, eq.a) + " = " + fmtR(eq.c));
+      cand = shuffle(cand.filter(function(c) {
+        return c !== good && O.tried.indexOf(c) < 0;
+      })).slice(0, 2);
+      var list = [eqOpt(null, function() {
+        okOver();
+      }, good)];
+      cand.forEach(function(c) {
+        list.push(eqOpt(null, function() {
+          O.tried.push(c);
+          fout("over", { line: c }, stepOver);
+        }, c));
+      });
+      setOpts(shuffle(list));
+      render();
+    } else {
+      setPrompt("Neem de vergelijking over. Typ links en rechts van het =-teken.");
+      O.typing = { kind: "over", slots: ["", ""], act: 0 };
+      showKeys();
+      render();
+    }
+  }
+  function okOver() {
+    O.typing = null;
+    O.tried = [];
+    addRow({ s: "O", t: "eq", L: O.eq });
+    O.cur = O.eq;
+    stepOp();
+  }
+  function stepOp() {
+    var exp = expectOp(O.cur);
+    if (!exp) {
+      stepKader();
+      return;
+    }
+    O.step = "op";
+    O.tap = null;
+    O.exp = exp;
+    showScale();
+    if (O.trap === 1) {
+      setPrompt("Welke bewerking doe je nu? Rood onder beide kanten.");
+      var a = O.cur.a, list = [{ op: exp, l: 1, r: 1, ok: true }, { op: exp, l: 1, r: 0, err: "kant" }];
+      if (exp.t === ":")
+        list.push({ op: { t: "-", v: exp.v }, l: 1, r: 1, err: "delen" });
+      else {
+        var alt = [{ op: { t: exp.t === "-" ? "+" : "-", v: exp.v }, l: 1, r: 1, err: "teken" }];
+        if (a !== 1)
+          alt.push({ op: { t: ":", v: a }, l: 1, r: 1, err: "volgorde" });
+        if (RUN.trap === 1 && Math.random() < 0.35)
+          alt.push({ op: exp, l: 0, r: 1, err: "kant" });
+        list.push(pick(alt));
+      }
+      list = list.filter(function(o) {
+        return o.ok || O.tried.indexOf(opKey(o)) < 0;
+      });
+      var opts = list.map(function(o) {
+        return opOpt(o, function() {
+          chooseOp(o);
+        });
+      });
+      setOpts(shuffle(opts));
+      render();
+    } else {
+      setPrompt("Schrijf de bewerking in het rood onder <b>beide</b> kanten (bijvoorbeeld −7 of : 5).");
+      O.typing = { kind: "op", slots: ["", ""], act: 0 };
+      showKeys();
+      render();
+    }
+  }
+  function chooseOp(o) {
+    if (o.ok) {
+      okOp();
+      return;
+    }
+    O.tried.push(opKey(o));
+    fout(o.err, { op: o.op, leftOnly: o.l && !o.r, rightOnly: o.r && !o.l }, stepOp);
+  }
+  function okOp() {
+    O.typing = null;
+    O.tried = [];
+    addRow({ s: "B", t: "op", op: O.exp, l: true, r: true });
+    O.op = O.exp;
+    if (scaleOn()) {
+      var t = opText(O.exp);
+      showScale(t, t);
+    }
+    O.scaleHint = false;
+    stepLine();
+  }
+  function linePool(cur, op) {
+    var good = applyOp(cur, op), pool = [];
+    if (op.t === "-" || op.t === "+") {
+      var s = op.t === "-" ? -op.v : op.v;
+      pool.push({ L: { a: cur.a, b: good.b, c: rAdd(cur.c, -s) }, err: "erbij" });
+      pool.push({ L: { a: cur.a, b: good.b, c: rAdd(good.c, Math.abs(cur.a)) }, err: "reken" });
+      pool.push({ L: { a: cur.a, b: good.b, c: rAdd(good.c, -Math.abs(cur.a)) }, err: "reken" });
+      if (cur.a !== 1)
+        pool.push({ L: { a: 1, b: good.b, c: good.c }, err: "factor" });
+    } else if (op.t === ":") {
+      pool.push({ L: { a: 1, b: 0, c: rAdd(good.c, 1) }, err: "reken" });
+      pool.push({ L: { a: 1, b: 0, c: rAdd(good.c, -1) }, err: "reken" });
+      pool.push({ L: { a: 1, b: 0, c: rAdd(cur.c, -op.v) }, err: "delen" });
+    }
+    var gk = lineKey(good), seen = {};
+    seen[gk] = 1;
+    pool = pool.filter(function(p) {
+      var k = lineKey(p.L);
+      if (seen[k])
+        return false;
+      seen[k] = 1;
+      return true;
+    });
+    return { good, pool };
+  }
+  function stepLine() {
+    O.step = "line";
+    O.tap = null;
+    if (O.trap === 1) {
+      setPrompt("Schrijf de nieuwe regel op. Kies de goede.");
+      var lp = linePool(O.cur, O.op);
+      var pool = shuffle(lp.pool.filter(function(p) {
+        return O.tried.indexOf(lineKey(p.L)) < 0;
+      })).slice(0, 2);
+      var list = [eqOpt(lp.good, function() {
+        okLine(lp.good, null);
+      })];
+      pool.forEach(function(p) {
+        list.push(eqOpt(p.L, function() {
+          okLine(p.L, p.err);
+        }));
+      });
+      setOpts(shuffle(list));
+      render();
+    } else {
+      setPrompt("Schrijf de nieuwe regel: links en rechts van het =-teken.");
+      O.typing = { kind: "line", slots: ["", ""], act: 0 };
+      showKeys();
+      render();
+    }
+  }
+  function okLine(L, err) {
+    O.typing = null;
+    if (err)
+      countV(err);
+    addRow({ s: "B", t: "eq", L, err: err || null });
+    O.cur = L;
+    O.tried = [];
+    if (scaleOn())
+      showScale();
+    stepOp();
+  }
+  function stepKader() {
+    O.step = "kader";
+    $("scale").hidden = !scaleOn();
+    setPrompt("Zet je antwoord in het kader: tik op de regel met het antwoord.");
+    setOpts([]);
+    O.tap = function(r) {
+      return r.t === "eq" && (r.s === "B" || r.s === "O");
+    };
+    O.onTap = function(i) {
+      if (i === lastEqIdx()) {
+        O.tap = null;
+        addRow({ s: "A", t: "ans", L: O.cur });
+        stepKeuze();
+      } else
+        fout("kader", { line: fmtLine(O.rows[i].L) }, stepKader);
+    };
+    render();
+  }
+  function stepKeuze() {
+    O.step = "keuze";
+    O.tap = null;
+    setPrompt("Klaar! Wil je eerst controleren? Dat mag altijd.");
+    setOpts([
+      { html: "Controleren", cls: "big gold", key: false, fn: function() {
+        O.ctrl = true;
+        stepCtrl1();
+      } },
+      { html: "Inleveren", cls: "big accent", key: false, fn: inleveren }
+    ], true);
+    render();
+  }
+  function inleveren() {
+    if (rEq(O.cur.c, O.X))
+      finish();
+    else {
+      O.forced = true;
+      fout("inlever", {}, function() {
+        O.ctrl = true;
+        stepCtrl1();
+      });
+    }
+  }
+  function invulText(xv) {
+    var eq = O.eq;
+    return fmtI(eq.a) + " · " + par(fmtR(xv)) + (eq.b > 0 ? " + " + eq.b : eq.b < 0 ? " − " + -eq.b : "");
+  }
+  function stepCtrl1() {
+    O.step = "ctrl1";
+    O.tap = null;
+    var xv = O.cur.c, eq = O.eq, good = invulText(xv);
+    if (O.trap === 1) {
+      setPrompt("Controle: vul x = " + esc(fmtR(xv)) + " in de linkerkant in.");
+      var cand = [];
+      if (xv.q === 1 && xv.p > 0)
+        cand.push(String(eq.a) + xv.p + (eq.b > 0 ? " + " + eq.b : ""));
+      cand.push(fmtI(eq.a) + " · " + par(fmtR(xv)) + " + " + fmtR(eq.c));
+      cand.push(par(fmtR(xv)) + (eq.b > 0 ? " + " + eq.b : ""));
+      cand.push(fmtI(eq.a) + " + " + par(fmtR(xv)) + (eq.b > 0 ? " + " + eq.b : ""));
+      cand = shuffle(cand.filter(function(c) {
+        return c !== good && O.tried.indexOf(c) < 0;
+      })).slice(0, 2);
+      var list = [eqOpt(null, function() {
+        O.tried = [];
+        addRow({ s: "C", t: "txt", text: good });
+        stepCtrl2();
+      }, good)];
+      cand.forEach(function(c) {
+        list.push(eqOpt(null, function() {
+          O.tried.push(c);
+          fout("ctrl", { line: c, good }, stepCtrl1);
+        }, c));
+      });
+      setOpts(shuffle(list));
+      render();
+    } else {
+      addRow({ s: "C", t: "txt", text: good });
+      stepCtrl2();
+    }
+  }
+  function ctrlValues() {
+    var xv = O.cur.c, eq = O.eq, prod = rMul(xv, eq.a);
+    return { prod, L: rAdd(prod, eq.b) };
+  }
+  function ctrlLine(prod, L) {
+    var b = O.eq.b;
+    return par(fmtR(prod)) + (b > 0 ? " + " + b : b < 0 ? " − " + -b : "") + " = " + fmtR(L);
+  }
+  function stepCtrl2() {
+    O.step = "ctrl2";
+    O.tap = null;
+    var v = ctrlValues(), good = ctrlLine(v.prod, v.L);
+    if (O.trap === 1) {
+      setPrompt("Reken de linkerkant uit.");
+      var cand = [ctrlLine(rAdd(v.prod, O.eq.a), rAdd(v.L, O.eq.a)), ctrlLine(v.prod, rAdd(v.L, pick([-1, 1, 10, -10]))), ctrlLine(rAdd(v.prod, -O.eq.a), rAdd(v.L, -O.eq.a))];
+      cand = shuffle(cand.filter(function(c) {
+        return c !== good && O.tried.indexOf(c) < 0;
+      })).slice(0, 2);
+      var list = [eqOpt(null, function() {
+        O.tried = [];
+        ctrlDone(good, v.L);
+      }, good)];
+      cand.forEach(function(c) {
+        list.push(eqOpt(null, function() {
+          O.tried.push(c);
+          fout("ctrl", { line: c, good }, stepCtrl2);
+        }, c));
+      });
+      setOpts(shuffle(list));
+      render();
+    } else {
+      setPrompt("Reken de linkerkant uit en typ de uitkomst.");
+      O.rows.pop();
+      O.typing = { kind: "ctrl", slots: [""], act: 0, pre: invulText(O.cur.c) };
+      showKeys();
+      render();
+    }
+  }
+  function ctrlDone(line, L) {
+    O.typing = null;
+    var klopt = rEq(L, O.eq.c);
+    if (O.trap !== 1 && O.rows[O.rows.length - 1].s !== "C")
+      addRow({ s: "C", t: "txt", text: invulText(O.cur.c) });
+    addRow({ s: "C", t: "txt", text: line + (klopt ? "   klopt" : "   ≠ " + fmtR(O.eq.c) + ", klopt niet") });
+    if (klopt) {
+      finish();
+      return;
+    }
+    stepZoek();
+  }
+  function firstBad() {
+    for (var i = 0; i < O.rows.length; i++) {
+      var r = O.rows[i];
+      if (r.s === "B" && r.t === "eq" && !lineOK(r.L, O.X))
+        return i;
+    }
+    return -1;
+  }
+  function stepZoek() {
+    O.step = "zoek";
+    setPrompt("Het klopt niet. Zoek de regel waar het misgaat en tik erop.");
+    setOpts([]);
+    render();
+    var bad = firstBad();
+    O.tap = function(r) {
+      return r.s === "B" && r.t === "eq";
+    };
+    O.onTap = function(i) {
+      if (i !== bad) {
+        O.marks = {};
+        O.marks[i] = "wrongtap";
+        setMsg("Deze regel klopt nog. Reken de regel eronder na.");
+        render();
+        O.marks = null;
+        return;
+      }
+      O.tap = null;
+      setMsg("");
+      var wrong = O.rows[i].L;
+      O.rows = O.rows.slice(0, i);
+      var prev = lastEqIdx();
+      O.cur = O.rows[prev].L;
+      O.op = O.rows[i - 1].op;
+      O.tried = [lineKey(wrong)];
+      if (!O.forced && !O.zelf) {
+        O.zelf = true;
+        banner("Zelf gevonden!<small>Je controle heeft een fout gevangen</small>", "zelf", 2200);
+      } else
+        banner("Gevonden", "", 900);
+      busy = true;
+      setTimeout(function() {
+        busy = false;
+        if (scaleOn())
+          showScale();
+        stepLine();
+      }, O.zelf && !O.forced ? 1400 : 700);
+    };
+    render();
+  }
+  function submitTyping() {
+    if (VK) {
+      vkSubmit();
+      return;
+    }
+    var T = O.typing;
+    if (!T)
+      return;
+    setMsg("");
+    if (T.kind === "over") {
+      var l = parseLeft(T.slots[0]), r = parseNum(T.slots[1]);
+      if (!l || !r) {
+        setMsg("Typ links bijvoorbeeld 5x + 7 en rechts een getal.");
+        return;
+      }
+      if (l.a === O.eq.a && l.b === O.eq.b && rEq(r, O.eq.c)) {
+        okOver();
+        return;
+      }
+      fout("over", { line: fmtL(l.a, l.b) + " = " + fmtR(r) }, function() {
+        T.slots = ["", ""];
+        T.act = 0;
+        showKeys();
+        render();
+      });
+      return;
+    }
+    if (T.kind === "op") {
+      var a = parseOp(T.slots[0]), b = parseOp(T.slots[1]);
+      if (!T.slots[0] && !T.slots[1]) {
+        setMsg("Typ links en rechts een bewerking, zoals −7 of : 5.");
+        return;
+      }
+      if (T.slots[0] && !a || T.slots[1] && !b) {
+        setMsg("Een bewerking is een teken met een getal, zoals −7, +3 of : 5.");
+        return;
+      }
+      if (!a || !b || !opEq(a, b)) {
+        var op = a || b;
+        fout("kant", { op, leftOnly: !!a && !b, rightOnly: !a && !!b, differ: !!a && !!b }, function() {
+          T.slots = ["", ""];
+          T.act = 0;
+          showKeys();
+          render();
+        });
+        return;
+      }
+      if (opEq(a, O.exp)) {
+        okOp();
+        return;
+      }
+      var e = O.exp, err = "anders";
+      if (a.t === ":" && e.t !== ":")
+        err = "volgorde";
+      else if (e.t === "-" && a.t === "+" && a.v === e.v || e.t === "+" && a.t === "-" && a.v === e.v)
+        err = "teken";
+      else if (e.t === ":" && (a.t === "-" || a.t === "+") && a.v === e.v)
+        err = "delen";
+      fout(err, { op: a }, function() {
+        T.slots = ["", ""];
+        T.act = 0;
+        showKeys();
+        render();
+      });
+      return;
+    }
+    if (T.kind === "line") {
+      var L = parseLeft(T.slots[0]), Rr = parseNum(T.slots[1]);
+      if (!L) {
+        setMsg("Typ links bijvoorbeeld 5x of x.");
+        return;
+      }
+      if (L.a === 0) {
+        setMsg("Links moet nog een x staan.");
+        return;
+      }
+      if (!Rr) {
+        setMsg("Typ rechts een getal (bijvoorbeeld 35, −4 of 2,5).");
+        return;
+      }
+      var nl = { a: L.a, b: L.b, c: Rr };
+      if (lineKey(nl) === lineKey(O.cur)) {
+        setMsg("Dit is dezelfde regel als hierboven. Reken de bewerking uit.");
+        return;
+      }
+      var lp = linePool(O.cur, O.op), err2 = null;
+      if (lineKey(nl) !== lineKey(lp.good)) {
+        err2 = "reken";
+        for (var i = 0; i < lp.pool.length; i++)
+          if (lineKey(lp.pool[i].L) === lineKey(nl))
+            err2 = lp.pool[i].err;
+      }
+      okLine(nl, err2);
+      return;
+    }
+    if (T.kind === "ctrl") {
+      var v = parseNum(T.slots[0]);
+      if (!v) {
+        setMsg("Typ een getal.");
+        return;
+      }
+      var cv = ctrlValues();
+      if (!rEq(v, cv.L)) {
+        fout("ctrl", { line: T.pre + " = " + fmtR(v), good: T.pre + " = " + ctrlLine(cv.prod, cv.L) }, function() {
+          T.slots = [""];
+          showKeys();
+          render();
+        });
+        return;
+      }
+      O.typing = null;
+      addRow({ s: "C", t: "txt", text: T.pre });
+      ctrlDone(ctrlLine(cv.prod, cv.L), cv.L);
+    }
+  }
+  function finish() {
+    O.step = "done";
+    O.tap = null;
+    O.typing = null;
+    var res = { g: O.fouten === 0 ? 1 : 0, f: O.fouten, z: O.zelf ? 1 : 0, h: O.hints, c: O.ctrl ? 1 : 0 };
+    RUN.res[RUN.i] = res;
+    if (O.trap === 2) {
+      if (O.fouten === 0)
+        stamp("Goed gezien!", false);
+      setPrompt(O.fouten === 0 ? "Goed gezien." : O.fz.err === "geen" ? "Deze uitwerking was helemaal goed." : "Kijk waar de fout zat: de rode regel.");
+    } else {
+      if (O.zelf)
+        stamp("Zelf gevonden!", true);
+      else
+        stamp(O.fouten === 0 ? "Goed!" : "Klaar", false);
+      if (!O.zelf)
+        banner(O.fouten === 0 ? "Goed!" : "Opgelost", "", 900);
+      setPrompt(O.zelf ? "Mijlpaal: je hebt zelf een fout gevonden met de controle!" : O.fouten === 0 ? "Helemaal goed." : "Opgelost. Op naar de volgende.");
+    }
+    setMsg("");
+    setOpts([{ html: RUN.i + 1 < RUN.items ? "Volgende opgave" : "Klaar", cls: "big accent", key: false, fn: nextItem }], true);
+    drawHud(false);
+    render();
+  }
+  function nextItem() {
+    RUN.i++;
+    if (RUN.i >= RUN.items)
+      endRun();
+    else
+      startOpgave();
+  }
+  function setupFZ() {
+    var eq = O.eq, a = eq.a, b = eq.b, c = eq.c;
+    var op1 = { t: "-", v: b }, L1 = { a, b: 0, c: rAdd(c, -b) }, op2 = { t: ":", v: a }, L2 = { a: 1, b: 0, c: rDiv(L1.c, a) };
+    var types = ["geen", "erbij", "reken", "kant", "delen", "factor", "deel", "kader"];
+    var err = Math.random() < 0.2 ? "geen" : pick(types.slice(1));
+    var rows = [{ s: "O", t: "eq", L: eq }], bad = [], uit = "", badTxt = "";
+    var o1 = { s: "B", t: "op", op: op1, l: true, r: true }, o2 = { s: "B", t: "op", op: op2, l: true, r: true };
+    var l1 = L1, l2 = L2, ans = null;
+    if (err === "erbij") {
+      l1 = { a, b: 0, c: rAdd(c, b) };
+      l2 = { a: 1, b: 0, c: rDiv(l1.c, a) };
+      uit = fmtR(c) + " − " + b + " = " + fmtR(L1.c) + ". Rechts moet er ook " + b + " af, niet bij.";
+    } else if (err === "reken") {
+      var d = pick([-1, 1]) * a;
+      l1 = { a, b: 0, c: rAdd(L1.c, d) };
+      l2 = { a: 1, b: 0, c: rDiv(l1.c, a) };
+      uit = "Rekenfout: " + fmtR(c) + " − " + b + " = " + fmtR(L1.c) + ".";
+    } else if (err === "kant") {
+      o1 = { s: "B", t: "op", op: op1, l: true, r: false };
+      l1 = { a, b: 0, c };
+      l2 = { a: 1, b: 0, c: rDiv(c, a) };
+      uit = "De −" + b + " staat alleen links. Wat je links doet, doe je ook rechts.";
+    } else if (err === "delen") {
+      o2 = { s: "B", t: "op", op: { t: "-", v: a }, l: true, r: true };
+      l2 = { a: 1, b: 0, c: rAdd(L1.c, -a) };
+      uit = termX(a) + " betekent " + a + " keer x. Dan deel je door " + a + ", je trekt niet " + a + " af.";
+    } else if (err === "deel") {
+      l2 = { a: 1, b: 0, c: rAdd(L2.c, pick([-1, 1])) };
+      uit = "Rekenfout: " + fmtR(L1.c) + " : " + a + " = " + fmtR(L2.c) + ".";
+    }
+    rows.push(o1);
+    if (err === "factor") {
+      rows.push({ s: "B", t: "eq", L: { a: 1, b: 0, c: L1.c } });
+      bad = [2];
+      rows.push({ s: "A", t: "ans", L: { a: 1, b: 0, c: L1.c } });
+      uit = "Na −" + b + " blijft " + termX(a) + " staan: " + fmtLine(L1) + ". Daarna nog delen door " + a + ".";
+    } else {
+      rows.push({ s: "B", t: "eq", L: l1 });
+      rows.push(o2);
+      rows.push({ s: "B", t: "eq", L: l2 });
+      ans = err === "kader" ? l1 : l2;
+      rows.push({ s: "A", t: "ans", L: ans });
+      if (err === "erbij" || err === "reken")
+        bad = [2];
+      else if (err === "kant")
+        bad = [1, 2];
+      else if (err === "delen")
+        bad = [3, 4];
+      else if (err === "deel")
+        bad = [4];
+      else if (err === "kader") {
+        bad = [5];
+        uit = "In het kader hoort het antwoord: de regel met alleen x links, " + fmtLine(L2) + ".";
+      }
+    }
+    O.rows = rows;
+    O.fz = { err, bad, uit };
+    O.step = "fz";
+    setPrompt("Zit er een fout in deze uitwerking? Tik op de regel met de fout.");
+    setOpts([{ html: "Geen fout, alles klopt", cls: "big", key: false, fn: function() {
+      fzAnswer(-1);
+    } }], true);
+    O.tap = function(r) {
+      return r.s !== "O";
+    };
+    O.onTap = function(i) {
+      fzAnswer(i);
+    };
+    render();
+  }
+  function fzAnswer(i) {
+    var f = O.fz, ok = f.err === "geen" ? i === -1 : f.bad.indexOf(i) >= 0;
+    O.tap = null;
+    O.marks = {};
+    if (f.bad.length)
+      O.marks[f.bad[0]] = "found";
+    if (!ok && i >= 0)
+      O.marks[i] = "wrongtap";
+    if (ok) {
+      banner("Goed gezien!", "", 1e3);
+      finish();
+      setMsg(f.err === "geen" ? "Klopt: deze uitwerking is helemaal goed." : esc(f.uit), true);
+    } else {
+      countV("fz_" + f.err);
+      fout("fz", { uit: f.err === "geen" ? "Deze uitwerking was helemaal goed. Controleer: vul x = " + fmtR(O.X) + " in." : f.uit, line: "" }, function() {
+        finish();
+        setMsg(f.err === "geen" ? "" : esc(f.uit), true);
+      });
+    }
+    render();
+  }
+  function countV(k) {
+    RUN.V[k] = (RUN.V[k] || 0) + 1;
+  }
+  function uitleg(type, x) {
+    var cur = O.cur || O.eq, e = O.exp;
+    switch (type) {
+      case "kant":
+        return { t: "Uit balans!", l: x.op ? x.differ ? "links en rechts iets anders" : x.leftOnly ? opText(x.op) + " alleen links" : opText(x.op) + " alleen rechts" : "", x: "Wat je links doet, doe je ook rechts. Anders is de weegschaal niet meer in evenwicht." };
+      case "volgorde":
+        return { t: "Eerst het losse getal weg", l: opText(x.op), x: "Haal eerst " + (cur.b > 0 ? "+" + cur.b : "−" + -cur.b) + " weg. Pas als alleen " + termX(cur.a) + " over is, deel je door " + fmtI(cur.a) + "." };
+      case "teken":
+        return { t: "Doe het tegenovergestelde", l: opText(x.op), x: "Er staat " + (cur.b > 0 ? "+" + cur.b : "−" + -cur.b) + ". Om dat weg te halen doe je het tegenovergestelde: " + opText(e) + "." };
+      case "delen":
+        return { t: "Keer wordt delen", l: opText(x.op), x: termX(cur.a) + " betekent " + fmtI(cur.a) + " keer x. Het tegenovergestelde van keer is delen: : " + fmtI(cur.a) + "." };
+      case "anders":
+        return { t: "Dat helpt niet", l: x.op ? opText(x.op) : "", x: "Kijk wat er bij de x staat en doe het tegenovergestelde. Hier: " + opText(e) + "." };
+      case "over":
+        return { t: "Niet goed overgenomen", l: x.line, x: "Schrijf de vergelijking precies over: " + fmtLine(O.eq) + "." };
+      case "kader":
+        return { t: "Verkeerde regel omkaderd", l: x.line, x: "Het antwoord is de regel waar links alleen x staat." };
+      case "inlever":
+        return { t: "Dit antwoord klopt niet", l: "x = " + fmtR(O.cur.c), x: "Doe nu de controle: vul je antwoord in en zoek waar het misgaat." };
+      case "ctrl":
+        return { t: "Controle: reken nog eens na", l: x.line, x: "Goed is: " + x.good + "." };
+      case "fz":
+        return { t: "Niet gevonden", l: "", x: x.uit };
+    }
+    return { t: "Let op", l: "", x: "" };
+  }
+  function fout(type, x, then) {
+    O.fouten++;
+    countV(type);
+    RUN.lives = Math.max(0, RUN.lives - 1);
+    drawHud(true);
+    var u = uitleg(type, x || {});
+    $("whyTitle").textContent = u.t;
+    $("whyLine").textContent = u.l || "";
+    $("whyLine").hidden = !u.l;
+    $("whyText").textContent = u.x;
+    var sc = type === "kant" && x && x.op && !x.differ;
+    $("whyScale").hidden = !sc;
+    if (sc) {
+      var t = opText(x.op);
+      whyScale.ang = 0;
+      whyScale.set(fmtL(O.cur.a, O.cur.b), fmtR(O.cur.c), x.leftOnly ? t : "", x.rightOnly ? t : "");
+      setTimeout(function() {
+        whyScale.tilt(tiltFor(x.op, x.leftOnly));
+      }, 250);
+      if (scaleOn()) {
+        scale.set(fmtL(O.cur.a, O.cur.b), fmtR(O.cur.c), x.leftOnly ? t : "", x.rightOnly ? t : "");
+        scale.tilt(tiltFor(x.op, x.leftOnly));
+      }
+    }
+    afterWhy = function() {
+      if (scaleOn() && O.cur) {
+        scale.tilt(0);
+        showScale();
+      }
+      if (RUN.lives <= 0)
+        openCheck(then);
+      else
+        then();
+    };
+    $("whyOv").hidden = false;
+    setTimeout(function() {
+      $("btnWhyOk").focus();
+    }, 50);
+  }
+  $("btnWhyOk").onclick = function() {
+    $("whyOv").hidden = true;
+    var f = afterWhy;
+    afterWhy = null;
+    if (f)
+      f();
+  };
+  function openCheck(then) {
+    ckState = { streak: 0, then, q: null };
+    $("checkOv").hidden = false;
+    ckNew();
+  }
+  function ckNew() {
+    var a = rnd(2, 6), x = rnd(1, 8), b = rnd(1, 12), c = a * x + b, claim = Math.random() < 0.5 ? x : x + pick([-1, 1]);
+    if (claim < 1)
+      claim = x + 1;
+    ckState.q = { a, b, c, x, claim };
+    var h = "";
+    for (var i = 0; i < CK_NEED; i++)
+      h += '<i class="' + (i < ckState.streak ? "on" : "") + '"></i>';
+    $("ckBar").innerHTML = h;
+    $("ckQ").textContent = "Is x = " + claim + " de oplossing van " + fmtL(a, b) + " = " + c + "?";
+    $("ckFb").hidden = true;
+    $("ckBtns").hidden = false;
+    $("btnCkNext").hidden = true;
+  }
+  function ckAnswer(ja) {
+    var q = ckState.q, L = q.a * q.claim + q.b, klopt = L === q.c, ok = ja === klopt;
+    ckState.streak = ok ? ckState.streak + 1 : 0;
+    $("ckFb").innerHTML = (ok ? '<b class="g">Goed!</b> ' : '<b class="f">Niet goed.</b> ') + esc(q.a + " · " + q.claim + " + " + q.b + " = " + q.a * q.claim + " + " + q.b + " = " + L + (klopt ? ", klopt." : ", en dat is geen " + q.c + ": klopt niet."));
+    $("ckFb").hidden = false;
+    $("ckBtns").hidden = true;
+    var h = "";
+    for (var i = 0; i < CK_NEED; i++)
+      h += '<i class="' + (i < ckState.streak ? "on" : "") + '"></i>';
+    $("ckBar").innerHTML = h;
+    $("btnCkNext").textContent = ckState.streak >= CK_NEED ? "Levens terug!" : "Volgende";
+    $("btnCkNext").hidden = false;
+    $("btnCkNext").focus();
+  }
+  $("btnCkJa").onclick = function() {
+    ckAnswer(true);
+  };
+  $("btnCkNee").onclick = function() {
+    ckAnswer(false);
+  };
+  $("btnCkNext").onclick = function() {
+    if (ckState.streak >= CK_NEED) {
+      $("checkOv").hidden = true;
+      RUN.lives = LIVES;
+      RUN.recharged++;
+      drawHud(false);
+      banner("Levens terug!", "", 1e3);
+      var f = ckState.then;
+      ckState = null;
+      if (f)
+        f();
+    } else
+      ckNew();
+  };
+  $("btnHint").onclick = function() {
+    if (!O || !RUN || busy || O.step === "done" || !O.step)
+      return;
+    var key = O.step + "|" + O.rows.length;
+    if (!O.hinted[key]) {
+      O.hinted[key] = 1;
+      O.hints++;
+    }
+    var eq = O.eq, cur = O.cur, t = "";
+    switch (O.step) {
+      case "over":
+        t = "Neem precies over: " + fmtLine(eq) + ".";
+        break;
+      case "op":
+        var e = O.exp;
+        t = e.t === ":" ? "Er staat " + termX(cur.a) + ": dat is " + fmtI(cur.a) + " keer x. Deel beide kanten door " + fmtI(cur.a) + "." : "Haal eerst het losse getal weg: doe " + opText(e) + " aan beide kanten.";
+        if (O.trap === 4) {
+          O.scaleHint = true;
+          showScale();
+        }
+        break;
+      case "line":
+        var g = applyOp(cur, O.op);
+        t = "Reken rechts uit: " + fmtR(cur.c) + " " + opText(O.op) + " = " + fmtR(g.c) + ". Links blijft " + fmtL(g.a, g.b) + " over.";
+        break;
+      case "kader":
+        t = "Tik op de laatste regel: " + fmtLine(cur) + ".";
+        break;
+      case "keuze":
+        t = "Controleren: vul x = " + fmtR(cur.c) + " in de linkerkant in. Komt er " + fmtR(eq.c) + " uit?";
+        break;
+      case "ctrl1":
+        t = "Vul in: " + invulText(cur.c) + ".";
+        break;
+      case "ctrl2":
+        var v = ctrlValues();
+        t = fmtI(eq.a) + " · " + par(fmtR(cur.c)) + " = " + fmtR(v.prod) + ".";
+        break;
+      case "zoek":
+        t = "Reken elke regel na, van boven naar beneden. Bij welke regel klopt het rekenwerk niet?";
+        break;
+      case "fz":
+        t = "Reken elke regel na en kijk of links en rechts hetzelfde gebeurt. Of vul x in als controle.";
+        break;
+    }
+    setMsg("Hint: " + esc(t), true);
+  };
+  function vkItems() {
+    var out = [], kinds = ["check", "hoofd", "neg", "check", "hoofd", "neg"];
+    for (var i = 0; i < kinds.length; i++) {
+      var k = kinds[i], q = { kind: k };
+      if (k === "check") {
+        var a = pick([-5, -4, -3, -2, 2, 3, 4, 5]), x = pick([-3, -2, -1, 1, 2, 3, 4, 5, 6]), b = pick([-9, -6, -4, -1, 2, 3, 5, 7, 10, 12]);
+        var L = a * x + b, truth = Math.random() < 0.5, c = truth ? L : L + pick([-2, -1, 1, 2]);
+        q.text = "Is x = " + fmtI(x) + " een oplossing van " + fmtL(a, b) + " = " + fmtI(c) + "?";
+        q.pre = fmtI(a) + " · " + par(fmtI(x)) + (b > 0 ? " + " + b : " − " + -b);
+        q.L = L;
+        q.truth = truth;
+        q.c = c;
+        q.x = x;
+      } else if (k === "hoofd") {
+        var f = rnd(0, 2), xx = pick([-4, -3, -2, 2, 3, 4, 5, 6, 7, 8, 9]);
+        if (f === 0) {
+          var p = rnd(2, 9);
+          q.text = "x + " + p + " = " + fmtI(xx + p);
+        } else if (f === 1) {
+          var p2 = rnd(5, 12);
+          q.text = p2 + " − x = " + fmtI(p2 - xx);
+        } else {
+          var kk = pick([-4, -3, -2, 2, 3, 4, 5, 6]);
+          q.text = termX(kk) + " = " + fmtI(kk * xx);
+        }
+        q.ans = xx;
+      } else {
+        var g = rnd(0, 4), m = rnd(2, 6), n = rnd(2, 9);
+        if (g === 0) {
+          q.text = fmtI(-m * n) + " + " + m;
+          q.ans = -m * n + m;
+        } else if (g === 1) {
+          q.text = m + " − " + (m + n);
+          q.ans = -n;
+        } else if (g === 2) {
+          q.text = fmtI(-m) + " · " + n;
+          q.ans = -m * n;
+        } else if (g === 3) {
+          q.text = fmtI(-m * n) + " : " + par(fmtI(-m));
+          q.ans = n;
+        } else {
+          q.text = fmtI(-m) + " − " + n;
+          q.ans = -m - n;
+        }
+      }
+      out.push(q);
+    }
+    return out;
+  }
+  function startVK() {
+    RUN = { kind: "vk", ld: 0, trap: 0, items: 6, i: 0, res: [], lives: LIVES, recharged: 0, V: {}, r: 0 };
+    VK = { list: vkItems(), typing: null, phase: "" };
+    O = null;
+    $("scale").hidden = true;
+    vkShow();
+  }
+  function vkShow() {
+    var q = VK.list[RUN.i];
+    unstamp();
+    setMsg("");
+    drawHud(false);
+    $("taskLab").textContent = "Voorkennis " + (RUN.i + 1);
+    $("taskMode").textContent = "telt niet mee";
+    if (q.kind === "check") {
+      $("taskSom").textContent = "Klopt het?";
+      setPrompt(esc(q.text) + " Vul eerst in en reken uit.");
+      VK.typing = { kind: "vk", slots: [""], act: 0 };
+      VK.phase = "val";
+    } else if (q.kind === "hoofd") {
+      $("taskSom").textContent = q.text;
+      setPrompt("Wat is x? Los op uit je hoofd.");
+      VK.typing = { kind: "vk", slots: [""], act: 0 };
+    } else {
+      $("taskSom").textContent = q.text;
+      setPrompt("Reken uit.");
+      VK.typing = { kind: "vk", slots: [""], act: 0 };
+    }
+    showKeys();
+    renderVK();
+  }
+  function renderVK() {
+    var q = VK.list[RUN.i], T = VK.typing, h = "";
+    if (q.kind === "check") {
+      h += '<div class="ln txt"><span class="l">' + esc(q.text) + "</span></div>";
+      h += '<div class="ln txt"><span class="l">' + esc(q.pre) + " = " + (T ? slotHTML(T, 0, "r") : esc(fmtI(VK.val))) + "</span></div>";
+    } else if (q.kind === "hoofd") {
+      h += '<div class="ln txt"><span class="l">' + esc(q.text) + "</span></div>";
+      h += '<div class="ln txt"><span class="l">x = ' + (T ? slotHTML(T, 0, "r") : "") + "</span></div>";
+    } else {
+      h += '<div class="ln txt"><span class="l">' + esc(q.text) + " = " + (T ? slotHTML(T, 0, "r") : "") + "</span></div>";
+    }
+    $("rows").innerHTML = h;
+  }
+  function vkSubmit() {
+    var q = VK.list[RUN.i], T = VK.typing, v = parseNum(T.slots[0]);
+    if (!v) {
+      setMsg("Typ een getal.");
+      return;
+    }
+    setMsg("");
+    if (q.kind === "check") {
+      VK.val = v.q === 1 ? v.p : NaN;
+      VK.valOK = rEq(v, R(q.L));
+      VK.typing = null;
+      renderVK();
+      setPrompt("Is x = " + esc(fmtI(q.x)) + " een oplossing? Daarvoor moet er " + esc(fmtI(q.c)) + " uitkomen.");
+      setOpts([
+        { html: "Ja, klopt", cls: "big", key: false, fn: function() {
+          vkDone(VK.valOK && q.truth);
+        } },
+        { html: "Nee, klopt niet", cls: "big", key: false, fn: function() {
+          vkDone(VK.valOK && !q.truth);
+        } }
+      ], true);
+      return;
+    }
+    VK.typing = null;
+    vkDone(rEq(v, R(q.ans)));
+  }
+  function vkDone(ok) {
+    RUN.res[RUN.i] = { g: ok ? 1 : 0 };
+    banner(ok ? "Goed" : "Niet goed", "", 700);
+    setOpts([]);
+    drawHud(false);
+    busy = true;
+    setTimeout(function() {
+      busy = false;
+      RUN.i++;
+      if (RUN.i >= RUN.items)
+        endRun();
+      else
+        vkShow();
+    }, 800);
+  }
+  function focusLd() {
+    for (var i = 0; i < LDS.length; i++)
+      if (TEAM.mask & 1 << i && LDS[i].ok) {
+        var f = i;
+      }
+    return f === void 0 ? 0 : f;
+  }
+  function startRonde() {
+    var ts = load(teamKey()) || {};
+    var ld = focusLd(), traps = trapsStore(), trap = traps[LDS[ld].c] || 1;
+    RUN = { kind: "ronde", ld, trap, items: PER_RONDE, i: 0, res: [], lives: LIVES, recharged: 0, V: {}, r: (ts.r || 0) + 1 };
+    VK = null;
+    banner("Ronde " + RUN.r + "<small>" + LDS[ld].c + " · trap " + trap + ": " + TRAPS[trap].n + "</small>", "", 1500);
+    startOpgave();
+  }
+  function startLos() {
+    RUN = { kind: "los", ld: 0, trap: losTrap, items: PER_LOS, i: 0, res: [], lives: LIVES, recharged: 0, V: {}, r: 0 };
+    VK = null;
+    startOpgave();
+  }
+  function sum(k) {
+    var s = 0;
+    for (var i = 0; i < RUN.res.length; i++)
+      if (RUN.res[i])
+        s += RUN.res[i][k] || 0;
+    return s;
+  }
+  function endRun() {
+    O = null;
+    VK = null;
+    setOpts([]);
+    $("keys").hidden = true;
+    var goed = sum("g");
+    $("stGoed").textContent = goed + "/" + RUN.items;
+    $("stBad").textContent = sum("f");
+    $("stZelf").textContent = sum("z");
+    $("stHint").textContent = sum("h");
+    var code = null;
+    if (RUN.kind === "vk") {
+      $("endTitle").textContent = "Voorkennis klaar";
+      $("endSub").textContent = goed + " van de 6 goed. Dit telt niet mee voor je team.";
+      $("stBad").textContent = RUN.items - goed;
+      $("stZelf").textContent = "–";
+      $("stHint").textContent = "–";
+      $("endTrap").textContent = "Lever je code in. Daarna begint ronde 1.";
+      code = encodeCode2({ v: 1, g: "team", n: P.n, k: P.k, lc: TEAM.code, s: TEAM.s, r: 0, t: Math.floor(Date.now() / 1e3), vk: goed, o: RUN.res.map(function(r) {
+        return r ? r.g : 0;
+      }) });
+      var ts = load(teamKey()) || {};
+      ts.vkDone = true;
+      ts.s = TEAM.s;
+      ts.last = code;
+      store(teamKey(), ts);
+      $("btnNext").textContent = "Naar ronde 1";
+    } else if (RUN.kind === "ronde") {
+      var ld = LDS[RUN.ld].c, traps = trapsStore(), up = goed >= TRAP_UP && RUN.trap < 4;
+      $("endTitle").textContent = "Ronde " + RUN.r + " klaar!";
+      $("endSub").textContent = ld + " · trap " + RUN.trap + ": " + TRAPS[RUN.trap].n;
+      if (up) {
+        traps[ld] = RUN.trap + 1;
+        store("balans.traps." + nameKey(), traps);
+      }
+      $("endTrap").innerHTML = up ? "<b>Je gaat omhoog naar trap " + (RUN.trap + 1) + ": " + TRAPS[RUN.trap + 1].n + "!</b>" : RUN.trap === 4 && goed >= TRAP_UP ? "<b>Je beheerst dit leerdoel helemaal alleen. Top!</b>" : "Nog " + TRAP_UP + " van de " + PER_RONDE + " foutloos nodig om een trap omhoog te gaan.";
+      code = encodeCode2({
+        v: 1,
+        g: "team",
+        n: P.n,
+        k: P.k,
+        lc: TEAM.code,
+        s: TEAM.s,
+        r: RUN.r,
+        t: Math.floor(Date.now() / 1e3),
+        ld,
+        tr: RUN.trap,
+        o: RUN.res.map(function(r) {
+          return [r.g, r.f, r.z, r.h, r.c];
+        }),
+        q: RUN.recharged,
+        V: RUN.V
+      });
+      var ts2 = load(teamKey()) || {};
+      ts2.r = RUN.r;
+      ts2.s = TEAM.s;
+      ts2.last = code;
+      store(teamKey(), ts2);
+      $("btnNext").textContent = "Volgende ronde";
+    } else {
+      $("endTitle").textContent = goed >= 5 ? "Level gehaald!" : "Klaar!";
+      $("endSub").textContent = LDS[RUN.ld].c + " · trap " + RUN.trap + ": " + TRAPS[RUN.trap].n;
+      var next = goed >= 5 && RUN.trap < 4;
+      $("endTrap").textContent = next ? "Op naar trap " + (RUN.trap + 1) + ": " + TRAPS[RUN.trap + 1].n + "." : goed >= 5 ? "Je kunt het helemaal alleen!" : "Met 5 van de 6 foutloos ga je een trap omhoog.";
+      if (next)
+        losTrap = RUN.trap + 1;
+      $("btnNext").textContent = next ? "Volgende trap" : "Nog een keer";
+    }
+    if (code) {
+      P.last = code;
+      store("balans.speler", P);
+      $("endQr").innerHTML = qrSvg(code);
+    }
+    $("endQrWrap").hidden = !code;
+    $("endOv").hidden = false;
+  }
+  $("btnNext").onclick = function() {
+    $("endOv").hidden = true;
+    if (MODE === "team")
+      startRonde();
+    else
+      startLos();
+  };
+  $("btnEndHome").onclick = function() {
+    $("endOv").hidden = true;
+    showStart();
+  };
+  $("btnPause").onclick = function() {
+    if (!RUN)
+      return;
+    $("pauseInfo").textContent = RUN.kind === "vk" ? "Voorkennis, vraag " + (RUN.i + 1) + " van 6." : (RUN.kind === "ronde" ? "Ronde " + RUN.r : "Zelf oefenen") + ", opgave " + (RUN.i + 1) + " van " + RUN.items + ".";
+    $("btnPauseCode").hidden = !P.last;
+    $("pauseOv").hidden = false;
+  };
+  $("btnResume").onclick = function() {
+    $("pauseOv").hidden = true;
+  };
+  $("btnQuit").onclick = function() {
+    $("pauseOv").hidden = true;
+    showStart();
+  };
+  function showCode() {
+    if (!P.last)
+      return;
+    $("qrInfo").textContent = P.n + " · " + P.k;
+    $("qrBox").innerHTML = qrSvg(P.last);
+    $("qrOv").hidden = false;
+  }
+  $("btnPauseCode").onclick = function() {
+    $("pauseOv").hidden = true;
+    showCode();
+  };
+  $("btnStartCode").onclick = showCode;
+  $("btnQrClose").onclick = function() {
+    $("qrOv").hidden = true;
+  };
+  function drawTrapPick() {
+    var h = "";
+    for (var t = 1; t <= 4; t++)
+      h += '<button class="trapb' + (t === losTrap ? " sel" : "") + '" data-t="' + t + '"><b>Trap ' + t + ": " + TRAPS[t].n + "</b><span>" + TRAPS[t].d + "</span></button>";
+    $("trapPick").innerHTML = h;
+  }
+  $("trapPick").onclick = function(e) {
+    var b = e.target.closest ? e.target.closest(".trapb") : null;
+    if (!b)
+      return;
+    losTrap = +b.getAttribute("data-t");
+    drawTrapPick();
+  };
+  function setTab(team) {
+    MODE = team ? "team" : "los";
+    $("tabTeam").className = "tab" + (team ? " sel" : "");
+    $("tabLos").className = "tab" + (team ? "" : " sel");
+    $("paneTeam").hidden = !team;
+    $("paneLos").hidden = team;
+    $("startErr").hidden = true;
+  }
+  $("tabTeam").onclick = function() {
+    setTab(true);
+  };
+  $("tabLos").onclick = function() {
+    setTab(false);
+  };
+  function showStart() {
+    O = null;
+    VK = null;
+    RUN = null;
+    $("inName").value = P.n || "";
+    $("inKlas").value = P.k || "";
+    $("btnStartCode").hidden = !P.last;
+    drawTrapPick();
+    $("startOv").hidden = false;
+  }
+  function startErr(t) {
+    $("startErr").textContent = t;
+    $("startErr").hidden = false;
+  }
+  $("btnStart").onclick = function() {
+    var n = $("inName").value.replace(/\s+/g, " ").trim(), k = $("inKlas").value;
+    if (MODE === "team") {
+      if (!n) {
+        startErr("Vul je naam in.");
+        return;
+      }
+      if (!k) {
+        startErr("Kies je klas.");
+        return;
+      }
+      var lc = lcDecode($("inCode").value);
+      if (!lc) {
+        startErr("Deze lescode klopt niet. Kijk nog eens op het bord.");
+        return;
+      }
+      var any = false;
+      for (var i = 0; i < LDS.length; i++)
+        if (lc.mask & 1 << i && LDS[i].ok)
+          any = true;
+      if (!any) {
+        startErr("Deze les gaat over een leerdoel dat nog niet in het spel zit.");
+        return;
+      }
+      if (P.n !== n || P.k !== k)
+        P.last = null;
+      P.n = n;
+      P.k = k;
+      store("balans.speler", P);
+      TEAM = lc;
+      var ts = load(teamKey()) || {};
+      if (!ts.s) {
+        ts.s = lc.code + Math.random().toString(36).slice(2, 7);
+        store(teamKey(), ts);
+      }
+      TEAM.s = ts.s;
+      $("startOv").hidden = true;
+      if (lc.vk && !ts.vkDone)
+        startVK();
+      else
+        startRonde();
+    } else {
+      if (n) {
+        P.n = n;
+        if (k)
+          P.k = k;
+        store("balans.speler", P);
+      }
+      TEAM = null;
+      $("startOv").hidden = true;
+      startLos();
+    }
+  };
+  $("inCode").addEventListener("keydown", function(e) {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      $("btnStart").click();
+    }
+  });
+  setTab(true);
+  scale.set("5x + 7", "42");
+  $("taskSom").textContent = "5x + 7 = 42";
+  showStart();
+  window.__hoekOK = true;
+})();
+</script>
+</body>
+</html>
